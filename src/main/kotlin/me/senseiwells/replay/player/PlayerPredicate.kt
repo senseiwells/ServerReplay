@@ -52,7 +52,7 @@ abstract class PlayerPredicate {
                     for (name in names) {
                         array.add(name)
                     }
-                    json.add("name", array)
+                    json.add("names", array)
                     return json
                 }
             }
@@ -71,7 +71,7 @@ abstract class PlayerPredicate {
                     for (uuid in uuids) {
                         array.add(uuid)
                     }
-                    json.add("uuid", array)
+                    json.add("uuids", array)
                     return json
                 }
             }
@@ -92,16 +92,21 @@ abstract class PlayerPredicate {
             }
         }
 
-        fun inTeam(team: String): PlayerPredicate {
+        fun inTeam(teams: List<String>): PlayerPredicate {
             return object: PlayerPredicate() {
                 override fun shouldRecord(player: ServerPlayer): Boolean {
-                    return player.team?.name?.equals(team, true) ?: false
+                    val name = player.team?.name ?: return false
+                    return teams.contains(name)
                 }
 
                 override fun serialise(): JsonElement {
                     val json = JsonObject()
                     json.addProperty("type", "in_team")
-                    json.addProperty("team_name", team)
+                    val array = JsonArray()
+                    for (team in teams) {
+                        array.add(team)
+                    }
+                    json.add("teams", array)
                     return json
                 }
             }

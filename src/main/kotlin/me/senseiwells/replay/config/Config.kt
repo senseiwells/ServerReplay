@@ -28,6 +28,7 @@ object Config {
 
     var worldName = "World"
     var serverName = "Server"
+    var hasPredicate = true
 
     var recordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
 
@@ -52,12 +53,15 @@ object Config {
             this.worldName = json.get("world_name").asString
         }
         if (json.has("server_name")) {
-            this.worldName = json.get("server_name").asString
+            this.serverName = json.get("server_name").asString
         }
         if (json.has("recording_path")) {
             this.recordingPath = Path.of(json.get("recording_path").asString)
         }
-        if (json.has("predicate")) {
+        if (json.has("has_predicate")) {
+            this.hasPredicate = json.get("has_predicate").asBoolean
+        }
+        if (this.hasPredicate && json.has("predicate")) {
             this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
         }
     }
@@ -83,10 +87,10 @@ object Config {
         return when (val type = json.get("type").asString) {
             "none" -> PlayerPredicate.none()
             "all" -> PlayerPredicate.all()
-            "has_name" -> PlayerPredicate.hasName(json.get("name").asJsonArray.map { it.asString })
-            "has_uuid" -> PlayerPredicate.hasUUID(json.get("uuid").asJsonArray.map { it.asString })
+            "has_name" -> PlayerPredicate.hasName(json.get("names").asJsonArray.map { it.asString })
+            "has_uuid" -> PlayerPredicate.hasUUID(json.get("uuids").asJsonArray.map { it.asString })
             "has_op" -> PlayerPredicate.hasOP(json.get("level").asInt)
-            "in_team" -> PlayerPredicate.inTeam(json.get("team").asString)
+            "in_team" -> PlayerPredicate.inTeam(json.get("teams").asJsonArray.map { it.asString })
             "not" -> PlayerPredicate.not(this.deserializePlayerPredicate(json.getAsJsonObject("predicate")))
             "or" -> PlayerPredicate.or(
                 this.deserializePlayerPredicate(json.getAsJsonObject("first")),

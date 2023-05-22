@@ -66,7 +66,7 @@ abstract class PlayerPredicate {
 
                 override fun serialise(): JsonElement {
                     val json = JsonObject()
-                    json.addProperty("type", "has_name")
+                    json.addProperty("type", "has_uuid")
                     val array = JsonArray()
                     for (uuid in uuids) {
                         array.add(uuid)

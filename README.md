@@ -174,7 +174,7 @@ repositories {
 
 dependencies {
     // For the most recent version use the latest commit hash
-    val version = "8eeeeafa6e"
+    val version = "86a2d48e8a"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
 }
 ```

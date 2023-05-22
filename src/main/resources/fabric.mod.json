@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "serverreplay",
+  "version": "${version}",
+  "name": "Server Replay Mod",
+  "description": "",
+  "authors": [
+    "Sensei"
+  ],
+  "contact": {
+
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "me.senseiwells.replay.ServerReplay"
+      }
+    ]
+  },
+  "mixins": [
+    "serverreplay.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.12",
+    "minecraft": "1.19.x",
+    "java": ">=17",
+    "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0"
+  }
+}

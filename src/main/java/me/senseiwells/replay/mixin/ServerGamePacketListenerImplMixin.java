@@ -24,7 +24,7 @@ public class ServerGamePacketListenerImplMixin {
 	private void onDisconnect(Component reason, CallbackInfo ci) {
 		PlayerRecorder recorder = PlayerRecorders.remove(this.player);
 		if (recorder != null) {
-			recorder.disconnect();
+			recorder.stop();
 		}
 	}
 

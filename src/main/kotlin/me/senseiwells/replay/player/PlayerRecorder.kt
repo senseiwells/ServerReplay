@@ -11,6 +11,7 @@ import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.config.Config
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
@@ -111,7 +112,7 @@ class PlayerRecorder(
         }
     }
 
-    fun disconnect() {
+    fun stop() {
         this.meta.duration = this.last.toInt()
         this.saveMeta()
 
@@ -182,6 +183,7 @@ class PlayerRecorder(
                 ServerReplay.logger.error("Failed to write replay", exception)
             }
         }
+
         this.executor.shutdown()
     }
 
@@ -211,8 +213,8 @@ class PlayerRecorder(
     private fun createNewMeta(): ReplayMetaData {
         val meta = ReplayMetaData()
         meta.isSingleplayer = false
-        meta.serverName = "World"
-        meta.customServerName = "Server"
+        meta.serverName = Config.worldName
+        meta.customServerName = Config.serverName
         meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
         meta.mcVersion = DetectedVersion.BUILT_IN.name

@@ -1,6 +1,7 @@
 package me.senseiwells.replay.mixin;
 
 import me.senseiwells.replay.ServerReplay;
+import me.senseiwells.replay.config.Config;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import net.minecraft.network.Connection;
@@ -24,7 +25,7 @@ public class PlayerListMixin {
 		)
 	)
 	private void onPlayerJoin(Connection netManager, ServerPlayer player, CallbackInfo ci) {
-		if (PlayerRecorders.shouldRecordPlayer(player)) {
+		if (Config.getEnabled() && PlayerRecorders.predicate.test(player)) {
 			ServerReplay.logger.info("Started to record player '{}'", player.getScoreboardName());
 			PlayerRecorder recorder = PlayerRecorders.create(player);
 			// This is sent to the player before the server creates

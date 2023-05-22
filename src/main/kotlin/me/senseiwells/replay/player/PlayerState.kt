@@ -12,6 +12,7 @@ import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.item.ItemStack
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class PlayerState(
@@ -58,7 +59,7 @@ class PlayerState(
         this.lastY = player.y
         this.lastZ = player.z
 
-        if (forced || Math.abs(dx) > MAX_TRAVEL || Math.abs(dy) > MAX_TRAVEL || Math.abs(dz) > MAX_TRAVEL) {
+        if (forced || abs(dx) > MAX_TRAVEL || abs(dy) > MAX_TRAVEL || abs(dz) > MAX_TRAVEL) {
              this.owner.record(ClientboundTeleportEntityPacket(player))
         } else {
             val newYaw = (player.yRot * 256.0f / 360.0f).toInt().toByte()

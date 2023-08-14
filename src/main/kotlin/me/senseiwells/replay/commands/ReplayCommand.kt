@@ -33,7 +33,7 @@ object ReplayCommand {
             return 0
         }
         Config.enabled = true
-        context.source.sendSuccess(Component.literal("ServerReplay is now enabled! For players to be recorded they must re-log."), true)
+        context.source.sendSuccess({ Component.literal("ServerReplay is now enabled! For players to be recorded they must re-log.") }, true)
         return 1
     }
 
@@ -43,7 +43,7 @@ object ReplayCommand {
             return 0
         }
         Config.enabled = false
-        context.source.sendSuccess(Component.literal("ServerReplay is now disabled! Stopped all recordings."), true)
+        context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
         return 1
     }
 
@@ -57,7 +57,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess(Component.literal("Successfully stopped $i recordings."), true)
+        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings.") }, true)
         return i
     }
 
@@ -65,13 +65,13 @@ object ReplayCommand {
         for (recorders in PlayerRecorders.all()) {
             recorders.stop()
         }
-        context.source.sendSuccess(Component.literal("Successfully stopped all recordings."), true)
+        context.source.sendSuccess({ Component.literal("Successfully stopped all recordings.") }, true)
         return 1
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
         Config.read()
-        context.source.sendSuccess(Component.literal("Successfully reloaded config."), true)
+        context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }
 }

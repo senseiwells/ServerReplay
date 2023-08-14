@@ -20,7 +20,11 @@ public class CommandsMixin {
 		method = "<init>",
 		at = @At("TAIL")
 	)
-	private void onRegisterCommands(Commands.CommandSelection commandSelection, CommandBuildContext commandBuildContext, CallbackInfo ci) {
+	private void onRegisterCommands(
+		Commands.CommandSelection commandSelection,
+		CommandBuildContext commandBuildContext,
+		CallbackInfo ci
+	) {
 		ReplayCommand.register(this.dispatcher);
 	}
 }

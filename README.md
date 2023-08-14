@@ -106,7 +106,8 @@ If you only wanted to record operators:
 }
 ```
 
-If you only want to record players on specific teams:
+If you only want to record players on specific teams, this is useful for allowing players to be
+added and removed in-game, as you can just add players to a team and then have them re-log:
 ```json
 {
   // ...
@@ -176,5 +177,16 @@ dependencies {
     // For the most recent version use the latest commit hash
     val version = "86a2d48e8a"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
+}
+```
+
+You can then set the predicate to your own by setting the field:
+```kt
+class ExampleMod: ModInitializer {
+    override fun onInitialize() {
+        PlayerRecorders.predicate = Predicate<ServerPlayer> { player ->
+            player.isSurvival
+        }
+    }
 }
 ```

@@ -71,7 +71,7 @@ class PlayerState(
                 (dz * 4096).roundToInt().toShort(),
                 newYaw,
                 newPitch,
-                player.isOnGround
+                player.onGround()
             ))
         }
 

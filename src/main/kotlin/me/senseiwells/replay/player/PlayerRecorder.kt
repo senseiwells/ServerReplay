@@ -114,6 +114,7 @@ class PlayerRecorder(
 
     @JvmOverloads
     fun stop(save: Boolean = true) {
+        PlayerRecorders.remove(this.connection.player)
         if (save) {
             this.meta.duration = this.last.toInt()
             this.saveMeta()

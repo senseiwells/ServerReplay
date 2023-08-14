@@ -112,11 +112,14 @@ class PlayerRecorder(
         }
     }
 
-    fun stop() {
-        this.meta.duration = this.last.toInt()
-        this.saveMeta()
+    @JvmOverloads
+    fun stop(save: Boolean = true) {
+        if (save) {
+            this.meta.duration = this.last.toInt()
+            this.saveMeta()
+        }
 
-        this.close()
+        this.close(save)
     }
 
     fun tick() {
@@ -171,14 +174,17 @@ class PlayerRecorder(
         }
     }
 
-    private fun close() {
+    private fun close(save: Boolean) {
         this.executor.execute {
             try {
                 val path = this.recording()
                 this.output.close()
-                this.replay.saveTo(path.toFile())
+
+                if (save) {
+                    this.replay.saveTo(path.toFile())
+                }
                 this.replay.close()
-                ServerReplay.logger.info("Successfully saved replay to $path")
+                ServerReplay.logger.info("Successfully closed replay${if (save) " and saved to $path" else ""}")
             } catch (exception: Exception) {
                 ServerReplay.logger.error("Failed to write replay", exception)
             }

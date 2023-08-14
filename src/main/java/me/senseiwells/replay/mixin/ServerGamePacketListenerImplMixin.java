@@ -19,7 +19,7 @@ public class ServerGamePacketListenerImplMixin {
 
 	@Inject(
 		method = "onDisconnect",
-		at = @At("HEAD")
+		at = @At("TAIL")
 	)
 	private void onDisconnect(Component reason, CallbackInfo ci) {
 		PlayerRecorder recorder = PlayerRecorders.remove(this.player);

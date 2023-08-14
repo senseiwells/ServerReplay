@@ -90,7 +90,7 @@ class PlayerState(
         for (slot in EquipmentSlot.values()) {
             val stack = player.getItemBySlot(slot)
             val ordinal = slot.ordinal
-            if (ItemStack.matches(this.items[ordinal], stack)) {
+            if (!ItemStack.matches(this.items[ordinal], stack)) {
                 val copy = stack.copy()
                 this.items[ordinal] = copy
                 this.owner.record(ClientboundSetEquipmentPacket(player.id, listOf(Pair.of(slot, copy))))

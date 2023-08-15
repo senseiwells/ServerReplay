@@ -81,35 +81,35 @@ class PlayerRecorder(
             return
         }
 
-        this.executor.execute {
-            // Protocol may be mutated in #onPacket, we need current state
-            val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
-            val state = this.protocolAsState()
+        // Protocol may be mutated in #onPacket, we need current state
+        val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
+        val state = this.protocolAsState()
 
-            if (this.prePacket(outgoing)) {
-                return@execute
-            }
-
-            val buf = FriendlyByteBuf(Unpooled.buffer())
-            val saved = try {
-                outgoing.write(buf)
-                val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
-
-                val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-                val registry = PacketTypeRegistry.get(version, state)
-
-                Packet(registry, id, wrapped)
-            } finally {
-                buf.release()
-            }
-
-            val timestamp = System.currentTimeMillis() - this.start
-            this.last = timestamp
-
-            this.output.write(timestamp, saved)
-
-            this.postPacket(outgoing)
+        if (this.prePacket(outgoing)) {
+            return
         }
+
+        val buf = FriendlyByteBuf(Unpooled.buffer())
+        val saved = try {
+            outgoing.write(buf)
+            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
+
+            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
+            val registry = PacketTypeRegistry.get(version, state)
+
+            Packet(registry, id, wrapped)
+        } finally {
+            buf.release()
+        }
+
+        val timestamp = System.currentTimeMillis() - this.start
+        this.last = timestamp
+
+        this.executor.execute {
+            this.output.write(timestamp, saved)
+        }
+
+        this.postPacket(outgoing)
     }
 
     @JvmOverloads

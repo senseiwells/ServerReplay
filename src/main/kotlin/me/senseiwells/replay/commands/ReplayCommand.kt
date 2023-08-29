@@ -2,7 +2,7 @@ package me.senseiwells.replay.commands
 
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import me.senseiwells.replay.config.Config
+import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -28,21 +28,21 @@ object ReplayCommand {
     }
 
     private fun onEnable(context: CommandContext<CommandSourceStack>): Int {
-        if (Config.enabled) {
+        if (ReplayConfig.enabled) {
             context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
             return 0
         }
-        Config.enabled = true
+        ReplayConfig.enabled = true
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled! For players to be recorded they must re-log.") }, true)
         return 1
     }
 
     private fun onDisable(context: CommandContext<CommandSourceStack>): Int {
-        if (!Config.enabled) {
+        if (!ReplayConfig.enabled) {
             context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
             return 0
         }
-        Config.enabled = false
+        ReplayConfig.enabled = false
         context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
         return 1
     }
@@ -70,7 +70,7 @@ object ReplayCommand {
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
-        Config.read()
+        ReplayConfig.read()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }

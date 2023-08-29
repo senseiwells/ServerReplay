@@ -3,17 +3,21 @@ package me.senseiwells.replay.config
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.player.PlayerPredicate
+import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.player.PlayerRecorders
+import me.senseiwells.replay.player.predicates.NonePredicate
+import me.senseiwells.replay.player.predicates.PredicateFactory
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.level.ServerPlayer
 import java.nio.file.Path
 import java.util.function.Predicate
 import kotlin.io.path.*
 
-object Config {
+object ReplayConfig {
+    private val predicateFactories = HashMap<String, PredicateFactory>()
+
     private val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
-    private var reloadablePredicate: PlayerPredicate = PlayerPredicate.none()
+    private var reloadablePredicate: ReplayPlayerPredicate = NonePredicate()
 
     @JvmStatic
     var enabled: Boolean = false
@@ -41,7 +45,9 @@ object Config {
             this.write()
             return
         }
-        val json = this.gson.fromJson(path.bufferedReader(), JsonObject::class.java)
+        val json = path.bufferedReader().use {
+            this.gson.fromJson(it, JsonObject::class.java)
+        }
         if (json == null) {
             this.write()
             return
@@ -76,34 +82,40 @@ object Config {
         json.add("predicate", this.reloadablePredicate.serialise())
         val path = this.getPath()
         path.parent.createDirectories()
-        path.writeText(this.gson.toJson(json))
-    }
-
-    fun getPath(): Path {
-        return FabricLoader.getInstance().configDir.resolve("ServerReplay").resolve("config.json")
-    }
-
-    private fun deserializePlayerPredicate(json: JsonObject): PlayerPredicate {
-        return when (val type = json.get("type").asString) {
-            "none" -> PlayerPredicate.none()
-            "all" -> PlayerPredicate.all()
-            "has_name" -> PlayerPredicate.hasName(json.get("names").asJsonArray.map { it.asString })
-            "has_uuid" -> PlayerPredicate.hasUUID(json.get("uuids").asJsonArray.map { it.asString })
-            "has_op" -> PlayerPredicate.hasOP(json.get("level").asInt)
-            "in_team" -> PlayerPredicate.inTeam(json.get("teams").asJsonArray.map { it.asString })
-            "not" -> PlayerPredicate.not(this.deserializePlayerPredicate(json.getAsJsonObject("predicate")))
-            "or" -> PlayerPredicate.or(
-                this.deserializePlayerPredicate(json.getAsJsonObject("first")),
-                this.deserializePlayerPredicate(json.getAsJsonObject("second"))
-            )
-            "and" -> PlayerPredicate.and(
-                this.deserializePlayerPredicate(json.getAsJsonObject("first")),
-                this.deserializePlayerPredicate(json.getAsJsonObject("second"))
-            )
-            else -> {
-                ServerReplay.logger.error("Failed to deserialize player predicate type '${type}'")
-                PlayerPredicate.none()
-            }
+        path.bufferedWriter().use {
+            this.gson.toJson(json, it)
         }
+    }
+
+    fun root(): Path {
+        return FabricLoader.getInstance().configDir.resolve("ServerReplay")
+    }
+
+    fun addPredicateFactories(vararg factories: PredicateFactory) {
+        for (factory in factories) {
+            this.addPredicateFactory(factory)
+        }
+    }
+
+    fun addPredicateFactory(factory: PredicateFactory): Boolean {
+        if (this.predicateFactories.containsKey(factory.id)) {
+            return false
+        }
+        this.predicateFactories[factory.id] = factory
+        return true
+    }
+
+    fun deserializePlayerPredicate(json: JsonObject): ReplayPlayerPredicate {
+        val type = json.get("type").asString
+        val factory = this.predicateFactories[type]
+        if (factory == null) {
+            ServerReplay.logger.error("Failed to deserialize player predicate type '${type}'")
+            return NonePredicate()
+        }
+        return factory.create(json)
+    }
+
+    private fun getPath(): Path {
+        return this.root().resolve("config.json")
     }
 }

@@ -1,6 +1,6 @@
 package me.senseiwells.replay.mixin;
 
-import me.senseiwells.replay.config.Config;
+import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import net.minecraft.server.MinecraftServer;
@@ -20,7 +20,7 @@ public class MinecraftServerMixin {
 		)
 	)
 	private void onServerLoaded(CallbackInfo ci) {
-		Config.read();
+		ReplayConfig.read();
 	}
 
 	@Inject(
@@ -28,7 +28,7 @@ public class MinecraftServerMixin {
 		at = @At("TAIL")
 	)
 	private void onServerStopped(CallbackInfo ci) {
-		Config.write();
+		ReplayConfig.write();
 
 		for (PlayerRecorder recorder : PlayerRecorders.all()) {
 			recorder.stop();

@@ -1,6 +1,6 @@
 package me.senseiwells.replay.player
 
-import me.senseiwells.replay.config.Config
+import me.senseiwells.replay.config.ReplayConfig
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 
@@ -8,12 +8,12 @@ object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()
 
     @JvmField
-    var predicate = Config.predicate
+    var predicate = ReplayConfig.predicate
 
     @JvmStatic
     fun create(player: ServerPlayer): PlayerRecorder {
         return this.players.getOrPut(player.uuid) {
-            PlayerRecorder(player, Config.recordingPath.resolve(player.stringUUID))
+            PlayerRecorder(player, ReplayConfig.recordingPath.resolve(player.stringUUID))
         }
     }
 

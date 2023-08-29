@@ -257,38 +257,37 @@ class PlayerRecorder(
         val pathHash = Hashing.sha1().hashString(packet.url, StandardCharsets.UTF_8).toString()
         val path = ReplayConfig.root().resolve("packs").resolve(pathHash)
 
-        if (!path.exists() || !this.writeResourcePack(path.readBytes(), packet)) {
+        val requestId = this.packId++
+        if (!path.exists() || !this.writeResourcePack(path.readBytes(), packet.hash, requestId)) {
             CompletableFuture.runAsync {
                 path.parent.createDirectories()
                 val bytes = URL(packet.url).openStream().readAllBytes()
                 path.writeBytes(bytes)
-                this.writeResourcePack(bytes, packet)
+                this.writeResourcePack(bytes, packet.hash, requestId)
             }.exceptionally {
                 ServerReplay.logger.error("Failed to download resource pack", it)
                 null
             }
-            return true
         }
+        this.record(ClientboundResourcePackPacket(
+            "replay://${requestId}",
+            "",
+            packet.isRequired,
+            packet.prompt
+        ))
         return true
     }
 
-    private fun writeResourcePack(bytes: ByteArray, packet: ClientboundResourcePackPacket): Boolean {
+    private fun writeResourcePack(bytes: ByteArray, expectedHash: String, id: Int): Boolean {
         @Suppress("DEPRECATION")
         val packHash = Hashing.sha1().hashBytes(bytes).toString()
-        if (packet.hash == packHash) {
+        if (expectedHash == packHash) {
             this.executor.execute {
                 try {
-                    val requestId = this.packId++
                     val index = this.replay.resourcePackIndex ?: HashMap()
                     val write = !index.containsValue(packHash)
-                    index[requestId] = packHash
+                    index[id] = packHash
                     this.replay.writeResourcePackIndex(index)
-                    this.record(ClientboundResourcePackPacket(
-                        "replay://${requestId}",
-                        "",
-                        packet.isRequired,
-                        packet.prompt
-                    ))
                     if (write) {
                         this.replay.writeResourcePack(packHash).use {
                             it.write(bytes)

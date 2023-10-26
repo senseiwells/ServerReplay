@@ -2,6 +2,7 @@ package me.senseiwells.replay.commands
 
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
+import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import net.minecraft.commands.CommandSourceStack
@@ -13,7 +14,9 @@ object ReplayCommand {
     @JvmStatic
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
-            Commands.literal("replay").then(
+            Commands.literal("replay").requires {
+                Permissions.check(it, "replay.commands.replay", 4)
+            }.then(
                 Commands.literal("enable").executes(this::onEnable)
             ).then(
                 Commands.literal("disable").executes(this::onDisable)

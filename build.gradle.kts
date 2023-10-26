@@ -46,7 +46,7 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")!!)
     include(modImplementation("me.lucko:fabric-permissions-api:0.2-SNAPSHOT")!!)
 
-    modCompileOnly("carpet:fabric-carpet:${property("carpet_core_version")}")
+    modImplementation("carpet:fabric-carpet:${property("carpet_core_version")}")
 
     // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:0.2.0-beta.6")!!)!!)
 

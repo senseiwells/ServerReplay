@@ -18,32 +18,25 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
-import net.minecraft.network.protocol.game.ClientboundBundlePacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
-import net.minecraft.network.protocol.game.ClientboundRespawnPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
-import net.minecraft.util.HttpUtil
-import java.io.FileOutputStream
 import java.io.IOException
-import java.net.Proxy
 import java.net.URL
-import java.nio.channels.Channels
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.io.path.*
+import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
+import kotlin.io.path.readBytes
+import kotlin.io.path.writeBytes
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 

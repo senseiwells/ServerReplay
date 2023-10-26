@@ -3,10 +3,10 @@ package me.senseiwells.replay.config
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.player.predicates.NonePredicate
 import me.senseiwells.replay.player.predicates.PredicateFactory
+import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.level.ServerPlayer
 import java.nio.file.Path

@@ -12,9 +12,18 @@ object PlayerRecorders {
 
     @JvmStatic
     fun create(player: ServerPlayer): PlayerRecorder {
-        return this.players.getOrPut(player.uuid) {
-            PlayerRecorder(player, ReplayConfig.recordingPath.resolve(player.stringUUID))
+        if (this.players.containsKey(player.uuid)) {
+            throw IllegalArgumentException("Player already has a recorder")
         }
+        val recorder = PlayerRecorder(player, ReplayConfig.recordingPath.resolve(player.stringUUID))
+        this.players[player.uuid] = recorder
+        return recorder
+
+    }
+
+    @JvmStatic
+    fun has(player: ServerPlayer): Boolean {
+        return this.players.containsKey(player.uuid)
     }
 
     @JvmStatic

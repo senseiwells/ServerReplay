@@ -15,8 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(NetHandlerPlayServerFake.class)
 public class NetHandlerPlayServerFakeMixin extends ServerGamePacketListenerImpl {
-	public NetHandlerPlayServerFakeMixin(MinecraftServer minecraftServer, Connection connection, ServerPlayer serverPlayer) {
-		super(minecraftServer, connection, serverPlayer);
+	public NetHandlerPlayServerFakeMixin(MinecraftServer server, Connection connection, ServerPlayer serverPlayer) {
+		super(server, connection, serverPlayer);
 	}
 
 	@Inject(

@@ -2,13 +2,7 @@ package me.senseiwells.replay.player
 
 import com.mojang.datafixers.util.Pair
 import net.minecraft.core.NonNullList
-import net.minecraft.network.protocol.game.ClientboundAnimatePacket
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket
-import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket
-import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket
-import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.item.ItemStack

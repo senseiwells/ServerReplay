@@ -21,6 +21,9 @@ repositories {
     maven {
         url = uri("https://jitpack.io")
     }
+    maven {
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
+    }
     mavenCentral()
 }
 
@@ -41,6 +44,9 @@ dependencies {
         exclude(group = "com.google.code.gson", module = "gson")
     }
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")!!)
+    include(modImplementation("me.lucko:fabric-permissions-api:0.2-SNAPSHOT")!!)
+
+    modCompileOnly("carpet:fabric-carpet:${property("carpet_core_version")}")
 
     // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:0.2.0-beta.6")!!)!!)
 

@@ -11,7 +11,12 @@
     "ServerGamePacketListenerImplMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
-    "compat.carpet.NetHandlerPlayServerFakeMixin"
+    "compat.carpet.NetHandlerPlayServerFakeMixin",
+    "spoof.ChunkMapAccessor",
+    "spoof.ChunkMapMixin",
+    "spoof.PlayerListMixin",
+    "spoof.TrackedEntityAccessor",
+    "spoof.TrackedEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

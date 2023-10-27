@@ -13,6 +13,8 @@ import com.replaymod.replaystudio.studio.ReplayStudio
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.spoof.SpoofedConnection
+import me.senseiwells.replay.spoof.SpoofedReplayPlayer
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
@@ -121,6 +123,12 @@ class PlayerRecorder(
         }
 
         this.postPacket(outgoing)
+    }
+
+    // THIS SHOULD ONLY BE CALLED WHEN STARTING
+    // REPLAY AFTER THE PLAYER HAS LOGGED IN!
+    fun start() {
+        this.server.playerList.placeNewPlayer(SpoofedConnection(), SpoofedReplayPlayer(this.player))
     }
 
     @JvmOverloads

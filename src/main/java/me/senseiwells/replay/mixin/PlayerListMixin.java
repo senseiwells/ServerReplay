@@ -4,6 +4,7 @@ import me.senseiwells.replay.ServerReplay;
 import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.spoof.SpoofedReplayPlayer;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,6 +26,13 @@ public class PlayerListMixin {
 		)
 	)
 	private void onPlayerJoin(Connection netManager, ServerPlayer player, CallbackInfo ci) {
+		if (player instanceof SpoofedReplayPlayer spoofed) {
+			ServerPlayer original = spoofed.getOriginal();
+			ServerReplay.logger.info("Started to record player '{}'", original.getScoreboardName());
+			spoofed.connection.send(new ClientboundGameProfilePacket(original.getGameProfile()));
+			return;
+		}
+
 		if (ReplayConfig.getEnabled() && PlayerRecorders.predicate.test(player)) {
 			ServerReplay.logger.info("Started to record player '{}'", player.getScoreboardName());
 			PlayerRecorder recorder = PlayerRecorders.create(player);

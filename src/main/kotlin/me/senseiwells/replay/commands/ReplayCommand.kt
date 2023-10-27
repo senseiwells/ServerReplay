@@ -21,6 +21,10 @@ object ReplayCommand {
             ).then(
                 Commands.literal("disable").executes(this::onDisable)
             ).then(
+                Commands.literal("start").then(
+                    Commands.argument("players", EntityArgument.players()).executes(this::onStart)
+                )
+            ).then(
                 Commands.literal("stop").then(
                     Commands.argument("players", EntityArgument.players()).executes(this::onStop)
                 ).executes(this::onStopAll)
@@ -50,6 +54,19 @@ object ReplayCommand {
         return 1
     }
 
+    private fun onStart(context: CommandContext<CommandSourceStack>): Int {
+        val players = EntityArgument.getPlayers(context, "players")
+        var i = 0
+        for (player in players) {
+            if (!PlayerRecorders.has(player)) {
+                PlayerRecorders.create(player).start()
+                i++
+            }
+        }
+        context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        return i
+    }
+
     private fun onStop(context: CommandContext<CommandSourceStack>): Int {
         val players = EntityArgument.getPlayers(context, "players")
         var i = 0
@@ -60,7 +77,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings.") }, true)
+        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
         return i
     }
 

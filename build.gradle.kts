@@ -48,9 +48,13 @@ dependencies {
 
     modImplementation("carpet:fabric-carpet:${property("carpet_core_version")}")
 
-    // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:0.2.0-beta.6")!!)!!)
+    include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:0.2.1-beta.1")!!)!!)
 
     implementation(kotlin("stdlib-jdk8"))
+}
+
+loom {
+    accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
 }
 
 tasks {

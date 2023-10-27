@@ -23,6 +23,10 @@ import kotlin.math.min
 class SpoofedReplayPlayer(
     val original: ServerPlayer
 ): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
+    init {
+        this.id = this.original.id
+    }
+
     fun sendLevelPackets() {
         val seen = IntOpenHashSet()
         this.sendChunkUpdates(seen)
@@ -102,7 +106,7 @@ class SpoofedReplayPlayer(
         if (entity === this.original || seen.contains(entity.id)) {
             return
         }
-        
+
         val delta = this.original.position().subtract(entity.position())
         val range = min((tracked as TrackedEntityInvoker).getRange(), (chunks.viewDistance * 16)).toDouble()
         val deltaSqr: Double = delta.x * delta.x + delta.z * delta.z

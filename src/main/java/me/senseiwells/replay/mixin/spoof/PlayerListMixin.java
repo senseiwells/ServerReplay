@@ -16,8 +16,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.players.PlayerList;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.List;
@@ -25,7 +27,9 @@ import java.util.Map;
 
 @Mixin(PlayerList.class)
 @SuppressWarnings("unused")
-public class PlayerListMixin {
+public abstract class PlayerListMixin {
+	@Shadow public abstract @Nullable CompoundTag load(ServerPlayer player);
+
 	@WrapOperation(
 		method = "placeNewPlayer",
 		at = @At(
@@ -50,7 +54,8 @@ public class PlayerListMixin {
 		method = "placeNewPlayer",
 		at = @At(
 			value = "INVOKE",
-			target = "Lorg/slf4j/Logger;info(Ljava/lang/String;[Ljava/lang/Object;)V"
+			target = "Lorg/slf4j/Logger;info(Ljava/lang/String;[Ljava/lang/Object;)V",
+			remap = false
 		)
 	)
 	private boolean shouldLogPlayerJoin(
@@ -142,6 +147,8 @@ public class PlayerListMixin {
 		Packet<?> packet,
 		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
 	) {
+		// We do not need to send the player to itself!
+		// It already does this because the player is already online
 		return spoofed.get() == null;
 	}
 
@@ -157,11 +164,6 @@ public class PlayerListMixin {
 		ServerPlayer player,
 		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
 	) {
-		SpoofedReplayPlayer replay = spoofed.get();
-		if (replay != null) {
-			replay.sendLevelPackets();
-			return false;
-		}
-		return true;
+		return spoofed.get() == null;
 	}
 }

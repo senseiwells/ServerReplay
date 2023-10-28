@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin.spoof;
+package me.senseiwells.replay.mixin.rejoin;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.server.level.ChunkMap;

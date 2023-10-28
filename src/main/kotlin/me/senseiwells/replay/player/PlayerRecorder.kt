@@ -13,8 +13,7 @@ import com.replaymod.replaystudio.studio.ReplayStudio
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.spoof.SpoofedConnection
-import me.senseiwells.replay.spoof.SpoofedReplayPlayer
+import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
@@ -24,7 +23,6 @@ import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ServerEntity
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import java.io.IOException
@@ -59,7 +57,7 @@ class PlayerRecorder(
 
     private val start: Long
 
-    private var spoofed: SpoofedReplayPlayer? = null
+    private var spoofed: RejoinedReplayPlayer? = null
     private var protocol = ConnectionProtocol.LOGIN
     private var last = 0L
 
@@ -137,9 +135,8 @@ class PlayerRecorder(
     // THIS SHOULD ONLY BE CALLED WHEN STARTING
     // REPLAY AFTER THE PLAYER HAS LOGGED IN!
     fun start() {
-        val spoofed = SpoofedReplayPlayer(this.player)
-        this.spoofed = spoofed
-        this.server.playerList.placeNewPlayer(SpoofedConnection(), spoofed)
+        // This essentially
+        RejoinedReplayPlayer.rejoin(this.player)
     }
 
     @JvmOverloads
@@ -155,14 +152,6 @@ class PlayerRecorder(
 
     fun tick() {
         this.state.tick()
-
-        val spoofed = this.spoofed
-        if (spoofed != null) {
-            this.spoofed = null
-            spoofed.doTick()
-            // ServerEntity(this.player.serverLevel(), spoofed, 1, false, this::record).sendChanges()
-            spoofed.sendLevelPackets()
-        }
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
@@ -210,7 +199,7 @@ class PlayerRecorder(
     private fun spawnPlayer() {
         val player = this.player
         this.record(ClientboundAddPlayerPacket(player))
-        val tracked = player.entityData.packDirty()
+        val tracked = player.entityData.nonDefaultValues
         if (tracked != null) {
             this.record(ClientboundSetEntityDataPacket(player.id, tracked))
         }

@@ -1,12 +1,12 @@
-package me.senseiwells.replay.mixin.spoof;
+package me.senseiwells.replay.mixin.rejoin;
 
 import com.llamalad7.mixinextras.injector.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import me.senseiwells.replay.spoof.SpoofedGamePacketListener;
-import me.senseiwells.replay.spoof.SpoofedReplayPlayer;
+import me.senseiwells.replay.rejoin.RejoinGamePacketListener;
+import me.senseiwells.replay.rejoin.RejoinedReplayPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -41,11 +41,13 @@ public abstract class PlayerListMixin {
 		PlayerList instance,
 		ServerPlayer player,
 		Operation<CompoundTag> operation,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
-		if (player instanceof SpoofedReplayPlayer replay) {
+		if (player instanceof RejoinedReplayPlayer replay) {
 			spoofed.set(replay);
-			return replay.getOriginal().saveWithoutId(new CompoundTag());
+			CompoundTag data = replay.getOriginal().saveWithoutId(new CompoundTag());
+			replay.load(data);
+			return data;
 		}
 		return operation.call(instance, player);
 	}
@@ -62,7 +64,7 @@ public abstract class PlayerListMixin {
 		Logger instance,
 		String string,
 		Object[] objects,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		return spoofed.get() == null;
 	}
@@ -79,11 +81,11 @@ public abstract class PlayerListMixin {
 		Connection connection,
 		ServerPlayer player,
 		Operation<ServerGamePacketListenerImpl> constructor,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
-		SpoofedReplayPlayer replay = spoofed.get();
+		RejoinedReplayPlayer replay = spoofed.get();
 		if (replay != null) {
-			return new SpoofedGamePacketListener(replay, connection);
+			return new RejoinGamePacketListener(replay, connection);
 		}
 		return constructor.call(server, connection, player);
 	}
@@ -99,7 +101,7 @@ public abstract class PlayerListMixin {
 		PlayerList instance,
 		Component message,
 		boolean bypassHiddenChat,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		return spoofed.get() == null;
 	}
@@ -114,7 +116,7 @@ public abstract class PlayerListMixin {
 	private <E> boolean shouldAddPlayer(
 		List<E> instance,
 		E player,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		return spoofed.get() == null;
 	}
@@ -130,7 +132,7 @@ public abstract class PlayerListMixin {
 		Map<K, V> instance,
 		K k,
 		V v,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		return spoofed.get() == null;
 	}
@@ -145,7 +147,7 @@ public abstract class PlayerListMixin {
 	private boolean shouldBroadcastToAll(
 		PlayerList instance,
 		Packet<?> packet,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		// We do not need to send the player to itself!
 		// It already does this because the player is already online
@@ -162,7 +164,7 @@ public abstract class PlayerListMixin {
 	private boolean shouldAddNewPlayer(
 		ServerLevel instance,
 		ServerPlayer player,
-		@Share("spoofed") LocalRef<SpoofedReplayPlayer> spoofed
+		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		return spoofed.get() == null;
 	}

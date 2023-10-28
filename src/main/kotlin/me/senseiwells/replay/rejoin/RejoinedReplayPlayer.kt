@@ -1,9 +1,9 @@
-package me.senseiwells.replay.spoof
+package me.senseiwells.replay.rejoin
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
-import me.senseiwells.replay.mixin.spoof.ChunkMapAccessor
-import me.senseiwells.replay.mixin.spoof.TrackedEntityAccessor
+import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
+import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.util.ducks.ChunkMapInvoker
 import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.core.SectionPos
@@ -20,17 +20,24 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import kotlin.math.min
 
-class SpoofedReplayPlayer(
+class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer
 ): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
-    init {
-        this.id = this.original.id
+    companion object {
+        fun rejoin(player: ServerPlayer) {
+            val rejoined = RejoinedReplayPlayer(player)
+
+            rejoined.server.playerList.placeNewPlayer(RejoinConnection(), rejoined)
+
+            val seen = IntOpenHashSet()
+            // We have to manually re-send these packets
+            rejoined.sendChunkUpdates(seen)
+            rejoined.sendTrackedEntityUpdates(seen)
+        }
     }
 
-    fun sendLevelPackets() {
-        val seen = IntOpenHashSet()
-        this.sendChunkUpdates(seen)
-        this.sendTrackedEntityUpdates(seen)
+    init {
+        this.id = this.original.id
     }
 
     private fun sendChunkUpdates(seen: IntSet) {

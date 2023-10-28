@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin.spoof;
+package me.senseiwells.replay.mixin.rejoin;
 
 import me.senseiwells.replay.ducks.ServerReplay$TrackedEntityInvoker;
 import net.minecraft.server.level.ChunkMap;

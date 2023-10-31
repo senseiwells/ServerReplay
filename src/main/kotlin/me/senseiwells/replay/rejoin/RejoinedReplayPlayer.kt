@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
+import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.ducks.ChunkMapInvoker
 import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.core.SectionPos
@@ -21,11 +22,12 @@ import net.minecraft.world.level.chunk.LevelChunk
 import kotlin.math.min
 
 class RejoinedReplayPlayer private constructor(
-    val original: ServerPlayer
+    val original: ServerPlayer,
+    val recorder: PlayerRecorder
 ): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
     companion object {
-        fun rejoin(player: ServerPlayer) {
-            val rejoined = RejoinedReplayPlayer(player)
+        fun rejoin(player: ServerPlayer, recorder: PlayerRecorder) {
+            val rejoined = RejoinedReplayPlayer(player, recorder)
 
             rejoined.server.playerList.placeNewPlayer(RejoinConnection(), rejoined)
 

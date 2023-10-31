@@ -136,7 +136,7 @@ class PlayerRecorder(
     // REPLAY AFTER THE PLAYER HAS LOGGED IN!
     fun start() {
         // This essentially
-        RejoinedReplayPlayer.rejoin(this.player)
+        RejoinedReplayPlayer.rejoin(this.player, this)
     }
 
     @JvmOverloads

@@ -40,7 +40,7 @@ object ReplayCommand {
             return 0
         }
         ReplayConfig.enabled = true
-        context.source.sendSuccess({ Component.literal("ServerReplay is now enabled! For players to be recorded they must re-log.") }, true)
+        context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
         return 1
     }
 

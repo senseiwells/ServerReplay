@@ -57,15 +57,10 @@ class PlayerRecorder(
 
     private val start: Long
 
-    private var spoofed: RejoinedReplayPlayer? = null
     private var protocol = ConnectionProtocol.LOGIN
     private var last = 0L
 
     private var packId = 0
-
-    // TODO:
-    @Deprecated("For removal, temporary")
-    private val packets = ArrayList<MinecraftPacket<*>>()
 
     val player: ServerPlayer
         get() = this.connection.player
@@ -93,9 +88,6 @@ class PlayerRecorder(
         if (outgoing is ClientboundLoginCompressionPacket) {
             return
         }
-
-        // TODO: Remove!
-        this.packets.add(outgoing)
 
         // Protocol may be mutated in #onPacket, we need current state
         val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
@@ -135,7 +127,6 @@ class PlayerRecorder(
     // THIS SHOULD ONLY BE CALLED WHEN STARTING
     // REPLAY AFTER THE PLAYER HAS LOGGED IN!
     fun start() {
-        // This essentially
         RejoinedReplayPlayer.rejoin(this.player, this)
     }
 

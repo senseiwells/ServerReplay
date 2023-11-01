@@ -1,6 +1,7 @@
 package me.senseiwells.replay.commands
 
 import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.context.CommandContext
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.config.ReplayConfig
@@ -27,7 +28,9 @@ object ReplayCommand {
             ).then(
                 Commands.literal("stop").then(
                     Commands.argument("players", EntityArgument.players()).executes(this::onStop)
-                ).executes(this::onStopAll)
+                ).then(
+                    Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopAll)
+                ).executes { this.onStopAll(it, true) }
             ).then(
                 Commands.literal("reload").executes(this::onReload)
             )
@@ -81,9 +84,12 @@ object ReplayCommand {
         return i
     }
 
-    private fun onStopAll(context: CommandContext<CommandSourceStack>): Int {
+    private fun onStopAll(
+        context: CommandContext<CommandSourceStack>,
+        save: Boolean = BoolArgumentType.getBool(context, "save")
+    ): Int {
         for (recorders in PlayerRecorders.all()) {
-            recorders.stop()
+            recorders.stop(save)
         }
         context.source.sendSuccess({ Component.literal("Successfully stopped all recordings.") }, true)
         return 1

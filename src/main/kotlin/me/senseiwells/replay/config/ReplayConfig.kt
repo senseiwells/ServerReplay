@@ -9,6 +9,7 @@ import me.senseiwells.replay.player.predicates.PredicateFactory
 import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.level.ServerPlayer
+import java.lang.Exception
 import java.nio.file.Path
 import java.util.function.Predicate
 import kotlin.io.path.*
@@ -32,7 +33,6 @@ object ReplayConfig {
 
     var worldName = "World"
     var serverName = "Server"
-    var hasPredicate = true
 
     var recordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
 
@@ -40,50 +40,55 @@ object ReplayConfig {
 
     @JvmStatic
     fun read() {
-        val path = this.getPath()
-        if (!path.exists()) {
-            this.write()
-            return
-        }
-        val json = path.bufferedReader().use {
-            this.gson.fromJson(it, JsonObject::class.java)
-        }
-        if (json == null) {
-            this.write()
-            return
-        }
-        if (json.has("enabled")) {
-            this.enabled = json.get("enabled").asBoolean
-        }
-        if (json.has("world_name")) {
-            this.worldName = json.get("world_name").asString
-        }
-        if (json.has("server_name")) {
-            this.serverName = json.get("server_name").asString
-        }
-        if (json.has("recording_path")) {
-            this.recordingPath = Path.of(json.get("recording_path").asString)
-        }
-        if (json.has("has_predicate")) {
-            this.hasPredicate = json.get("has_predicate").asBoolean
-        }
-        if (this.hasPredicate && json.has("predicate")) {
-            this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
+        try {
+            val path = this.getPath()
+            if (!path.exists()) {
+                this.write()
+                return
+            }
+            val json = path.bufferedReader().use {
+                this.gson.fromJson(it, JsonObject::class.java)
+            }
+            if (json == null) {
+                this.write()
+                return
+            }
+            if (json.has("enabled")) {
+                this.enabled = json.get("enabled").asBoolean
+            }
+            if (json.has("world_name")) {
+                this.worldName = json.get("world_name").asString
+            }
+            if (json.has("server_name")) {
+                this.serverName = json.get("server_name").asString
+            }
+            if (json.has("recording_path")) {
+                this.recordingPath = Path.of(json.get("recording_path").asString)
+            }
+            if (json.has("predicate")) {
+                this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
+            }
+        } catch (e: Exception) {
+            ServerReplay.logger.error("Failed to read replay config", e)
         }
     }
 
     @JvmStatic
     fun write() {
-        val json = JsonObject()
-        json.addProperty("enabled", this.enabled)
-        json.addProperty("world_name", this.worldName)
-        json.addProperty("server_name", this.serverName)
-        json.addProperty("recording_path", this.recordingPath.absolutePathString())
-        json.add("predicate", this.reloadablePredicate.serialise())
-        val path = this.getPath()
-        path.parent.createDirectories()
-        path.bufferedWriter().use {
-            this.gson.toJson(json, it)
+        try {
+            val json = JsonObject()
+            json.addProperty("enabled", this.enabled)
+            json.addProperty("world_name", this.worldName)
+            json.addProperty("server_name", this.serverName)
+            json.addProperty("recording_path", this.recordingPath.absolutePathString())
+            json.add("predicate", this.reloadablePredicate.serialise())
+            val path = this.getPath()
+            path.parent.createDirectories()
+            path.bufferedWriter().use {
+                this.gson.toJson(json, it)
+            }
+        } catch (e: Exception) {
+            ServerReplay.logger.error("Failed to write replay config", e)
         }
     }
 
@@ -112,7 +117,12 @@ object ReplayConfig {
             ServerReplay.logger.error("Failed to deserialize player predicate type '${type}'")
             return NonePredicate()
         }
-        return factory.create(json)
+        return try {
+            factory.create(json)
+        } catch (e: Exception) {
+            ServerReplay.logger.error("Failed to deserialize PlayerPredicate {}", json, e)
+            NonePredicate()
+        }
     }
 
     private fun getPath(): Path {

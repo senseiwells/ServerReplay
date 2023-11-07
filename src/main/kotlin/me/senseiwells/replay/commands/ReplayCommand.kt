@@ -28,7 +28,9 @@ object ReplayCommand {
                 )
             ).then(
                 Commands.literal("stop").then(
-                    Commands.argument("players", EntityArgument.players()).executes(this::onStop)
+                    Commands.argument("players", EntityArgument.players()).then(
+                        Commands.argument("save", BoolArgumentType.bool()).executes(this::onStop)
+                    ).executes { this.onStop(it, true) }
                 ).then(
                     Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopAll)
                 ).executes { this.onStopAll(it, true) }
@@ -80,13 +82,16 @@ object ReplayCommand {
         return i
     }
 
-    private fun onStop(context: CommandContext<CommandSourceStack>): Int {
+    private fun onStop(
+        context: CommandContext<CommandSourceStack>,
+        save: Boolean = BoolArgumentType.getBool(context, "save")
+    ): Int {
         val players = EntityArgument.getPlayers(context, "players")
         var i = 0
         for (player in players) {
             val recorder = PlayerRecorders.get(player)
             if (recorder != null) {
-                recorder.stop()
+                recorder.stop(save)
                 i++
             }
         }

@@ -10,7 +10,32 @@ players, recording a static area is not yet supported.
 ## Usage
 
 This mod requires the fabric launcher, then to install just simply drag the
-mod into your mods folder.
+mod into your mods' folder.
+
+For very simply use-cases you can run `/replay start <player(s)>` and `/replay stop <player(s)>`,
+however this mod also provides the ability to configure and automatically start and
+stop replays. The rest of this document will detail how you can configure this.
+
+### Commands
+
+A note for all commands; players must either have op (level 4), alternatively if you
+have a permission mod (for example, [LuckPerms](https://luckperms.net/)) players can
+have the permission `replay.commands.replay` to access these commands.
+
+- `/replay enable` Enables the replay mod to automatically recording players that should
+  be recorded based on the given predicate (more details in the [Predicates](#predicates) section).
+- `/replay disable` Disables the replay mod from automatically recording players, this will
+  also stop any currently recording players.
+- `/replay start <player(s)>` Manually starts recording the replay for some given player(s).
+- `/replay stop <player(s)> <save?>` Manually stops recording the replay for some given player(s),
+  you may optionally pass in whether the replay should be saved; by default, this is true.
+- `/replay stop <save?>` Manually stops **all** replays you may optionally pass in whether the
+  replay should be saved; by default, this is true.
+- `/replay status` Sends a status message of whether replay is enabled and a list of all the
+  players that are currently being recorded and how long they've been recorded for.
+- `/replay reload` Reloads the config file for the replay mod.
+
+### Configuring
 
 After you boot the server a new file will be generated in the path 
 ``./config/ServerReplay/config.json``, by default it should look like:
@@ -21,23 +46,20 @@ After you boot the server a new file will be generated in the path
   "world_name": "World",
   "server_name": "Server",
   "recording_path": "./recordings",
-  "has_predicate": true,
   "predicate": {
     "type": "none"
   }
 }
 ```
 
-### Enabling
+### Enabling and Disabling
 
 By default, the replay functionality is disabled, you can enable it by either
 changing the `config.json` then running `/replay reload` in game, or by simply
-just running `replay enable` or `replay disable` in game.
+just running `/replay enable` or `/replay disable` in game.
 
-If you enable it while players are online it will **require** them to re-log
-for the mod to record them.
-And if you disable it while players are online it will stop recording for all
-players.
+This will then check whether any online players should be recorded and start their
+recording accordingly.
 
 ### Recording Path
 

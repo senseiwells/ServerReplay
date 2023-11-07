@@ -10,6 +10,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
+import java.lang.StringBuilder
 
 object ReplayCommand {
     @JvmStatic
@@ -33,6 +34,8 @@ object ReplayCommand {
                 ).executes { this.onStopAll(it, true) }
             ).then(
                 Commands.literal("reload").executes(this::onReload)
+            ).then(
+                Commands.literal("status").executes(this::status)
             )
         )
     }
@@ -44,6 +47,13 @@ object ReplayCommand {
         }
         ReplayConfig.enabled = true
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
+
+        for (player in context.source.server.playerList.players) {
+            if (PlayerRecorders.predicate.test(player)) {
+                PlayerRecorders.create(player).start()
+            }
+        }
+
         return 1
     }
 
@@ -98,6 +108,28 @@ object ReplayCommand {
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
         ReplayConfig.read()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
+        return 1
+    }
+
+    private fun status(context: CommandContext<CommandSourceStack>): Int {
+        val builder = StringBuilder("ServerReplay is ")
+            .append(if (ReplayConfig.enabled) "enabled" else "disabled")
+            .append("\n")
+        builder.append("Currently Recording:").append("\n")
+        for (recorder in PlayerRecorders.all()) {
+            builder.append("  Name: ").append(recorder.player.scoreboardName).append(", ")
+
+            val seconds = recorder.getRecordingTimeMS() / 1000
+            val hours = seconds / 3600
+            val minutes = seconds % 3600 / 60
+            val secs = seconds % 60
+            val time = "%02d:%02d:%02d".format(hours, minutes, secs)
+
+            builder.append("For: ").append(time)
+        }
+
+        builder.removeSuffix("\n")
+        context.source.sendSystemMessage(Component.literal(builder.toString()))
         return 1
     }
 }

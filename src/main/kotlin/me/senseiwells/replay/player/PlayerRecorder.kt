@@ -110,7 +110,7 @@ class PlayerRecorder(
             buf.release()
         }
 
-        val timestamp = System.currentTimeMillis() - this.start
+        val timestamp = this.getRecordingTimeMS()
         this.last = timestamp
 
         this.executor.execute {
@@ -143,6 +143,10 @@ class PlayerRecorder(
 
     fun tick() {
         this.state.tick()
+    }
+
+    fun getRecordingTimeMS(): Long {
+        return System.currentTimeMillis() - this.start
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {

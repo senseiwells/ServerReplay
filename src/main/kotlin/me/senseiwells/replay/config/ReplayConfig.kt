@@ -17,7 +17,7 @@ import kotlin.io.path.*
 object ReplayConfig {
     private val predicateFactories = HashMap<String, PredicateFactory>()
 
-    private val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
+    private val gson = GsonBuilder().disableHtmlEscaping().setLenient().setPrettyPrinting().create()
     private var reloadablePredicate: ReplayPlayerPredicate = NonePredicate()
 
     @JvmStatic

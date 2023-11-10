@@ -48,7 +48,7 @@ dependencies {
 
     modImplementation("carpet:fabric-carpet:${property("carpet_core_version")}")
 
-    include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:0.2.1-beta.1")!!)!!)
+    include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
 
     implementation(kotlin("stdlib-jdk8"))
 }

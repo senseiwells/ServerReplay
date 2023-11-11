@@ -41,7 +41,7 @@ import kotlin.io.path.writeBytes
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 
-class PlayerRecorder(
+class PlayerRecorder internal constructor(
     player: ServerPlayer,
     private val recordings: Path
 ) {

@@ -1,6 +1,7 @@
 package me.senseiwells.replay.player
 
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 
@@ -14,6 +15,9 @@ object PlayerRecorders {
     fun create(player: ServerPlayer): PlayerRecorder {
         if (this.players.containsKey(player.uuid)) {
             throw IllegalArgumentException("Player already has a recorder")
+        }
+        if (player is RejoinedReplayPlayer) {
+            throw IllegalArgumentException("Cannot create a replay for a rejoining player")
         }
         val recorder = PlayerRecorder(player, ReplayConfig.recordingPath.resolve(player.stringUUID))
         this.players[player.uuid] = recorder

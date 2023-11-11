@@ -11,6 +11,7 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
 import java.lang.StringBuilder
+import java.util.LinkedList
 
 object ReplayCommand {
     @JvmStatic
@@ -32,8 +33,10 @@ object ReplayCommand {
                         Commands.argument("save", BoolArgumentType.bool()).executes(this::onStop)
                     ).executes { this.onStop(it, true) }
                 ).then(
-                    Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopAll)
-                ).executes { this.onStopAll(it, true) }
+                    Commands.literal("all").then(
+                        Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopAll)
+                    ).executes { this.onStopAll(it, true) }
+                )
             ).then(
                 Commands.literal("reload").executes(this::onReload)
             ).then(
@@ -103,7 +106,7 @@ object ReplayCommand {
         context: CommandContext<CommandSourceStack>,
         save: Boolean = BoolArgumentType.getBool(context, "save")
     ): Int {
-        for (recorders in PlayerRecorders.all()) {
+        for (recorders in PlayerRecorders.all().toList()) {
             recorders.stop(save)
         }
         context.source.sendSuccess({ Component.literal("Successfully stopped all recordings.") }, true)

@@ -54,10 +54,10 @@ public abstract class ServerLevelMixin {
 		long seed,
 		CallbackInfo ci
 	) {
-		ClientboundSoundPacket packet = new ClientboundSoundPacket(sound, source, x, y, z, volume, pitch, seed);
-		for (PlayerRecorder recorder : PlayerRecorders.all()) {
-			if (recorder.getPlayer() != player) {
-				recorder.record(packet);
+		if (player != null) {
+			PlayerRecorder recorder = PlayerRecorders.getByUUID(player.getUUID());
+			if (recorder != null) {
+				recorder.record(new ClientboundSoundPacket(sound, source, x, y, z, volume, pitch, seed));
 			}
 		}
 	}
@@ -67,10 +67,10 @@ public abstract class ServerLevelMixin {
 		at = @At("HEAD")
 	)
 	private void onLevelEvent(@Nullable Player player, int type, BlockPos pos, int data, CallbackInfo ci) {
-		ClientboundLevelEventPacket packet = new ClientboundLevelEventPacket(type, pos, data, false);
-		for (PlayerRecorder recorder : PlayerRecorders.all()) {
-			if (recorder.getPlayer() != player) {
-				recorder.record(packet);
+		if (player != null) {
+			PlayerRecorder recorder = PlayerRecorders.getByUUID(player.getUUID());
+			if (recorder != null) {
+				recorder.record(new ClientboundLevelEventPacket(type, pos, data, false));
 			}
 		}
 	}

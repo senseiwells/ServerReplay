@@ -6,12 +6,11 @@ import com.mojang.brigadier.context.CommandContext
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
+import me.senseiwells.replay.player.predicates.ReplayPlayerContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
-import java.lang.StringBuilder
-import java.util.LinkedList
 
 object ReplayCommand {
     @JvmStatic
@@ -54,7 +53,7 @@ object ReplayCommand {
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
         for (player in context.source.server.playerList.players) {
-            if (PlayerRecorders.predicate.test(player)) {
+            if (PlayerRecorders.predicate.test(ReplayPlayerContext.of(player))) {
                 PlayerRecorders.create(player).start()
             }
         }
@@ -76,8 +75,7 @@ object ReplayCommand {
         val players = EntityArgument.getPlayers(context, "players")
         var i = 0
         for (player in players) {
-            if (!PlayerRecorders.has(player)) {
-                PlayerRecorders.create(player).start()
+            if (!PlayerRecorders.has(player) && PlayerRecorders.create(player).start()) {
                 i++
             }
         }
@@ -123,17 +121,23 @@ object ReplayCommand {
         val builder = StringBuilder("ServerReplay is ")
             .append(if (ReplayConfig.enabled) "enabled" else "disabled")
             .append("\n")
-        builder.append("Currently Recording:").append("\n")
-        for (recorder in PlayerRecorders.all()) {
-            builder.append("  Name: ").append(recorder.player.scoreboardName).append(", ")
 
-            val seconds = recorder.getRecordingTimeMS() / 1000
-            val hours = seconds / 3600
-            val minutes = seconds % 3600 / 60
-            val secs = seconds % 60
-            val time = "%02d:%02d:%02d".format(hours, minutes, secs)
+        val recorders = PlayerRecorders.all();
+        if (recorders.isNotEmpty()) {
+            builder.append("Currently Recording:").append("\n")
+            for (recorder in PlayerRecorders.all()) {
+                builder.append("  Name: ").append(recorder.playerName).append(", ")
 
-            builder.append("For: ").append(time)
+                val seconds = recorder.getRecordingTimeMS() / 1000
+                val hours = seconds / 3600
+                val minutes = seconds % 3600 / 60
+                val secs = seconds % 60
+                val time = "%02d:%02d:%02d".format(hours, minutes, secs)
+
+                builder.append("For: ").append(time).append("\n")
+            }
+        } else {
+            builder.append("Not Currently Recording Players")
         }
 
         builder.removeSuffix("\n")

@@ -1,10 +1,9 @@
 package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonObject
-import net.minecraft.server.level.ServerPlayer
 
 class NonePredicate: ReplayPlayerPredicate(id) {
-    override fun shouldRecord(player: ServerPlayer): Boolean {
+    override fun shouldRecord(context: ReplayPlayerContext): Boolean {
         return false
     }
 

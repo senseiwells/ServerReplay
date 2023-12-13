@@ -10,6 +10,6 @@ public interface ChunkMapAccessor {
 	@Accessor("entityMap")
 	Int2ObjectMap<ChunkMap.TrackedEntity> getEntityMap();
 
-	@Accessor("viewDistance")
+	@Accessor("serverViewDistance")
 	int getViewDistance();
 }

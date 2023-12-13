@@ -3,6 +3,7 @@ package me.senseiwells.replay.player
 import com.mojang.datafixers.util.Pair
 import net.minecraft.core.NonNullList
 import net.minecraft.network.protocol.game.*
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.item.ItemStack
@@ -24,9 +25,7 @@ class PlayerState(
     private var lastZ: Double? = null
     private var lastHeadYaw: Int? = null
 
-    fun tick() {
-        val player = this.owner.player
-
+    fun tick(player: ServerPlayer) {
         var forced = false
         var lx: Double? = this.lastX
         var ly: Double? = this.lastY

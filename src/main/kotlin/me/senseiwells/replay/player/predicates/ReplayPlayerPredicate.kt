@@ -1,12 +1,11 @@
 package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonObject
-import net.minecraft.server.level.ServerPlayer
 
 abstract class ReplayPlayerPredicate(
     val type: String
 ) {
-    abstract fun shouldRecord(player: ServerPlayer): Boolean
+    abstract fun shouldRecord(context: ReplayPlayerContext): Boolean
 
     fun serialise(): JsonObject {
         val json = JsonObject()

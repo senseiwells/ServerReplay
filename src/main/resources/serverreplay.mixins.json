@@ -7,14 +7,16 @@
   "mixins": [
     "CommandsMixin",
     "MinecraftServerMixin",
-    "PlayerListMixin",
-    "ServerGamePacketListenerImplMixin",
+    "ServerCommonPacketListenerImplMixin",
+    "ServerConfigurationPacketListenerImplMixin",
     "ServerLevelMixin",
+    "ServerLoginPacketListenerImplMixin",
     "ServerPlayerMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "rejoin.ChunkMapAccessor",
     "rejoin.ChunkMapMixin",
     "rejoin.PlayerListMixin",
+    "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.TrackedEntityAccessor",
     "rejoin.TrackedEntityMixin"
   ],

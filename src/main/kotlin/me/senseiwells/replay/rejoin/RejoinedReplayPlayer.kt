@@ -14,22 +14,29 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
 import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket
 import net.minecraft.server.level.ChunkMap
 import net.minecraft.server.level.ChunkMap.TrackedEntity
+import net.minecraft.server.level.ChunkTrackingView
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
-import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import kotlin.math.min
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: PlayerRecorder
-): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
+): ServerPlayer(original.server, original.serverLevel(), original.gameProfile, original.clientInformation()) {
     companion object {
         fun rejoin(player: ServerPlayer, recorder: PlayerRecorder) {
-            val rejoined = RejoinedReplayPlayer(player, recorder)
+            recorder.afterLogin()
 
-            rejoined.server.playerList.placeNewPlayer(RejoinConnection(), rejoined)
+            val rejoined = RejoinedReplayPlayer(player, recorder)
+            val connection = RejoinConnection()
+            val cookies = CommonListenerCookie(player.gameProfile, 0, player.clientInformation())
+
+            RejoinConfigurationPacketListener(rejoined, connection, cookies).startConfiguration()
+            recorder.afterConfigure()
+            rejoined.server.playerList.placeNewPlayer(connection, rejoined, cookies)
 
             val seen = IntOpenHashSet()
             // We have to manually re-send these packets
@@ -50,19 +57,14 @@ class RejoinedReplayPlayer private constructor(
 
         val level = this.serverLevel()
         val chunks = level.chunkSource.chunkMap
+        // We always send the max view distance possible...
         val view = (chunks as ChunkMapInvoker as ChunkMapAccessor).viewDistance
 
-        for (k in i - view - 1..i + view + 1) {
-            for (l in j - view - 1..j + view + 1) {
-                if (!ChunkMap.isChunkInRange(k, l, i, j, view)) {
-                    continue
-                }
-                val pos = ChunkPos(k, l)
-                val holder = chunks.getVisibleChunkIfExists(pos.toLong()) ?: continue
-                val chunk = holder.getTickingChunk()
-                if (chunk != null) {
-                    this.sendChunkUpdate(chunks, chunk, seen)
-                }
+        ChunkTrackingView.of(this.original.chunkPosition(), view).forEach { pos ->
+            val holder = chunks.getVisibleChunkIfExists(pos.toLong()) ?: return@forEach
+            val chunk = holder.getTickingChunk()
+            if (chunk != null) {
+                this.sendChunkUpdate(chunks, chunk, seen)
             }
         }
     }
@@ -79,6 +81,8 @@ class RejoinedReplayPlayer private constructor(
     private fun sendChunkUpdate(chunks: ChunkMap, chunk: LevelChunk, seen: IntSet) {
         chunks as ChunkMapInvoker
 
+        // We don't need to use the chunkSender
+        // We are only writing the packets to disk...
         this.connection.send(ClientboundLevelChunkWithLightPacket(
             chunk,
             chunks.getLightEngine(),

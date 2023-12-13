@@ -1,6 +1,7 @@
 package me.senseiwells.replay.player
 
 import com.google.common.hash.Hashing
+import com.mojang.authlib.GameProfile
 import com.replaymod.replaystudio.io.ReplayOutputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -19,18 +20,21 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.server.network.ServerGamePacketListenerImpl
+import net.minecraft.world.entity.EntityType
+import org.jetbrains.annotations.ApiStatus.Internal
 import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -42,13 +46,12 @@ import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 
 class PlayerRecorder internal constructor(
-    player: ServerPlayer,
+    private val server: MinecraftServer,
+    private val profile: GameProfile,
     private val recordings: Path
 ) {
     private val executor: ExecutorService
 
-    private val connection: ServerGamePacketListenerImpl
-    private val server: MinecraftServer
     private val state: PlayerState
 
     private val replay: ReplayFile
@@ -62,14 +65,17 @@ class PlayerRecorder internal constructor(
 
     private var packId = 0
 
-    val player: ServerPlayer
-        get() = this.connection.player
+    private var started = false
+
+    val player: ServerPlayer?
+        get() = this.server.playerList.getPlayer(this.playerUUID)
+    val playerUUID: UUID
+        get() = this.profile.id
+    val playerName: String
+        get() = this.profile.name
 
     init {
         this.executor = Executors.newSingleThreadExecutor()
-
-        this.connection = player.connection
-        this.server = player.server
 
         val out = this.recordings.resolve("replay").toFile()
         this.replay = ZipReplayFile(ReplayStudio(), out)
@@ -85,13 +91,13 @@ class PlayerRecorder internal constructor(
     }
 
     fun record(outgoing: MinecraftPacket<*>) {
+        if (!this.started) {
+            throw IllegalStateException("Cannot record packets if recorder not started")
+        }
+
         if (outgoing is ClientboundLoginCompressionPacket) {
             return
         }
-
-        // Protocol may be mutated in #onPacket, we need current state
-        val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
-        val state = this.protocolAsState()
 
         if (this.prePacket(outgoing)) {
             return
@@ -99,6 +105,9 @@ class PlayerRecorder internal constructor(
 
         val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
+            val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
+            val state = this.protocolAsState()
+
             outgoing.write(buf)
             val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
 
@@ -126,40 +135,56 @@ class PlayerRecorder internal constructor(
 
     // THIS SHOULD ONLY BE CALLED WHEN STARTING
     // REPLAY AFTER THE PLAYER HAS LOGGED IN!
-    fun start() {
-        RejoinedReplayPlayer.rejoin(this.player, this)
+    fun start(): Boolean {
+        if (this.started) {
+            throw IllegalStateException("Cannot start recording after already started!")
+        }
+        val player = this.player ?: return false
+        ServerReplay.logger.info("Started to record player '{}'", player.scoreboardName)
+        RejoinedReplayPlayer.rejoin(player, this)
+        return true
     }
 
     @JvmOverloads
     fun stop(save: Boolean = true) {
-        PlayerRecorders.remove(this.connection.player)
-        if (save) {
-            this.meta.duration = this.last.toInt()
-            this.saveMeta()
-        }
+        PlayerRecorders.removeByUUID(this.profile.id)
 
-        this.close(save)
-    }
-
-    fun tick() {
-        this.state.tick()
+        // We only save if the player has actually logged in...
+        this.close(save && this.protocol == ConnectionProtocol.PLAY)
     }
 
     fun getRecordingTimeMS(): Long {
         return System.currentTimeMillis() - this.start
     }
 
+    @Internal
+    fun tick(player: ServerPlayer) {
+        this.state.tick(player)
+    }
+
+    @Internal
+    fun afterLogin() {
+        this.started = true
+        // We will not have recorded this, so we need to do it manually.
+        this.record(ClientboundGameProfilePacket(this.profile))
+
+        this.protocol = ConnectionProtocol.CONFIGURATION
+    }
+
+    @Internal
+    fun afterConfigure() {
+        this.protocol = ConnectionProtocol.PLAY
+    }
+
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
         when (packet) {
-            is ClientboundGameProfilePacket -> {
-                // The player has now logged in
-                this.protocol = ConnectionProtocol.PLAY
-            }
-            is ClientboundAddPlayerPacket -> {
-                val uuids = this.meta.players.toMutableSet()
-                uuids.add(packet.playerId.toString())
-                this.meta.players = uuids.toTypedArray()
-                this.saveMeta()
+            is ClientboundAddEntityPacket -> {
+                if (packet.type == EntityType.PLAYER) {
+                    val uuids = this.meta.players.toMutableSet()
+                    uuids.add(packet.uuid.toString())
+                    this.meta.players = uuids.toTypedArray()
+                    this.saveMeta()
+                }
             }
             is ClientboundBundlePacket -> {
                 for (sub in packet.subPackets()) {
@@ -167,7 +192,7 @@ class PlayerRecorder internal constructor(
                 }
                 return true
             }
-            is ClientboundResourcePackPacket -> {
+            is ClientboundResourcePackPushPacket -> {
                 return this.downloadAndRecordResourcePack(packet)
             }
         }
@@ -180,7 +205,7 @@ class PlayerRecorder internal constructor(
                 this.spawnPlayer()
             }
             is ClientboundPlayerInfoUpdatePacket -> {
-                val uuid = this.player.uuid
+                val uuid = this.playerUUID
                 for (entry in packet.newEntries()) {
                     if (uuid == entry.profileId) {
                         this.spawnPlayer()
@@ -192,8 +217,8 @@ class PlayerRecorder internal constructor(
     }
 
     private fun spawnPlayer() {
-        val player = this.player
-        this.record(ClientboundAddPlayerPacket(player))
+        val player = this.player ?: throw IllegalStateException("Tried spawning player before player exists")
+        this.record(ClientboundAddEntityPacket(player))
         val tracked = player.entityData.nonDefaultValues
         if (tracked != null) {
             this.record(ClientboundSetEntityDataPacket(player.id, tracked))
@@ -201,6 +226,10 @@ class PlayerRecorder internal constructor(
     }
 
     private fun close(save: Boolean) {
+        if (save) {
+            this.meta.duration = this.last.toInt()
+            this.saveMeta()
+        }
         this.executor.execute {
             try {
                 val path = this.recording()
@@ -237,8 +266,9 @@ class PlayerRecorder internal constructor(
     private fun protocolAsState(): State {
         return when (this.protocol) {
             ConnectionProtocol.PLAY -> State.PLAY
+            ConnectionProtocol.CONFIGURATION -> State.CONFIGURATION
             ConnectionProtocol.LOGIN -> State.LOGIN
-            else -> throw IllegalStateException("Expected connection protocol to be 'PLAY' or 'LOGIN'")
+            else -> throw IllegalStateException("Expected connection protocol to be 'PLAY', 'CONFIGURATION' or 'LOGIN'")
         }
     }
 
@@ -253,7 +283,7 @@ class PlayerRecorder internal constructor(
         return meta
     }
 
-    private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPacket): Boolean {
+    private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPushPacket): Boolean {
         if (packet.url.startsWith("replay://")) {
             return false
         }
@@ -273,10 +303,11 @@ class PlayerRecorder internal constructor(
                 null
             }
         }
-        this.record(ClientboundResourcePackPacket(
+        this.record(ClientboundResourcePackPushPacket(
+            packet.id,
             "replay://${requestId}",
             "",
-            packet.isRequired,
+            packet.required,
             packet.prompt
         ))
         return true

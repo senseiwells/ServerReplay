@@ -6,10 +6,9 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.player.predicates.NonePredicate
 import me.senseiwells.replay.player.predicates.PredicateFactory
+import me.senseiwells.replay.player.predicates.ReplayPlayerContext
 import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.server.level.ServerPlayer
-import java.lang.Exception
 import java.nio.file.Path
 import java.util.function.Predicate
 import kotlin.io.path.*
@@ -36,7 +35,7 @@ object ReplayConfig {
 
     var recordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
 
-    val predicate = Predicate<ServerPlayer> { this.reloadablePredicate.shouldRecord(it) }
+    val predicate = Predicate<ReplayPlayerContext> { this.reloadablePredicate.shouldRecord(it) }
 
     @JvmStatic
     fun read() {

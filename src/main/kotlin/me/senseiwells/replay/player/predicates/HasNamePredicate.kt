@@ -2,13 +2,12 @@ package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import net.minecraft.server.level.ServerPlayer
 
 class HasNamePredicate(
     private val names: List<String>
 ): ReplayPlayerPredicate(id) {
-    override fun shouldRecord(player: ServerPlayer): Boolean {
-        return this.names.contains(player.scoreboardName)
+    override fun shouldRecord(context: ReplayPlayerContext): Boolean {
+        return this.names.contains(context.name)
     }
 
     override fun serialiseAdditional(json: JsonObject) {

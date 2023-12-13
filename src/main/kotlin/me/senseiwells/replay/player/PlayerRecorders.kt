@@ -1,7 +1,9 @@
 package me.senseiwells.replay.player
 
+import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 
@@ -13,16 +15,24 @@ object PlayerRecorders {
 
     @JvmStatic
     fun create(player: ServerPlayer): PlayerRecorder {
-        if (this.players.containsKey(player.uuid)) {
-            throw IllegalArgumentException("Player already has a recorder")
-        }
         if (player is RejoinedReplayPlayer) {
             throw IllegalArgumentException("Cannot create a replay for a rejoining player")
         }
-        val recorder = PlayerRecorder(player, ReplayConfig.recordingPath.resolve(player.stringUUID))
-        this.players[player.uuid] = recorder
-        return recorder
+        return this.create(player.server, player.gameProfile)
+    }
 
+    @JvmStatic
+    fun create(server: MinecraftServer, profile: GameProfile): PlayerRecorder {
+        if (this.players.containsKey(profile.id)) {
+            throw IllegalArgumentException("Player already has a recorder")
+        }
+        val recorder = PlayerRecorder(
+            server,
+            profile,
+            ReplayConfig.recordingPath.resolve(profile.id.toString())
+        )
+        this.players[profile.id] = recorder
+        return recorder
     }
 
     @JvmStatic
@@ -32,16 +42,26 @@ object PlayerRecorders {
 
     @JvmStatic
     fun get(player: ServerPlayer): PlayerRecorder? {
-        return this.players[player.uuid]
+        return this.getByUUID(player.uuid)
+    }
+
+    @JvmStatic
+    fun getByUUID(uuid: UUID): PlayerRecorder? {
+        return this.players[uuid];
     }
 
     @JvmStatic
     fun remove(player: ServerPlayer): PlayerRecorder? {
-        return this.players.remove(player.uuid)
+        return this.removeByUUID(player.uuid)
     }
 
     @JvmStatic
-    fun all(): Iterable<PlayerRecorder> {
+    fun removeByUUID(uuid: UUID): PlayerRecorder? {
+        return this.players.remove(uuid)
+    }
+
+    @JvmStatic
+    fun all(): Collection<PlayerRecorder> {
         return this.players.values
     }
 }

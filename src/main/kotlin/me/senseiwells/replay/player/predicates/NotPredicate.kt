@@ -2,13 +2,12 @@ package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonObject
 import me.senseiwells.replay.config.ReplayConfig
-import net.minecraft.server.level.ServerPlayer
 
 class NotPredicate(
     private val predicate: ReplayPlayerPredicate
 ): ReplayPlayerPredicate(id) {
-    override fun shouldRecord(player: ServerPlayer): Boolean {
-        return !this.predicate.shouldRecord(player)
+    override fun shouldRecord(context: ReplayPlayerContext): Boolean {
+        return !this.predicate.shouldRecord(context)
     }
 
     override fun serialiseAdditional(json: JsonObject) {

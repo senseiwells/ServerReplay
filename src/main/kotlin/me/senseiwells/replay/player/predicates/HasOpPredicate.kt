@@ -1,13 +1,12 @@
 package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonObject
-import net.minecraft.server.level.ServerPlayer
 
 class HasOpPredicate(
     private val level: Int
 ): ReplayPlayerPredicate(id) {
-    override fun shouldRecord(player: ServerPlayer): Boolean {
-        return player.hasPermissions(this.level)
+    override fun shouldRecord(context: ReplayPlayerContext): Boolean {
+        return context.permissions >= this.level
     }
 
     override fun serialiseAdditional(json: JsonObject) {

@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.players.PlayerList;
 import org.jetbrains.annotations.Nullable;
@@ -73,21 +74,22 @@ public abstract class PlayerListMixin {
 		method = "placeNewPlayer",
 		at = @At(
 			value = "NEW",
-			target = "(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;)Lnet/minecraft/server/network/ServerGamePacketListenerImpl;"
+			target = "(Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/server/network/CommonListenerCookie;)Lnet/minecraft/server/network/ServerGamePacketListenerImpl;"
 		)
 	)
 	private ServerGamePacketListenerImpl postCreatePacketListener(
 		MinecraftServer server,
 		Connection connection,
 		ServerPlayer player,
+		CommonListenerCookie cookies,
 		Operation<ServerGamePacketListenerImpl> constructor,
 		@Share("spoofed") LocalRef<RejoinedReplayPlayer> spoofed
 	) {
 		RejoinedReplayPlayer replay = spoofed.get();
 		if (replay != null) {
-			return new RejoinGamePacketListener(replay, connection);
+			return new RejoinGamePacketListener(replay, connection, cookies);
 		}
-		return constructor.call(server, connection, player);
+		return constructor.call(server, connection, player, cookies);
 	}
 
 	@WrapWithCondition(

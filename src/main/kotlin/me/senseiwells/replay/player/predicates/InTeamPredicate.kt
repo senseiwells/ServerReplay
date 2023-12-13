@@ -2,13 +2,12 @@ package me.senseiwells.replay.player.predicates
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import net.minecraft.server.level.ServerPlayer
 
 class InTeamPredicate(
     val teams: List<String>
 ): ReplayPlayerPredicate(id) {
-    override fun shouldRecord(player: ServerPlayer): Boolean {
-        val team = player.team?.name ?: return false
+    override fun shouldRecord(context: ReplayPlayerContext): Boolean {
+        val team = context.team?.name ?: return false
         return this.teams.contains(team)
     }
 

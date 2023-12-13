@@ -15,9 +15,10 @@ public class ServerPlayerMixin {
 		at = @At("HEAD")
 	)
 	private void onTick(CallbackInfo ci) {
-		PlayerRecorder recorder = PlayerRecorders.get((ServerPlayer) (Object) this);
+		ServerPlayer player = (ServerPlayer) (Object) this;
+		PlayerRecorder recorder = PlayerRecorders.get(player);
 		if (recorder != null) {
-			recorder.tick();
+			recorder.tick(player);
 		}
 	}
 }

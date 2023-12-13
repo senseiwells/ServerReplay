@@ -15,6 +15,7 @@
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "rejoin.ChunkMapAccessor",
     "rejoin.ChunkMapMixin",
+    "rejoin.ConnectionAccessor",
     "rejoin.PlayerListMixin",
     "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.TrackedEntityAccessor",

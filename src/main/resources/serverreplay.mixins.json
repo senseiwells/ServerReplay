@@ -19,7 +19,8 @@
     "rejoin.PlayerListMixin",
     "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.TrackedEntityAccessor",
-    "rejoin.TrackedEntityMixin"
+    "rejoin.TrackedEntityMixin",
+    "studio.ZipReplayFileAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

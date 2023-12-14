@@ -3,11 +3,11 @@ package me.senseiwells.replay.config
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.player.predicates.NonePredicate
 import me.senseiwells.replay.player.predicates.PredicateFactory
 import me.senseiwells.replay.player.predicates.ReplayPlayerContext
 import me.senseiwells.replay.player.predicates.ReplayPlayerPredicate
+import me.senseiwells.replay.util.FileUtils
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Path
 import java.util.function.Predicate
@@ -21,17 +21,12 @@ object ReplayConfig {
 
     @JvmStatic
     var enabled: Boolean = false
-        set(value) {
-            if (!value) {
-                for (recorders in PlayerRecorders.all()) {
-                    recorders.stop()
-                }
-            }
-            field = value
-        }
 
     var worldName = "World"
     var serverName = "Server"
+    var maxFileSizeString = "0GB"
+    var maxFileSize = 0L
+    var restartAfterMaxFileSize = false
 
     var recordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
 
@@ -61,6 +56,13 @@ object ReplayConfig {
             if (json.has("server_name")) {
                 this.serverName = json.get("server_name").asString
             }
+            if (json.has("max_file_size")) {
+                this.maxFileSizeString = json.get("max_file_size").asString
+                this.maxFileSize = FileUtils.parseSize(this.maxFileSizeString, 0)
+            }
+            if (json.has("restart_after_max_file_size")) {
+                this.restartAfterMaxFileSize = json.get("restart_after_max_file_size").asBoolean
+            }
             if (json.has("recording_path")) {
                 this.recordingPath = Path.of(json.get("recording_path").asString)
             }
@@ -79,6 +81,8 @@ object ReplayConfig {
             json.addProperty("enabled", this.enabled)
             json.addProperty("world_name", this.worldName)
             json.addProperty("server_name", this.serverName)
+            json.addProperty("max_raw_file_size", this.maxFileSizeString)
+            json.addProperty("restart_after_max_file_size", this.restartAfterMaxFileSize)
             json.addProperty("recording_path", this.recordingPath.absolutePathString())
             json.add("predicate", this.reloadablePredicate.serialise())
             val path = this.getPath()

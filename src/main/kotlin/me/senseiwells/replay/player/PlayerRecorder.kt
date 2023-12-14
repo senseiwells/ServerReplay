@@ -7,14 +7,13 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
 import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
-import com.replaymod.replaystudio.replay.ReplayFile
 import com.replaymod.replaystudio.replay.ReplayMetaData
-import com.replaymod.replaystudio.replay.ZipReplayFile
-import com.replaymod.replaystudio.studio.ReplayStudio
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.util.FileUtils
+import me.senseiwells.replay.util.SizedZipReplayFile
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
@@ -38,10 +37,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.io.path.createDirectories
-import kotlin.io.path.exists
-import kotlin.io.path.readBytes
-import kotlin.io.path.writeBytes
+import kotlin.io.path.*
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 
@@ -54,14 +50,15 @@ class PlayerRecorder internal constructor(
 
     private val state: PlayerState
 
-    private val replay: ReplayFile
+    private val replay: SizedZipReplayFile
     private val output: ReplayOutputStream
     private val meta: ReplayMetaData
 
     private val start: Long
 
     private var protocol = ConnectionProtocol.LOGIN
-    private var last = 0L
+    private var lastPacket = 0L
+    private var lastSizeCheck = System.currentTimeMillis()
 
     private var packId = 0
 
@@ -73,12 +70,14 @@ class PlayerRecorder internal constructor(
         get() = this.profile.id
     val playerName: String
         get() = this.profile.name
+    val stopped: Boolean
+        get() = this.executor.isShutdown
 
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
         val out = this.recordings.resolve("replay").toFile()
-        this.replay = ZipReplayFile(ReplayStudio(), out)
+        this.replay = SizedZipReplayFile(out)
 
         this.output = this.replay.writePacketData()
         this.meta = this.createNewMeta()
@@ -93,6 +92,9 @@ class PlayerRecorder internal constructor(
     fun record(outgoing: MinecraftPacket<*>) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
+        }
+        if (this.stopped) {
+            return
         }
 
         if (outgoing is ClientboundLoginCompressionPacket) {
@@ -120,7 +122,7 @@ class PlayerRecorder internal constructor(
         }
 
         val timestamp = this.getRecordingTimeMS()
-        this.last = timestamp
+        this.lastPacket = timestamp
 
         this.executor.execute {
             try {
@@ -131,30 +133,44 @@ class PlayerRecorder internal constructor(
         }
 
         this.postPacket(outgoing)
+        this.checkFileSize()
     }
 
     // THIS SHOULD ONLY BE CALLED WHEN STARTING
     // REPLAY AFTER THE PLAYER HAS LOGGED IN!
-    fun start(): Boolean {
+    fun start(log: Boolean = false): Boolean {
         if (this.started) {
             throw IllegalStateException("Cannot start recording after already started!")
         }
         val player = this.player ?: return false
-        ServerReplay.logger.info("Started to record player '{}'", player.scoreboardName)
+        if (log) {
+            ServerReplay.logger.info("Started to record player '${player.scoreboardName}'")
+        }
         RejoinedReplayPlayer.rejoin(player, this)
         return true
     }
 
     @JvmOverloads
-    fun stop(save: Boolean = true) {
+    fun stop(save: Boolean = true): CompletableFuture<Long> {
+        if (this.stopped) {
+            return CompletableFuture.failedFuture(IllegalStateException("Cannot stop replay after already stopped"))
+        }
         PlayerRecorders.removeByUUID(this.profile.id)
 
         // We only save if the player has actually logged in...
-        this.close(save && this.protocol == ConnectionProtocol.PLAY)
+        return this.close(save && this.protocol == ConnectionProtocol.PLAY)
     }
 
     fun getRecordingTimeMS(): Long {
         return System.currentTimeMillis() - this.start
+    }
+
+    fun getRawRecordingSize(): Long {
+        return this.replay.getRawFileSize()
+    }
+
+    fun getCompressedRecordingSize(): CompletableFuture<Long> {
+        return CompletableFuture.supplyAsync({ this.replay.getCompressedFileSize() }, this.executor)
     }
 
     @Internal
@@ -225,27 +241,62 @@ class PlayerRecorder internal constructor(
         }
     }
 
-    private fun close(save: Boolean) {
+    private fun checkFileSize() {
+        if (ReplayConfig.maxFileSize <= 0) {
+            return
+        }
+        val time = System.currentTimeMillis()
+        if (time - this.lastSizeCheck < 30_000) {
+            return
+        }
+        this.lastSizeCheck = time
+        this.getCompressedRecordingSize().thenAccept { compressed ->
+            if (compressed > ReplayConfig.maxFileSize) {
+                ServerReplay.logger.info(
+                    "Stopped recording '${this.playerName}', over max file size ${ReplayConfig.maxFileSizeString}!"
+                )
+                this.stop(true).thenAcceptAsync({ size ->
+                    ServerReplay.logger.info(
+                        "Saved last replay for '${this.playerName}', compressed to file size of ${FileUtils.formatSize(size)}"
+                    )
+                    if (ReplayConfig.restartAfterMaxFileSize) {
+                        val recorder = PlayerRecorders.create(this.server, this.profile)
+                        recorder.start(false)
+                        ServerReplay.logger.info(
+                            "Restarted recording for '${this.playerName}'"
+                        )
+                    }
+                }, this.server)
+            }
+        }
+    }
+
+    private fun close(save: Boolean): CompletableFuture<Long> {
         if (save) {
-            this.meta.duration = this.last.toInt()
+            this.meta.duration = this.lastPacket.toInt()
             this.saveMeta()
         }
-        this.executor.execute {
+        val future = CompletableFuture.supplyAsync({
+            var size = 0L
             try {
                 val path = this.recording()
                 this.output.close()
 
                 if (save) {
                     this.replay.saveTo(path.toFile())
+                    size = path.fileSize()
                 }
                 this.replay.close()
                 ServerReplay.logger.info("Successfully closed replay${if (save) " and saved to $path" else ""}")
             } catch (exception: Exception) {
                 ServerReplay.logger.error("Failed to write replay", exception)
+                throw exception
             }
-        }
+            size
+        }, this.executor)
 
         this.executor.shutdown()
+        return future
     }
 
     private fun saveMeta() {

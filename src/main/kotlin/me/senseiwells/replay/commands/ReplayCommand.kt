@@ -7,10 +7,14 @@ import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.player.predicates.ReplayPlayerContext
+import me.senseiwells.replay.util.FileUtils
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
+import org.apache.commons.lang3.builder.StandardToStringStyle
+import org.apache.commons.lang3.builder.ToStringBuilder
+import org.apache.logging.log4j.core.appender.rolling.FileSize
 
 object ReplayCommand {
     @JvmStatic
@@ -67,6 +71,9 @@ object ReplayCommand {
             return 0
         }
         ReplayConfig.enabled = false
+        for (recorders in PlayerRecorders.all()) {
+            recorders.stop()
+        }
         context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
         return 1
     }
@@ -118,30 +125,40 @@ object ReplayCommand {
     }
 
     private fun status(context: CommandContext<CommandSourceStack>): Int {
+        val style = StandardToStringStyle().apply {
+            fieldSeparator = ", "
+            fieldNameValueSeparator = " = "
+            isUseClassName = false
+            isUseIdentityHashCode = false
+        }
+
         val builder = StringBuilder("ServerReplay is ")
             .append(if (ReplayConfig.enabled) "enabled" else "disabled")
             .append("\n")
 
-        val recorders = PlayerRecorders.all();
+        val recorders = PlayerRecorders.all()
         if (recorders.isNotEmpty()) {
             builder.append("Currently Recording:").append("\n")
-            for (recorder in PlayerRecorders.all()) {
-                builder.append("  Name: ").append(recorder.playerName).append(", ")
-
+            for ((recorder, compressed) in recorders.map { it to it.getCompressedRecordingSize() }) {
                 val seconds = recorder.getRecordingTimeMS() / 1000
                 val hours = seconds / 3600
                 val minutes = seconds % 3600 / 60
                 val secs = seconds % 60
                 val time = "%02d:%02d:%02d".format(hours, minutes, secs)
 
-                builder.append("For: ").append(time).append("\n")
+                val built = ToStringBuilder(recorder, style)
+                    .append("name", recorder.playerName)
+                    .append("time", time)
+                    .append("raw", FileUtils.formatSize(recorder.getRawRecordingSize()))
+                    .append("compressed", FileUtils.formatSize(compressed.join()))
+                    .toString()
+                builder.append(built).append("\n")
             }
         } else {
             builder.append("Not Currently Recording Players")
         }
 
-        builder.removeSuffix("\n")
-        context.source.sendSystemMessage(Component.literal(builder.toString()))
+        context.source.sendSystemMessage(Component.literal(builder.removeSuffix("\n").toString()))
         return 1
     }
 }

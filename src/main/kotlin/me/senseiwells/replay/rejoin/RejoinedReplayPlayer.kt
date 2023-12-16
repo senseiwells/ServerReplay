@@ -8,10 +8,8 @@ import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.ducks.ChunkMapInvoker
 import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.core.SectionPos
-import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
-import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
-import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ChunkMap
 import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ChunkTrackingView
@@ -19,7 +17,10 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
+import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.scores.DisplaySlot
+import net.minecraft.world.scores.Objective
 import kotlin.math.min
 
 class RejoinedReplayPlayer private constructor(
@@ -36,7 +37,9 @@ class RejoinedReplayPlayer private constructor(
 
             RejoinConfigurationPacketListener(rejoined, connection, cookies).startConfiguration()
             recorder.afterConfigure()
-            rejoined.server.playerList.placeNewPlayer(connection, rejoined, cookies)
+
+            rejoined.load(player.saveWithoutId(CompoundTag()))
+            rejoined.place(connection, cookies)
 
             val seen = IntOpenHashSet()
             // We have to manually re-send these packets
@@ -47,6 +50,71 @@ class RejoinedReplayPlayer private constructor(
 
     init {
         this.id = this.original.id
+    }
+
+    private fun place(
+        connection: RejoinConnection,
+        cookies: CommonListenerCookie
+    ) {
+        // Create the fake packet listener
+        val listener = RejoinGamePacketListener(this, connection, cookies)
+
+        val server = this.server
+        val players = server.playerList
+        val level = this.serverLevel()
+        val levelData = level.levelData
+        val rules = level.gameRules
+        this.recorder.record(ClientboundLoginPacket(
+            this.id,
+            levelData.isHardcore,
+            server.levelKeys(),
+            players.maxPlayers,
+            players.viewDistance,
+            players.simulationDistance,
+            rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
+            !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
+            rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
+            this.createCommonSpawnInfo(level)
+        ))
+        this.recorder.record(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
+        this.recorder.record(ClientboundPlayerAbilitiesPacket(this.abilities))
+        this.recorder.record(ClientboundSetCarriedItemPacket(this.inventory.selected))
+        this.recorder.record(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
+        players.sendPlayerPermissionLevel(this)
+
+        this.recipeBook.sendInitialRecipeBook(this)
+
+        val scoreboard = server.scoreboard
+        for (playerTeam in scoreboard.playerTeams) {
+            this.recorder.record(ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(playerTeam, true))
+        }
+
+        val set = HashSet<Objective>()
+        for (displaySlot in DisplaySlot.values()) {
+            val objective = scoreboard.getDisplayObjective(displaySlot)
+            if (objective != null && !set.contains(objective)) {
+                for (packet in scoreboard.getStartTrackingPackets(objective)) {
+                    this.recorder.record(packet)
+                }
+                set.add(objective)
+            }
+        }
+
+        listener.teleport(this.x, this.y, this.z, this.yRot, this.xRot)
+        server.status?.let { this.sendServerStatus(it) }
+
+        this.recorder.record(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(players.players))
+        players.sendLevelInfo(this, level)
+
+        for (event in server.customBossEvents.events) {
+            if (event.players.contains(this.original) && event.isVisible) {
+                this.recorder.record(ClientboundBossEventPacket.createAddPacket(event))
+            }
+        }
+
+        for (mobEffectInstance in this.activeEffects) {
+            this.recorder.record(ClientboundUpdateMobEffectPacket(this.id, mobEffectInstance))
+        }
     }
 
     private fun sendChunkUpdates(seen: IntSet) {

@@ -1,9 +1,6 @@
-import org.jetbrains.kotlin.gradle.utils.extendsFrom
-
 plugins {
     kotlin("jvm")
     id("fabric-loom")
-    id("io.github.juuxel.loom-quiltflower").version("1.7.3")
     `maven-publish`
     java
 }
@@ -29,6 +26,7 @@ repositories {
 
 dependencies {
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
+    @Suppress("UnstableApiUsage")
     mappings(loom.layered {
         officialMojangMappings()
         parchment("org.parchmentmc.data:parchment-${property("parchment_version")}@zip")
@@ -51,7 +49,7 @@ dependencies {
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
 
-    include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
+    // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
 
     implementation(kotlin("stdlib-jdk8"))
 }

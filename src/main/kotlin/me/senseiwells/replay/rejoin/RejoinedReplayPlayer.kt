@@ -190,7 +190,7 @@ class RejoinedReplayPlayer private constructor(
 
         val delta = this.original.position().subtract(entity.position())
         val range = min((tracked as TrackedEntityInvoker).getRange(), (chunks.viewDistance * 16)).toDouble()
-        val deltaSqr: Double = delta.x * delta.x + delta.z * delta.z
+        val deltaSqr = delta.x * delta.x + delta.z * delta.z
         val rangeSqr = range * range
         if (deltaSqr <= rangeSqr && entity.broadcastToPlayer(this.original)) {
             tracked.serverEntity.addPairing(this)

@@ -6,9 +6,12 @@ import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
+import java.util.concurrent.CompletableFuture
+import kotlin.collections.HashMap
 
 object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()
+    private val closing = HashMap<UUID, CompletableFuture<Long>>()
 
     @JvmField
     var predicate = ReplayConfig.predicate
@@ -26,6 +29,12 @@ object PlayerRecorders {
         if (this.players.containsKey(profile.id)) {
             throw IllegalArgumentException("Player already has a recorder")
         }
+
+        // If a player rejoins before their previous one has fully closed,
+        // we wait for it to fully close; this blocks the main thread;
+        // however, it's unlikely that this will be significant.
+        this.closing[profile.id]?.join()
+
         val recorder = PlayerRecorder(
             server,
             profile,
@@ -51,11 +60,6 @@ object PlayerRecorders {
     }
 
     @JvmStatic
-    fun remove(player: ServerPlayer): PlayerRecorder? {
-        return this.removeByUUID(player.uuid)
-    }
-
-    @JvmStatic
     fun removeByUUID(uuid: UUID): PlayerRecorder? {
         return this.players.remove(uuid)
     }
@@ -63,5 +67,11 @@ object PlayerRecorders {
     @JvmStatic
     fun all(): Collection<PlayerRecorder> {
         return this.players.values
+    }
+
+    internal fun close(server: MinecraftServer, uuid: UUID, future: CompletableFuture<Long>) {
+        this.players.remove(uuid)
+        this.closing[uuid] = future
+        future.thenRunAsync({ this.closing.remove(uuid) }, server)
     }
 }

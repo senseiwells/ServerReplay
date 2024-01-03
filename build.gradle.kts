@@ -45,7 +45,7 @@ dependencies {
         exclude(group = "com.google.code.gson", module = "gson")
     }
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")!!)
-    include(modImplementation("me.lucko:fabric-permissions-api:0.3-SNAPSHOT")!!)
+    include(modImplementation("me.lucko:fabric-permissions-api:${property("permissions_version")}")!!)
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
 

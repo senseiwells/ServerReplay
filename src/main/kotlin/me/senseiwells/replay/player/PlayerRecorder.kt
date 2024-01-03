@@ -155,10 +155,11 @@ class PlayerRecorder internal constructor(
         if (this.stopped) {
             return CompletableFuture.failedFuture(IllegalStateException("Cannot stop replay after already stopped"))
         }
-        PlayerRecorders.removeByUUID(this.profile.id)
 
         // We only save if the player has actually logged in...
-        return this.close(save && this.protocol == ConnectionProtocol.PLAY)
+        val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
+        PlayerRecorders.close(this.server, this.playerUUID, future)
+        return future
     }
 
     fun getRecordingTimeMS(): Long {

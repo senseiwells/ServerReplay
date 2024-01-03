@@ -56,7 +56,7 @@ object PlayerRecorders {
 
     @JvmStatic
     fun getByUUID(uuid: UUID): PlayerRecorder? {
-        return this.players[uuid];
+        return this.players[uuid]
     }
 
     @JvmStatic

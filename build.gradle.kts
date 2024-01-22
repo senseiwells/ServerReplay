@@ -38,12 +38,12 @@ dependencies {
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the
     // jar and yeet the org.slf4j packages then rezip the jar.
-    modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
+    include(modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
         exclude(group = "org.slf4j")
         exclude(group = "com.google.guava", module = "guava-jdk5")
         exclude(group = "com.google.guava", module = "guava")
         exclude(group = "com.google.code.gson", module = "gson")
-    }
+    })
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")!!)
     include(modImplementation("me.lucko:fabric-permissions-api:${property("permissions_version")}")!!)
 

@@ -7,6 +7,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 object PlayerRecorders {
@@ -66,7 +67,7 @@ object PlayerRecorders {
 
     @JvmStatic
     fun all(): Collection<PlayerRecorder> {
-        return this.players.values
+        return ArrayList(this.players.values)
     }
 
     internal fun close(server: MinecraftServer, uuid: UUID, future: CompletableFuture<Long>) {

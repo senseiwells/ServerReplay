@@ -1,13 +1,11 @@
 package me.senseiwells.replay.util
 
-import java.io.OutputStream
 import java.text.NumberFormat
 import java.text.ParseException
 import java.text.StringCharacterIterator
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.math.abs
-
 
 object FileUtils {
     private const val KB = 1024L

@@ -260,7 +260,7 @@ class PlayerRecorder internal constructor(
                     ServerReplay.logger.info(
                         "Saved last replay for '${this.playerName}', compressed to file size of ${FileUtils.formatSize(size)}"
                     )
-                    if (ReplayConfig.restartAfterMaxFileSize) {
+                    if (ReplayConfig.restartAfterMaxFileSize && this.player != null) {
                         val recorder = PlayerRecorders.create(this.server, this.profile)
                         recorder.start(false)
                         ServerReplay.logger.info(

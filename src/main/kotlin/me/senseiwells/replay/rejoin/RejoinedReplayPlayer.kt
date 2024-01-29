@@ -165,7 +165,7 @@ class RejoinedReplayPlayer private constructor(
             val entity = (tracked as TrackedEntityAccessor).entity
             if (entity !== this.original && entity.chunkPosition() == chunk.pos) {
                 this.addTracked(tracked, chunks, seen)
-                if (entity is Mob && entity.getLeashHolder() != null) {
+                if (entity is Mob && entity.leashHolder != null) {
                     leashed.add(entity)
                 }
                 if (entity.passengers.isNotEmpty()) {
@@ -175,7 +175,7 @@ class RejoinedReplayPlayer private constructor(
         }
 
         for (entity in leashed) {
-            this.connection.send(ClientboundSetEntityLinkPacket(entity, entity.getLeashHolder()))
+            this.connection.send(ClientboundSetEntityLinkPacket(entity, entity.leashHolder))
         }
         for (entity in ridden) {
             this.connection.send(ClientboundSetPassengersPacket(entity))

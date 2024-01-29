@@ -197,7 +197,7 @@ repositories {
 
 dependencies {
     // For the most recent version use the latest commit hash
-    val version = "86a2d48e8a"
+    val version = "e108063c09"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
 }
 ```
@@ -206,8 +206,32 @@ You can then set the predicate to your own by setting the field:
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {
-        PlayerRecorders.predicate = Predicate<ServerPlayer> { player ->
-            player.isSurvival
+        PlayerRecorders.predicate = Predicate<ReplayPlayerContext> { context ->
+            context.team == null && context.permissions == 0
+        }
+    }
+}
+```
+
+However it is more likely that you want complete control over starting and
+stopping recordings which is given to you:
+```kt
+class ExampleMod: ModInitializer {
+    override fun onInitialize() {
+        ServerPlayConnectionEvents.JOIN.register { connection, _, _ ->
+            val player = connection.player
+            if (!PlayerRecorders.has(player)) {
+                if (player.level().dimension() == Level.END) {
+                    val recorder = PlayerRecorders.create(player)
+                    recorder.start(log = true)
+                }
+            } else {
+                val existing = PlayerRecorders.get(player)
+                existing.getCompressedRecordingSize().thenAccept { size ->
+                    println("Replay is $size bytes")
+                }
+                existing.stop(save = false)
+            }
         }
     }
 }

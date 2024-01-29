@@ -33,7 +33,7 @@ dependencies {
     })
 
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    // modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the

@@ -106,6 +106,10 @@ class ChunkRecorder internal constructor(
         return true
     }
 
+    override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
+        return this.chunks.contains(tracking.chunkPosition())
+    }
+
     override fun addTrackedEntity(tracking: TrackedEntity) {
         (tracking as ChunkRecorderTrackedEntity).addRecorder(this)
     }

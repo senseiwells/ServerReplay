@@ -7,12 +7,12 @@ import org.jetbrains.annotations.NotNull;
 public interface ServerReplay$ChunkRecorderTrackedEntity extends ChunkRecorderTrackedEntity {
 	@Override
 	default void addRecorder(@NotNull ChunkRecorder recorder) {
-		this.replay$removeRecorder(recorder);
+		this.replay$addRecorder(recorder);
 	}
 
 	@Override
 	default void removeRecorder(@NotNull ChunkRecorder recorder) {
-		this.replay$addRecorder(recorder);
+		this.replay$removeRecorder(recorder);
 	}
 
 	void replay$addRecorder(ChunkRecorder recorder);

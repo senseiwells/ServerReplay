@@ -1,18 +1,17 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
+import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.LevelUtils.viewDistance
+import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ChunkTrackingView
-import net.minecraft.server.level.ServerEntity
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.*
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -106,7 +105,7 @@ class PlayerRecorder internal constructor(
         return deltaSqr <= rangeSqr && tracking.broadcastToPlayer(player)
     }
 
-    override fun addTrackedEntity(tracking: ServerEntity) {
-        tracking.addPairing(this.getPlayerOrThrow())
+    override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
+        (tracking as TrackedEntityAccessor).serverEntity.addPairing(this.getPlayerOrThrow())
     }
 }

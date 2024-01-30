@@ -39,7 +39,7 @@ object PlayerRecorders {
         val recorder = PlayerRecorder(
             server,
             profile,
-            ReplayConfig.recordingPath.resolve(profile.id.toString())
+            ReplayConfig.playerRecordingPath.resolve(profile.id.toString())
         )
         this.players[profile.id] = recorder
         return recorder

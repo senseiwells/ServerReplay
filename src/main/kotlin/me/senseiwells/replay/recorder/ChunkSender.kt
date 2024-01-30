@@ -39,7 +39,7 @@ interface ChunkSender {
         return this.isValidEntity(tracking)
     }
 
-    fun addTrackedEntity(tracking: ServerEntity)
+    fun addTrackedEntity(tracking: TrackedEntity)
 
     @NonExtendable
     fun sendChunksAndEntities() {
@@ -91,7 +91,7 @@ interface ChunkSender {
                 if (!seen.contains(entity.id)) {
                     val range = getRangeOfEntity(tracked, chunks)
                     if (this.shouldTrackEntity(entity, range)) {
-                        this.addTrackedEntity(tracked.serverEntity)
+                        this.addTrackedEntity(tracked)
                         seen.add(entity.id)
                     }
                 }
@@ -121,7 +121,7 @@ interface ChunkSender {
             val entity = (tracked as TrackedEntityAccessor).entity
             val range = getRangeOfEntity(tracked, chunks)
             if (this.shouldTrackEntity(entity, range)) {
-                this.addTrackedEntity(tracked.serverEntity)
+                this.addTrackedEntity(tracked)
             }
         }
     }

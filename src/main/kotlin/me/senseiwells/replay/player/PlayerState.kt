@@ -1,6 +1,7 @@
 package me.senseiwells.replay.player
 
 import com.mojang.datafixers.util.Pair
+import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.core.NonNullList
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
@@ -11,7 +12,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class PlayerState(
-    private val owner: PlayerRecorder
+    private val owner: ReplayRecorder
 ) {
     private val items = NonNullList.withSize(6, ItemStack.EMPTY)
 

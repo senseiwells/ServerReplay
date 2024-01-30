@@ -1,34 +1,57 @@
 package me.senseiwells.replay.chunk
 
 import com.mojang.authlib.GameProfile
+import me.senseiwells.replay.player.PlayerState
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.rejoin.RejoinConnection
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.Util
+import net.minecraft.network.Connection
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ClientInformation
-import net.minecraft.server.level.ServerEntity
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.network.CommonListenerCookie
+import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
+import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
+// TODO:
+//  - Implement TrackedEntity hooking
+//  - Listen to globally and locally broadcasted packets
 class ChunkRecorder internal constructor(
-    override val level: ServerLevel,
     val chunks: ChunkArea,
-    val name: String,
+    val recorderName: String,
     recordings: Path
-): ReplayRecorder(level.server, PROFILE,recordings), ChunkSender {
-    private val dummy = ServerPlayer(this.server, this.level, PROFILE, ClientInformation.createDefault())
+): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
+    private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+
+    override val level: ServerLevel
+        get() = this.chunks.level
+
+    init {
+        val center = this.getCenterChunk()
+        println(center.middleBlockX)
+        println(center.middleBlockZ)
+        this.dummy.setPosRaw(center.middleBlockX.toDouble(), 100.0, center.middleBlockZ.toDouble())
+        this.dummy.setServerLevel(this.level)
+        this.dummy.isInvisible = true
+    }
 
     override fun getName(): String {
-        return this.name
+        return this.recorderName
     }
 
     override fun start(): Boolean {
@@ -38,7 +61,7 @@ class ChunkRecorder internal constructor(
     }
 
     override fun restart(): Boolean {
-        val recorder = ChunkRecorders.create(this.level, this.chunks, this.name)
+        val recorder = ChunkRecorders.create(this.chunks, this.recorderName)
         return recorder.tryStart(false)
     }
 
@@ -83,11 +106,11 @@ class ChunkRecorder internal constructor(
         return true
     }
 
-    override fun addTrackedEntity(tracking: ServerEntity) {
-        // TODO:
+    override fun addTrackedEntity(tracking: TrackedEntity) {
+        (tracking as ChunkRecorderTrackedEntity).addRecorder(this)
     }
 
     companion object {
-        private val PROFILE = GameProfile(Util.NIL_UUID, "ChunkRecorder")
+        private val PROFILE = GameProfile(UUID.randomUUID(), "ChunkRecorder")
     }
 }

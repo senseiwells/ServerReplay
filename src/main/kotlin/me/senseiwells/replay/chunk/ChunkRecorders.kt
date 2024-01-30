@@ -16,12 +16,12 @@ object ChunkRecorders {
 
     @JvmStatic
     fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ChunkRecorder {
-        return this.create(level, ChunkArea(from, to), name)
+        return this.create(ChunkArea(level, from, to), name)
     }
 
     @JvmStatic
     @JvmOverloads
-    fun create(level: ServerLevel, area: ChunkArea, name: String = generateName(area)): ChunkRecorder {
+    fun create(area: ChunkArea, name: String = generateName(area)): ChunkRecorder {
         if (this.recorders.containsKey(area)) {
             throw IllegalArgumentException("Chunk area already has a recorder")
         }
@@ -29,10 +29,9 @@ object ChunkRecorders {
         this.closing[area]?.join()
 
         val recorder = ChunkRecorder(
-            level,
             area,
             name,
-            ReplayConfig.recordingPath.resolve(name)
+            ReplayConfig.chunkRecordingPath.resolve(name)
         )
         this.recorders[area] = recorder
         return recorder

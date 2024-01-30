@@ -28,7 +28,8 @@ object ReplayConfig {
     var maxFileSize = 0L
     var restartAfterMaxFileSize = false
 
-    var recordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
+    var chunkRecordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings").resolve("chunks")
+    var playerRecordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings").resolve("players")
 
     val predicate = Predicate<ReplayPlayerContext> { this.reloadablePredicate.shouldRecord(it) }
 
@@ -64,7 +65,13 @@ object ReplayConfig {
                 this.restartAfterMaxFileSize = json.get("restart_after_max_file_size").asBoolean
             }
             if (json.has("recording_path")) {
-                this.recordingPath = Path.of(json.get("recording_path").asString)
+                this.playerRecordingPath = Path.of(json.get("recording_path").asString)
+            }
+            if (json.has("player_recording_path")) {
+                this.playerRecordingPath = Path.of(json.get("player_recording_path").asString)
+            }
+            if (json.has("chunk_recording_path")) {
+                this.chunkRecordingPath = Path.of(json.get("chunk_recording_path").asString)
             }
             if (json.has("predicate")) {
                 this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
@@ -83,7 +90,8 @@ object ReplayConfig {
             json.addProperty("server_name", this.serverName)
             json.addProperty("max_raw_file_size", this.maxFileSizeString)
             json.addProperty("restart_after_max_file_size", this.restartAfterMaxFileSize)
-            json.addProperty("recording_path", this.recordingPath.absolutePathString())
+            json.addProperty("player_recording_path", this.playerRecordingPath.pathString)
+            json.addProperty("chunk_recording_path", this.chunkRecordingPath.pathString)
             json.add("predicate", this.reloadablePredicate.serialise())
             val path = this.getPath()
             path.parent.createDirectories()

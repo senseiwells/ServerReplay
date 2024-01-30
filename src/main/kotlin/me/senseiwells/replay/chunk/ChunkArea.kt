@@ -1,10 +1,13 @@
 package me.senseiwells.replay.chunk
 
+import net.minecraft.core.BlockPos
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import kotlin.math.max
 import kotlin.math.min
 
 class ChunkArea(
+    val level: ServerLevel,
     from: ChunkPos,
     to: ChunkPos
 ): Iterable<ChunkPos> {
@@ -19,8 +22,16 @@ class ChunkArea(
 
         this.center = ChunkPos(
             this.from.x + (this.to.x - this.from.x) / 2,
-            this.from.z + (this.from.z - this.from.z) / 2
+            this.from.z + (this.to.z - this.from.z) / 2
         )
+    }
+
+    fun contains(pos: ChunkPos): Boolean {
+        return this.from.x <= pos.x && this.from.z <= pos.z && this.to.x >= pos.x && this.to.z >= pos.z
+    }
+
+    fun contains(pos: BlockPos): Boolean {
+        return this.contains(ChunkPos(pos))
     }
 
     override fun iterator(): Iterator<ChunkPos> {
@@ -38,12 +49,20 @@ class ChunkArea(
         if (this.from != other.from || this.to != other.to) {
             return false
         }
+        if (this.level.dimension() != other.level.dimension()) {
+            return false
+        }
         return true
     }
 
     override fun hashCode(): Int {
-        var result = this.from.hashCode()
+        var result = this.level.dimension().hashCode()
+        result = 31 * result + this.from.hashCode()
         result = 31 * result + this.to.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "Chunks[in ${this.level.dimension().location()}, from (${this.from.x}, ${this.from.z}) to (${this.to.x}, ${this.to.z})]"
     }
 }

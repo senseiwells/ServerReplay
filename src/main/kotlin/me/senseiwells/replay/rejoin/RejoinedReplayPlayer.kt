@@ -84,7 +84,14 @@ class RejoinedReplayPlayer private constructor(
         listener.teleport(this.x, this.y, this.z, this.yRot, this.xRot)
         server.status?.let { this.sendServerStatus(it) }
 
-        this.recorder.record(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(players.players))
+        // We do this to ensure that we have ALL the players
+        // including any 'fake' chunk players
+        val uniques = HashSet(players.players)
+        if (!uniques.contains(this.original)) {
+            uniques.add(this)
+        }
+
+        this.recorder.record(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(uniques))
         players.sendLevelInfo(this, level)
 
         for (event in server.customBossEvents.events) {

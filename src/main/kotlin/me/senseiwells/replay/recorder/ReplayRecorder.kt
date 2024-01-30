@@ -98,6 +98,8 @@ abstract class ReplayRecorder(
             return
         }
 
+        // ServerReplay.logger.info("Recording packet ${outgoing::class.java}: $outgoing")
+
         val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
             val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
@@ -129,11 +131,10 @@ abstract class ReplayRecorder(
         this.checkFileSize()
     }
 
-    fun tryStart(log: Boolean = false): Boolean {
+    fun tryStart(log: Boolean = true): Boolean {
         if (this.started) {
             throw IllegalStateException("Cannot start recording after already started!")
         }
-        // TODO: logging
         if (this.start()) {
             if (log) {
                 ServerReplay.logger.info("Started replay for ${this.getName()}")
@@ -320,7 +321,7 @@ abstract class ReplayRecorder(
         meta.isSingleplayer = false
         meta.serverName = ReplayConfig.worldName
         meta.customServerName = ReplayConfig.serverName
-        meta.generator = "ServerReplay v${ServerReplay.version}"
+        meta.generator = "ServerReplay v${ServerReplay.VERSION}"
         meta.date = System.currentTimeMillis()
         meta.mcVersion = DetectedVersion.BUILT_IN.name
         return meta

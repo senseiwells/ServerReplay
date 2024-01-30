@@ -1,20 +1,78 @@
 # Server Replay
 
 A completely server-side implementation of the replay mod, this mod allows you
-to record multiple players that are online on a server at a time. This will
+to record multiple players that are online, or chunk areas, on a server at a time. This will
 produce replay files which can then be used with the replay mod for rendering.
-
-Currently, the implementation only allows for recording and following specific
-players, recording a static area is not yet supported.
 
 ## Usage
 
-This mod requires the fabric launcher, then to install just simply drag the
-mod into your mods' folder.
+This mod requires the fabric launcher, fabric-api, and fabric-kotlin.
 
-For very simply use-cases you can run `/replay start <player(s)>` and `/replay stop <player(s)>`,
-however this mod also provides the ability to configure and automatically start and
-stop replays. The rest of this document will detail how you can configure this.
+There are two ways of recording on the server, you can either configure it
+to follow and record players from their view. 
+Alternatively, you can record a static area of chunks.
+
+### Quick Start
+
+This section of the documentation will briefly guide you through a basic setup. 
+As well as containing some important information.
+
+#### Players
+
+To record a player on your server you can run `/replay start players <player(s)>`, for example:
+```
+/replay start players senseiwells
+/replay start players @a
+/replay start players @a[gamemode=survival]
+```
+
+Player recorders are tied to the player and will record at the 
+servers view distance.
+
+If the player leaves or the server stops the replay will automatically stop and save.
+
+Alternatively if you wish to stop the recording manually you can run `/replay stop players <player(s)> <save?>`, 
+using this command you can also stop a recording without saving it, for example:
+```
+/replay stop players senseiwells
+/replay stop players @r
+/replay stop players senseiwells false
+```
+
+The replay will then be saved to your `"player_recording_path"` location
+specified in a folder with the player's uuid. 
+By default, this will be in `./recordings/players/<uuid>/<date-and-time>.mcpr`.
+
+This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
+
+#### Chunks
+
+To record an area of chunks on your server you can run `/replay start chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> named <name?>`, for example:
+```
+/replay start chunks from 0 0 to 5 5 in minecraft:overworld named MyChunkRecording
+/replay start chunks from 54 67 to 109 124
+/replay start chunks from 30 30 to 60 60 in minecraft:the_nether 
+```
+
+Chunk recorders are static and cannot move, they record the specified chunks.
+An important thing to note is that when the replay starts, the specified chunks
+will be loaded (and generated if necessary). 
+However, after this the chunk recorder does not load the chunks.
+
+If the server stops, the replay will automatically stop and save.
+
+Alternatively if you wish to stop the recording manually you can run `/replay stop chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> <save?>`,
+using this command you can also stop a recording without saving it, for example:
+```
+/replay stop chunks from 0 0 to 5 5 in minecraft:overworld false
+/replay stop chunks from 54 67 to 109 124
+```
+
+The replay will then be saved to your `"chunk_recording_path"` location
+specified in a folder with the chunk recorders name.
+By default, this will be in `./recordings/chunks/<name>/<date-and-time>.mcpr`.
+
+This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
 ### Commands
 
@@ -25,14 +83,20 @@ have the permission `replay.commands.replay` to access these commands.
 - `/replay enable` Enables the replay mod to automatically recording players that should
   be recorded based on the given predicate (more details in the [Predicates](#predicates) section).
 - `/replay disable` Disables the replay mod from automatically recording players, this will
-  also stop any currently recording players.
-- `/replay start <player(s)>` Manually starts recording the replay for some given player(s).
-- `/replay stop <player(s)> <save?>` Manually stops recording the replay for some given player(s),
+  also stop any currently recording players and chunks.
+- `/replay start players <player(s)>` Manually starts recording the replay for some given player(s).
+- `/replay start chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> named <name?>` 
+  Manually starts recording the replay for the given chunk area, if no dimension is specified the command user's
+  dimension will be used instead, the name determines where the replay file will be saved in the recording path.
+- `/replay stop players <player(s)> <save?>` Manually stops recording the replay for some given player(s),
   you may optionally pass in whether the replay should be saved; by default, this is true.
-- `/replay stop <save?>` Manually stops **all** replays you may optionally pass in whether the
+- `/replay stop chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> <save?>` 
+  Manually stops recording the replay for the given chunk area, if no dimension is specified the command user's
+  dimension will be used instead, you may optionally pass in whether the replay should be saved; by default, this is true.
+- `/replay stop [chunks|players] all <save?>` Manually stops **all** chunks or player replays you may optionally pass in whether the
   replay should be saved; by default, this is true.
 - `/replay status` Sends a status message of whether replay is enabled and a list of all the
-  players that are currently being recorded and how long they've been recorded for.
+  players and chunks that are currently being recorded, how long they've been recorded for, and their file sizes.
 - `/replay reload` Reloads the config file for the replay mod.
 
 ### Configuring
@@ -45,33 +109,37 @@ After you boot the server a new file will be generated in the path
   "enabled": false,
   "world_name": "World",
   "server_name": "Server",
-  "recording_path": "./recordings",
-  "predicate": {
+  "max_file_size": "0GB",
+  "restart_after_max_file_size": false,
+  "pause_unloaded_chunks": false,
+  "pause_notify_players": true,
+  "player_recording_path": "./recordings/players",
+  "chunk_recording_path": "./recordings/chunks",
+  "player_predicate": {
     "type": "none"
   }
 }
 ```
 
-### Enabling and Disabling
+| Config                          | Description                                                                                                                                                                                                                                                 |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `"enabled"`                     | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                     |
+| `"world_name"`                  | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                         |
+| `"server_name"`                 | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                        |
+| `"max_file_size"`               | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                          |
+| `"restart_after_max_file_size"` | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                               |
+| `"pause_unloaded_chunks"`       | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p> |
+| `"pause_notify_players"`        | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
+| `"player_recording_path"`       | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |
+| `"chunk_recording_path"`        | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                              |
+| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates) section. </p>                                                                                                                                      |
 
-By default, the replay functionality is disabled, you can enable it by either
-changing the `config.json` then running `/replay reload` in game, or by simply
-just running `/replay enable` or `/replay disable` in game.
-
-This will then check whether any online players should be recorded and start their
-recording accordingly.
-
-### Recording Path
-
-This determines where your recordings are saved. By default, this is `./recordings`, 
-then there will be subdirectories which are named according to the player's uuid, then
-any replays will be located in there which are named by date and time.
-For example: `./recordings/d4fca8c4-e083-4300-9a73-bf438847861c/2023-05-22--13-38-13.mcpr`
 
 ### Predicates
 
-You must define a predicate, which determines which players on your server
-will be recorded, you can do this by specifying whether players have a specific uuid, 
+You can define a predicate, which determines which players on your server
+will be recorded automatically. 
+You can do this by specifying whether players have a specific uuid, 
 name, are on a specific team, or whether they are an operator.
 
 After defining a predicate you must run `/replay reload` in game then players must 
@@ -199,17 +267,6 @@ dependencies {
     // For the most recent version use the latest commit hash
     val version = "e108063c09"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
-}
-```
-
-You can then set the predicate to your own by setting the field:
-```kt
-class ExampleMod: ModInitializer {
-    override fun onInitialize() {
-        PlayerRecorders.predicate = Predicate<ReplayPlayerContext> { context ->
-            context.team == null && context.permissions == 0
-        }
-    }
 }
 ```
 

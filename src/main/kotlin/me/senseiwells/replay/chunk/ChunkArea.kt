@@ -35,8 +35,23 @@ class ChunkArea(
     }
 
     override fun iterator(): Iterator<ChunkPos> {
-        // TODO: Implement this faster
-        return ChunkPos.rangeClosed(this.from, this.to).iterator()
+        val dx = this.to.x - this.from.x + 1
+        val dz = this.to.z - this.from.z + 1
+        val total = dx * dz
+        return object: Iterator<ChunkPos> {
+            private var index = 0
+
+            override fun hasNext(): Boolean {
+                return this.index < total
+            }
+
+            override fun next(): ChunkPos {
+                val x = this.index % dx
+                val z = this.index / dx
+                this.index++
+                return ChunkPos(from.x + x, from.z + z)
+            }
+        }
     }
 
     override fun equals(other: Any?): Boolean {

@@ -22,6 +22,10 @@ object ReplayConfig {
     @JvmStatic
     var enabled: Boolean = false
 
+    @JvmStatic
+    var skipWhenChunksUnloaded = false
+    @JvmStatic
+    var notifyPlayersLoadingChunks = true
     var worldName = "World"
     var serverName = "Server"
     var maxFileSizeString = "0GB"
@@ -31,10 +35,12 @@ object ReplayConfig {
     var chunkRecordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings").resolve("chunks")
     var playerRecordingPath: Path = FabricLoader.getInstance().gameDir.resolve("recordings").resolve("players")
 
+    @JvmField
     val predicate = Predicate<ReplayPlayerContext> { this.reloadablePredicate.shouldRecord(it) }
 
     @JvmStatic
     fun read() {
+        // TODO: Make this better xD
         try {
             val path = this.getPath()
             if (!path.exists()) {
@@ -64,6 +70,12 @@ object ReplayConfig {
             if (json.has("restart_after_max_file_size")) {
                 this.restartAfterMaxFileSize = json.get("restart_after_max_file_size").asBoolean
             }
+            if (json.has("pause_unloaded_chunks")) {
+                this.skipWhenChunksUnloaded = json.get("pause_unloaded_chunks").asBoolean
+            }
+            if (json.has("pause_notify_players")) {
+                this.notifyPlayersLoadingChunks = json.get("pause_notify_players").asBoolean
+            }
             if (json.has("recording_path")) {
                 this.playerRecordingPath = Path.of(json.get("recording_path").asString)
             }
@@ -73,7 +85,7 @@ object ReplayConfig {
             if (json.has("chunk_recording_path")) {
                 this.chunkRecordingPath = Path.of(json.get("chunk_recording_path").asString)
             }
-            if (json.has("predicate")) {
+            if (json.has("player_predicate")) {
                 this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
             }
         } catch (e: Exception) {
@@ -88,11 +100,13 @@ object ReplayConfig {
             json.addProperty("enabled", this.enabled)
             json.addProperty("world_name", this.worldName)
             json.addProperty("server_name", this.serverName)
-            json.addProperty("max_raw_file_size", this.maxFileSizeString)
+            json.addProperty("max_file_size", this.maxFileSizeString)
             json.addProperty("restart_after_max_file_size", this.restartAfterMaxFileSize)
+            json.addProperty("pause_unloaded_chunks", this.skipWhenChunksUnloaded)
+            json.addProperty("pause_notify_players", this.notifyPlayersLoadingChunks)
             json.addProperty("player_recording_path", this.playerRecordingPath.pathString)
             json.addProperty("chunk_recording_path", this.chunkRecordingPath.pathString)
-            json.add("predicate", this.reloadablePredicate.serialise())
+            json.add("player_predicate", this.reloadablePredicate.serialise())
             val path = this.getPath()
             path.parent.createDirectories()
             path.bufferedWriter().use {

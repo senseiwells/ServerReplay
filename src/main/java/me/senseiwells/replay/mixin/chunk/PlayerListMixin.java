@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin;
+package me.senseiwells.replay.mixin.chunk;
 
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;

@@ -7,8 +7,8 @@ import org.jetbrains.annotations.NotNull;
 
 public interface ServerReplay$ChunkMapInvoker extends ChunkMapInvoker {
 	@Override
-	default ChunkHolder getVisibleChunkIfExists(long pos) {
-		return this.replay$getVisibleChunkIfPresent(pos);
+	default ChunkHolder getUpdatingChunkIfPresent(long pos) {
+		return this.replay$getUpdatingChunkIfPresent(pos);
 	}
 
 	@NotNull
@@ -17,7 +17,7 @@ public interface ServerReplay$ChunkMapInvoker extends ChunkMapInvoker {
 		return this.replay$getLightEngine();
 	}
 
-	ChunkHolder replay$getVisibleChunkIfPresent(long pos);
+	ChunkHolder replay$getUpdatingChunkIfPresent(long pos);
 
 	ThreadedLevelLightEngine replay$getLightEngine();
 }

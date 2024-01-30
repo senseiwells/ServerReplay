@@ -12,13 +12,11 @@ import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(ChunkMap.class)
 public abstract class ChunkMapMixin implements ServerReplay$ChunkMapInvoker {
-	@Nullable @Shadow protected abstract ChunkHolder getVisibleChunkIfPresent(long chunkPos);
-
 	@Shadow @Final private ThreadedLevelLightEngine lightEngine;
 
 	@Override
-	public ChunkHolder replay$getVisibleChunkIfPresent(long pos) {
-		return this.getVisibleChunkIfPresent(pos);
+	public ChunkHolder replay$getUpdatingChunkIfPresent(long pos) {
+		return this.getUpdatingChunkIfPresent(pos);
 	}
 
 	@NotNull

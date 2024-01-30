@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin;
+package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.senseiwells.replay.chunk.ChunkRecorder;

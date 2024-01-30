@@ -4,7 +4,7 @@ import net.minecraft.server.level.ChunkHolder
 import net.minecraft.server.level.ThreadedLevelLightEngine
 
 interface ChunkMapInvoker {
-    fun getVisibleChunkIfExists(pos: Long): ChunkHolder?
+    fun getUpdatingChunkIfPresent(pos: Long): ChunkHolder?
 
     fun getLightEngine(): ThreadedLevelLightEngine
 }

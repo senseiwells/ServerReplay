@@ -14,9 +14,6 @@ object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()
     private val closing = HashMap<UUID, CompletableFuture<Long>>()
 
-    @JvmField
-    var predicate = ReplayConfig.predicate
-
     @JvmStatic
     fun create(player: ServerPlayer): PlayerRecorder {
         if (player is RejoinedReplayPlayer) {

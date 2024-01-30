@@ -116,7 +116,7 @@ object ReplayCommand {
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
         for (player in context.source.server.playerList.players) {
-            if (PlayerRecorders.predicate.test(ReplayPlayerContext.of(player))) {
+            if (ReplayConfig.predicate.test(ReplayPlayerContext.of(player))) {
                 PlayerRecorders.create(player).tryStart()
             }
         }
@@ -257,7 +257,7 @@ object ReplayCommand {
         if (recorders.isNotEmpty()) {
             builder.append("Currently Recording $type:").append("\n")
             for ((recorder, compressed) in recorders.map { it to it.getCompressedRecordingSize() }) {
-                val seconds = recorder.getRecordingTimeMS() / 1000
+                val seconds = recorder.getTotalRecordingTime() / 1000
                 val hours = seconds / 3600
                 val minutes = seconds % 3600 / 60
                 val secs = seconds % 60

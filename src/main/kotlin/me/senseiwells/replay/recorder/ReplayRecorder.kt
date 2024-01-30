@@ -53,7 +53,7 @@ abstract class ReplayRecorder(
     private val output: ReplayOutputStream
     private val meta: ReplayMetaData
 
-    private val start: Long
+    private var start: Long = 0
 
     private var protocol = ConnectionProtocol.LOGIN
     private var lastPacket = 0L
@@ -62,6 +62,8 @@ abstract class ReplayRecorder(
     private var packId = 0
 
     private var started = false
+
+    private var ignore = false
 
     val stopped: Boolean
         get() = this.executor.isShutdown
@@ -77,12 +79,14 @@ abstract class ReplayRecorder(
         this.output = this.replay.writePacketData()
         this.meta = this.createNewMeta()
 
-        this.start = System.currentTimeMillis()
-
         this.saveMeta()
     }
 
     fun record(outgoing: MinecraftPacket<*>) {
+        if (this.ignore) {
+            return
+        }
+
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
@@ -116,7 +120,7 @@ abstract class ReplayRecorder(
             buf.release()
         }
 
-        val timestamp = this.getRecordingTimeMS()
+        val timestamp = this.getTimestamp()
         this.lastPacket = timestamp
 
         this.executor.execute {
@@ -137,11 +141,15 @@ abstract class ReplayRecorder(
         }
         if (this.start()) {
             if (log) {
-                ServerReplay.logger.info("Started replay for ${this.getName()}")
+                this.logStart()
             }
             return true
         }
         return false
+    }
+
+    fun logStart() {
+        ServerReplay.logger.info("Started replay for ${this.getName()}")
     }
 
     @JvmOverloads
@@ -156,7 +164,7 @@ abstract class ReplayRecorder(
         return future
     }
 
-    fun getRecordingTimeMS(): Long {
+    fun getTotalRecordingTime(): Long {
         return System.currentTimeMillis() - this.start
     }
 
@@ -171,6 +179,8 @@ abstract class ReplayRecorder(
     @Internal
     fun afterLogin() {
         this.started = true
+        this.start = System.currentTimeMillis()
+
         // We will not have recorded this, so we need to do it manually.
         this.record(ClientboundGameProfilePacket(this.profile))
 
@@ -180,6 +190,20 @@ abstract class ReplayRecorder(
     @Internal
     fun afterConfigure() {
         this.protocol = ConnectionProtocol.PLAY
+    }
+
+    protected fun ignore(block: () -> Unit) {
+        val previous = this.ignore
+        try {
+            this.ignore = true
+            block()
+        } finally {
+            this.ignore = previous
+        }
+    }
+
+    open fun getTimestamp(): Long {
+        return this.getTotalRecordingTime()
     }
 
     abstract fun getName(): String

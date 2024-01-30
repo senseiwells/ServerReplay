@@ -1,13 +1,17 @@
 package me.senseiwells.replay.mixin;
 
+import me.senseiwells.replay.chunk.ChunkRecorder;
+import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MinecraftServer.class)
 public class MinecraftServerMixin {
@@ -24,13 +28,28 @@ public class MinecraftServerMixin {
 	}
 
 	@Inject(
+		method = "saveAllChunks",
+		at = @At("TAIL")
+	)
+	private void onSave(
+		boolean suppressLog,
+		boolean flush,
+		boolean forced,
+		CallbackInfoReturnable<Boolean> cir
+	) {
+		ReplayConfig.write();
+	}
+
+	@Inject(
 		method = "stopServer",
 		at = @At("TAIL")
 	)
 	private void onServerStopped(CallbackInfo ci) {
-		ReplayConfig.write();
-
 		for (PlayerRecorder recorder : PlayerRecorders.all()) {
+			recorder.stop();
+		}
+
+		for (ChunkRecorder recorder : ChunkRecorders.all()) {
 			recorder.stop();
 		}
 	}

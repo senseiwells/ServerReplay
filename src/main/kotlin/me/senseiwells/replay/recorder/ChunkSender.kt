@@ -3,6 +3,7 @@ package me.senseiwells.replay.recorder
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.mixin.chunk.ServerChunkCacheInvoker
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.util.ducks.ChunkMapInvoker
@@ -14,7 +15,6 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
 import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket
 import net.minecraft.server.level.ChunkMap
 import net.minecraft.server.level.ChunkMap.TrackedEntity
-import net.minecraft.server.level.ServerEntity
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
@@ -55,17 +55,15 @@ interface ChunkSender {
 
         this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
 
-        val chunks = this.level.chunkSource.chunkMap
-        chunks as ChunkMapInvoker
+        val source = this.level.chunkSource
+        source as ServerChunkCacheInvoker
+        val chunks = source.chunkMap
         this.forEachChunk { pos ->
-            val holder = chunks.getVisibleChunkIfExists(pos.toLong())
-            if (holder == null) {
-                ServerReplay.logger.warn("Chunk is not loaded at $pos, failed to send")
+            val chunk = source.getChunk(pos.x, pos.z, true)
+            if (chunk != null) {
+                this.sendChunk(chunks, chunk, seen)
             } else {
-                val chunk = holder.fullChunk
-                if (chunk != null) {
-                    this.sendChunk(chunks, chunk, seen)
-                }
+                ServerReplay.logger.warn("Failed to get chunk at $pos, didn't send")
             }
         }
     }

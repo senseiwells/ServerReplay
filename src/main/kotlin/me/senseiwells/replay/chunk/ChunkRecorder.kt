@@ -1,9 +1,13 @@
 package me.senseiwells.replay.chunk
 
+import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.util.ducks.ChunkMapInvoker
 import net.minecraft.core.UUIDUtil
+import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
@@ -16,19 +20,20 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
+import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
-// TODO:
-//  - When everything is unloaded in the chunk area then we skip forward...
-//  - What happens when chunks are initially loaded?
 class ChunkRecorder internal constructor(
     val chunks: ChunkArea,
     val recorderName: String,
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
     private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+
+    private var totalPausedTime: Long = 0
+    private var lastPaused: Long = 0
 
     override val level: ServerLevel
         get() = this.chunks.level
@@ -38,13 +43,10 @@ class ChunkRecorder internal constructor(
     }
 
     override fun start(): Boolean {
-        // We load all the chunks to ensure we can
-        // correctly record the initial chunks.
-        for (pos in this.chunks) {
-            this.level.chunkSource.addRegionTicket(ChunkRecorders.RECORDING_TICKET, pos, 1, pos)
-        }
-
         val center = this.getCenterChunk()
+        // Load the chunk
+        this.level.getChunk(center.x, center.z)
+
         val x = center.middleBlockX
         val z = center.middleBlockZ
         val y = this.level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
@@ -87,6 +89,10 @@ class ChunkRecorder internal constructor(
         }
     }
 
+    override fun getTimestamp(): Long {
+        return super.getTimestamp() - this.totalPausedTime - this.getCurrentPause()
+    }
+
     override fun canContinueRecording(): Boolean {
         return true
     }
@@ -115,7 +121,57 @@ class ChunkRecorder internal constructor(
         (tracking as ChunkRecorderTrackedEntity).addRecorder(this)
     }
 
+    @Internal
+    fun pause(unloaded: ChunkPos) {
+        if (!this.paused() && ReplayConfig.skipWhenChunksUnloaded && this.chunks.contains(unloaded)) {
+            for (pos in this.chunks) {
+                if (this.level.chunkSource.hasChunk(pos.x, pos.z)) {
+                    return
+                }
+            }
+            this.lastPaused = System.currentTimeMillis()
+
+            if (ReplayConfig.notifyPlayersLoadingChunks) {
+                this.ignore {
+                    this.server.playerList.broadcastSystemMessage(
+                        Component.literal("Paused recording for ${this.getName()}, chunks were unloaded"),
+                        false
+                    )
+                }
+            }
+        }
+    }
+
+    @Internal
+    fun unpause(loaded: ChunkPos) {
+        if (this.paused() && this.chunks.contains(loaded)) {
+            this.totalPausedTime += this.getCurrentPause()
+            this.lastPaused = 0L
+
+            if (ReplayConfig.notifyPlayersLoadingChunks) {
+                this.ignore {
+                    this.server.playerList.broadcastSystemMessage(
+                        Component.literal("Resumed recording for ${this.getName()}, chunks were loaded"),
+                        false
+                    )
+                }
+            }
+        }
+    }
+
+    @Internal
+    internal fun paused(): Boolean {
+        return this.lastPaused != 0L
+    }
+
+    private fun getCurrentPause(): Long {
+        if (this.paused()) {
+            return System.currentTimeMillis() - this.lastPaused
+        }
+        return 0L
+    }
+
     companion object {
-        private val PROFILE = UUIDUtil.createOfflineProfile("ChunkRecorder")
+        private val PROFILE = UUIDUtil.createOfflineProfile("CR")
     }
 }

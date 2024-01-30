@@ -286,8 +286,7 @@ dependencies {
 }
 ```
 
-However it is more likely that you want complete control over starting and
-stopping recordings which is given to you:
+Here's a basic example with what you can do:
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {

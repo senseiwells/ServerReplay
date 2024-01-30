@@ -11,6 +11,7 @@ import net.minecraft.network.Connection
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
@@ -84,6 +85,10 @@ class ChunkRecorder internal constructor(
             Vec3.ZERO,
             0.0
         ))
+        val tracked = this.dummy.entityData.nonDefaultValues
+        if (tracked != null) {
+            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
+        }
     }
 
     override fun canContinueRecording(): Boolean {

@@ -30,8 +30,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 // TODO:
-//  - Implement TrackedEntity hooking
-//  - Listen to globally and locally broadcasted packets
+//  - When everything is unloaded in the chunk area then we skip forward...
 class ChunkRecorder internal constructor(
     val chunks: ChunkArea,
     val recorderName: String,

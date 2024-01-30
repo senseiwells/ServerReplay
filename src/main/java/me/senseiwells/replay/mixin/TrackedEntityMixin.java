@@ -74,4 +74,14 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecorderTrackedEnti
 			}
 		}
 	}
+
+	@Inject(
+		method = "broadcastRemoved",
+		at = @At("HEAD")
+	)
+	private void onRemoved(CallbackInfo ci) {
+		for (ChunkRecorder recorder : new ArrayList<>(this.replay$recorders)) {
+			this.removeRecorder(recorder);
+		}
+	}
 }

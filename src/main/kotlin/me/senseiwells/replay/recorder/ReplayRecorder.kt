@@ -218,6 +218,10 @@ abstract class ReplayRecorder(
 
     protected abstract fun canContinueRecording(): Boolean
 
+    protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+        return true
+    }
+
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
         when (packet) {
             is ClientboundAddEntityPacket -> {
@@ -238,7 +242,7 @@ abstract class ReplayRecorder(
                 return this.downloadAndRecordResourcePack(packet)
             }
         }
-        return false
+        return !this.canRecordPacket(packet)
     }
 
     private fun postPacket(packet: MinecraftPacket<*>) {

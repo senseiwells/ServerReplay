@@ -34,24 +34,6 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	@Shadow @Final Entity entity;
 	@Shadow @Final ServerEntity serverEntity;
 
-	@Override
-	public void replay$addRecorder(ChunkRecorder recorder) {
-		if (this.replay$recorders.add(recorder)) {
-			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
-			this.serverEntity.sendPairingData(null, list::add);
-			recorder.record(new ClientboundBundlePacket(list));
-		}
-	}
-
-	@Override
-	public void replay$removeRecorder(ChunkRecorder recorder) {
-		if (this.replay$recorders.remove(recorder)) {
-			recorder.record(new ClientboundRemoveEntitiesPacket(
-				this.entity.getId()
-			));
-		}
-	}
-
 	@Inject(
 		method = "broadcast",
 		at = @At("HEAD")
@@ -84,8 +66,33 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 		at = @At("HEAD")
 	)
 	private void onRemoved(CallbackInfo ci) {
-		for (ChunkRecorder recorder : new ArrayList<>(this.replay$recorders)) {
-			this.removeRecorder(recorder);
+		this.removeAllRecorders();
+	}
+
+	@Override
+	public void replay$addRecorder(ChunkRecorder recorder) {
+		if (this.replay$recorders.add(recorder)) {
+			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
+			this.serverEntity.sendPairingData(null, list::add);
+			recorder.record(new ClientboundBundlePacket(list));
 		}
+	}
+
+	@Override
+	public void replay$removeRecorder(ChunkRecorder recorder) {
+		if (this.replay$recorders.remove(recorder)) {
+			recorder.record(new ClientboundRemoveEntitiesPacket(
+				this.entity.getId()
+			));
+		}
+	}
+
+	@Override
+	public void replay$removeAllRecorders() {
+		ClientboundRemoveEntitiesPacket packet = new ClientboundRemoveEntitiesPacket(this.entity.getId());
+		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.record(packet);
+		}
+		this.replay$recorders.clear();
 	}
 }

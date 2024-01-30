@@ -34,6 +34,7 @@ object ChunkRecorders {
             ReplayConfig.chunkRecordingPath.resolve(name)
         )
         this.chunks[area] = recorder
+        this.chunksByName[name] = recorder
         return recorder
     }
 

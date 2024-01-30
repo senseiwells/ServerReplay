@@ -58,11 +58,6 @@ public class ChunkMapMixin {
 		CallbackInfo ci,
 		@Local ChunkHolder holder
 	) {
-		ChunkPos pos = holder.getPos();
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(this.level, pos)) {
-				((ChunkRecordable) holder).removeRecorder(recorder);
-			}
-		}
+		((ChunkRecordable) holder).removeAllRecorders();
 	}
 }

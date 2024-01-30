@@ -9,6 +9,7 @@ import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket
+import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
 import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket
 import net.minecraft.server.level.ChunkMap
@@ -40,6 +41,10 @@ interface ChunkSender {
 
     fun addTrackedEntity(tracking: TrackedEntity)
 
+    fun getViewDistance(): Int {
+        return (this.level.chunkSource.chunkMap as ChunkMapAccessor).viewDistance
+    }
+
     @NonExtendable
     fun sendChunksAndEntities() {
         val seen = IntOpenHashSet()
@@ -52,6 +57,7 @@ interface ChunkSender {
         val center = this.getCenterChunk()
 
         this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
+        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
 
         val source = this.level.chunkSource
         source as ServerChunkCacheInvoker

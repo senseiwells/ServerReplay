@@ -86,7 +86,7 @@ object ReplayConfig {
                 this.chunkRecordingPath = Path.of(json.get("chunk_recording_path").asString)
             }
             if (json.has("player_predicate")) {
-                this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("predicate"))
+                this.reloadablePredicate = this.deserializePlayerPredicate(json.getAsJsonObject("player_predicate"))
             }
         } catch (e: Exception) {
             ServerReplay.logger.error("Failed to read replay config", e)

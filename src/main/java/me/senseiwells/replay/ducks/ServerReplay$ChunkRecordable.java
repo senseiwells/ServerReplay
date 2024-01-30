@@ -15,7 +15,14 @@ public interface ServerReplay$ChunkRecordable extends ChunkRecordable {
 		this.replay$removeRecorder(recorder);
 	}
 
+	@Override
+	default void removeAllRecorders() {
+		this.replay$removeAllRecorders();
+	}
+
 	void replay$addRecorder(ChunkRecorder recorder);
 
 	void replay$removeRecorder(ChunkRecorder recorder);
+
+	void replay$removeAllRecorders();
 }

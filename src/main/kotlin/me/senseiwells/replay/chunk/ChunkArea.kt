@@ -17,15 +17,16 @@ class ChunkArea(
     val to: ChunkPos
 
     val center: ChunkPos
+    val viewDistance: Int
 
     init {
         this.from = ChunkPos(min(from.x, to.x), min(from.z, to.z))
         this.to = ChunkPos(max(from.x, to.x), max(from.z, to.z))
 
-        this.center = ChunkPos(
-            this.from.x + (this.to.x - this.from.x) / 2,
-            this.from.z + (this.to.z - this.from.z) / 2
-        )
+        val dx = (this.to.x - this.from.x) / 2
+        val dz = (this.to.z - this.from.z) / 2
+        this.center = ChunkPos(this.from.x + dx, this.from.z + dz)
+        this.viewDistance = max(dx, dz)
     }
 
     fun contains(level: ResourceKey<Level>, pos: ChunkPos): Boolean {

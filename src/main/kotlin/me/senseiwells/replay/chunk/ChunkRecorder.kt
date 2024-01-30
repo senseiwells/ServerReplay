@@ -2,6 +2,7 @@ package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
@@ -9,6 +10,7 @@ import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ClientInformation
@@ -57,6 +59,15 @@ class ChunkRecorder internal constructor(
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.sendChunksAndEntities()
+
+        val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
+        for (pos in this.chunks) {
+            val holder = chunks.getTickingChunk(pos.toLong())
+            if (holder != null) {
+                (holder as ChunkRecordable).addRecorder(this)
+            }
+        }
+
         return true
     }
 
@@ -122,6 +133,17 @@ class ChunkRecorder internal constructor(
         (tracking as ChunkRecordable).addRecorder(this)
     }
 
+    override fun getViewDistance(): Int {
+        return this.chunks.viewDistance
+    }
+
+    override fun canRecordPacket(packet: Packet<*>): Boolean {
+        if (packet is ClientboundSetChunkCacheRadiusPacket) {
+            return packet.radius == this.getViewDistance()
+        }
+        return super.canRecordPacket(packet)
+    }
+
     @Internal
     fun incrementChunksLoaded() {
         this.loadedChunks++
@@ -130,7 +152,7 @@ class ChunkRecorder internal constructor(
 
     @Internal
     fun decrementChunksLoaded() {
-        this.loadedChunks--
+        this.loadedChunks -= 1
         if (this.loadedChunks < 0) {
             ServerReplay.logger.error("Unloaded more chunks than was possible?")
             this.loadedChunks = 0
@@ -184,6 +206,6 @@ class ChunkRecorder internal constructor(
     }
 
     companion object {
-        private val PROFILE = UUIDUtil.createOfflineProfile("CR")
+        private val PROFILE = UUIDUtil.createOfflineProfile("-ChunkRecorder-")
     }
 }

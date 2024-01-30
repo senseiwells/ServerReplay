@@ -3,6 +3,7 @@ package me.senseiwells.replay.mixin.chunk;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
+import me.senseiwells.replay.recorder.ReplayRecorder;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerPlayer;
@@ -44,13 +45,23 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 
 	@Override
 	public void replay$addRecorder(ChunkRecorder recorder) {
-		this.replay$recorders.add(recorder);
-		recorder.incrementChunksLoaded();
+		if (this.replay$recorders.add(recorder)) {
+			recorder.incrementChunksLoaded();
+		}
 	}
 
 	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
-		this.replay$recorders.add(recorder);
-		recorder.decrementChunksLoaded();
+		if (this.replay$recorders.remove(recorder)) {
+			recorder.decrementChunksLoaded();
+		}
+	}
+
+	@Override
+	public void replay$removeAllRecorders() {
+		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.decrementChunksLoaded();
+		}
+		this.replay$recorders.clear();
 	}
 }

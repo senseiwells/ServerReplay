@@ -6,8 +6,6 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.ServerChunkCacheInvoker
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
-import me.senseiwells.replay.util.ducks.ChunkMapInvoker
-import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket
@@ -74,13 +72,13 @@ interface ChunkSender {
         chunk: LevelChunk,
         seen: IntSet,
     ) {
-        chunks as ChunkMapInvoker
+        chunks as ChunkMapAccessor
 
         // We don't need to use the chunkSender
         // We are only writing the packets to disk...
         this.sendPacket(ClientboundLevelChunkWithLightPacket(
             chunk,
-            chunks.getLightEngine(),
+            chunks.lightEngine,
             null,
             null
         ))
@@ -88,11 +86,11 @@ interface ChunkSender {
         val leashed = ArrayList<Mob>()
         val ridden = ArrayList<Entity>()
 
-        for (tracked in (chunks as ChunkMapAccessor).entityMap.values) {
+        for (tracked in chunks.entityMap.values) {
             val entity = (tracked as TrackedEntityAccessor).entity
             if (this.isValidEntity(entity) && entity.chunkPosition() == chunk.pos) {
                 if (!seen.contains(entity.id)) {
-                    val range = getRangeOfEntity(tracked, chunks)
+                    val range = min(tracked.getRange(), chunks.viewDistance * 16).toDouble()
                     if (this.shouldTrackEntity(entity, range)) {
                         this.addTrackedEntity(tracked)
                         seen.add(entity.id)
@@ -122,19 +120,10 @@ interface ChunkSender {
         val entities = (chunks as ChunkMapAccessor).entityMap
         for (tracked in entities.values) {
             val entity = (tracked as TrackedEntityAccessor).entity
-            val range = getRangeOfEntity(tracked, chunks)
+            val range = min(tracked.getRange(), chunks.viewDistance * 16).toDouble()
             if (this.shouldTrackEntity(entity, range)) {
                 this.addTrackedEntity(tracked)
             }
-        }
-    }
-
-    companion object {
-        private fun getRangeOfEntity(tracked: TrackedEntity, chunks: ChunkMap): Double {
-            return min(
-                (tracked as TrackedEntityInvoker).getRange(),
-                (chunks as ChunkMapAccessor).viewDistance * 16
-            ).toDouble()
         }
     }
 }

@@ -19,12 +19,10 @@
     "chunk.TrackedEntityMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "rejoin.ChunkMapAccessor",
-    "rejoin.ChunkMapMixin",
     "rejoin.ConnectionAccessor",
     "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.ServerPlayerMixin",
     "rejoin.TrackedEntityAccessor",
-    "rejoin.TrackedEntityMixin",
     "studio.ZipReplayFileAccessor"
   ],
   "injectors": {

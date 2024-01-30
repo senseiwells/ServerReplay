@@ -80,4 +80,14 @@ class ChunkArea(
     override fun toString(): String {
         return "Chunks[in ${this.level.dimension().location()}, from (${this.from.x}, ${this.from.z}) to (${this.to.x}, ${this.to.z})]"
     }
+
+    companion object {
+        fun of(level: ServerLevel, x: Int, z: Int, radius: Int): ChunkArea {
+            return ChunkArea(
+                level,
+                ChunkPos(x - radius, z - radius),
+                ChunkPos(x + radius, z + radius)
+            )
+        }
+    }
 }

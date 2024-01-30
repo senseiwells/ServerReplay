@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.chunk.ChunkArea
+import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
@@ -51,12 +52,30 @@ object ReplayCommand {
                                                 Commands.literal("in").then(
                                                     Commands.argument("dimension", DimensionArgument.dimension()).then(
                                                         Commands.literal("named").then(
-                                                            Commands.argument("name", StringArgumentType.word()).executes(this::onStartChunks)
+                                                            Commands.argument("name", StringArgumentType.greedyString()).executes(this::onStartChunks)
                                                         )
                                                     ).executes { this.onStartChunks(it, name = null) }
                                                 )
                                             ).executes { this.onStartChunks(it, it.source.level, null) }
                                         )
+                                    )
+                                )
+                            )
+                        )
+                    ).then(
+                        Commands.literal("around").then(
+                            Commands.argument("x", IntegerArgumentType.integer()).suggests(this.suggestChunkX()).then(
+                                Commands.argument("z", IntegerArgumentType.integer()).suggests(this.suggestChunkZ()).then(
+                                    Commands.literal("radius").then(
+                                        Commands.argument("radius", IntegerArgumentType.integer(1)).then(
+                                            Commands.literal("in").then(
+                                                Commands.argument("dimension", DimensionArgument.dimension()).then(
+                                                    Commands.literal("named").then(
+                                                        Commands.argument("name", StringArgumentType.greedyString()).executes(this::onStartChunksAround)
+                                                    )
+                                                ).executes { this.onStartChunksAround(it, name = null) }
+                                            )
+                                        ).executes { this.onStartChunksAround(it, it.source.level, null) }
                                     )
                                 )
                             )
@@ -92,6 +111,12 @@ object ReplayCommand {
                                     )
                                 )
                             )
+                        )
+                    ).then(
+                        Commands.literal("named").then(
+                            Commands.argument("name", StringArgumentType.string()).suggests(this.suggestExistingName()).then(
+                                Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopChunksNamed)
+                            ).executes { this.onStopChunksNamed(it, true) }
                         )
                     ).then(
                         Commands.literal("all").then(
@@ -163,11 +188,33 @@ object ReplayCommand {
         val toZ = IntegerArgumentType.getInteger(context, "toZ")
 
         val area = ChunkArea(level, ChunkPos(fromX, fromZ), ChunkPos(toX, toZ))
-        if (ChunkRecorders.has(area)) {
+        return this.startChunks(context, area, name)
+    }
+
+    private fun onStartChunksAround(
+        context: CommandContext<CommandSourceStack>,
+        level: ServerLevel = DimensionArgument.getDimension(context, "dimension"),
+        name: String? = StringArgumentType.getString(context, "name")
+    ): Int {
+        val x = IntegerArgumentType.getInteger(context, "x")
+        val z = IntegerArgumentType.getInteger(context, "z")
+        val radius = IntegerArgumentType.getInteger(context, "radius")
+
+        val area = ChunkArea.of(level, x, z, radius)
+        return this.startChunks(context, area, name)
+    }
+
+    private fun startChunks(
+        context: CommandContext<CommandSourceStack>,
+        area: ChunkArea,
+        name: String?
+    ): Int {
+        val id = if (name != null) name else ChunkRecorders.generateName(area)
+        if (!ChunkRecorders.isAvailable(area, id)) {
             context.source.sendFailure(Component.literal("Failed to start chunk replay, already exists"))
             return 0
         }
-        val recorder = if (name != null) ChunkRecorders.create(area, name) else ChunkRecorders.create(area)
+        val recorder = ChunkRecorders.create(area, id)
         recorder.tryStart()
         context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.recorderName}") }, true)
         return 1
@@ -201,7 +248,22 @@ object ReplayCommand {
         val toZ = IntegerArgumentType.getInteger(context, "toZ")
 
         val area = ChunkArea(level, ChunkPos(fromX, fromZ), ChunkPos(toX, toZ))
-        val recorder = ChunkRecorders.get(area)
+        return this.stopChunkRecorder(context, ChunkRecorders.get(area), save)
+    }
+
+    private fun onStopChunksNamed(
+        context: CommandContext<CommandSourceStack>,
+        save: Boolean = BoolArgumentType.getBool(context, "save")
+    ): Int {
+        val name = StringArgumentType.getString(context, "name")
+        return this.stopChunkRecorder(context, ChunkRecorders.get(name), save)
+    }
+
+    private fun stopChunkRecorder(
+        context: CommandContext<CommandSourceStack>,
+        recorder: ChunkRecorder?,
+        save: Boolean
+    ): Int {
         if (recorder == null) {
             context.source.sendFailure(Component.literal("No such recorder for that area exists"))
             return 0
@@ -311,6 +373,12 @@ object ReplayCommand {
     private fun suggestExistingToChunkZ(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
             SharedSuggestionProvider.suggest(ChunkRecorders.all().map { it.chunks.to.z.toString() }, b)
+        }
+    }
+
+    private fun suggestExistingName(): SuggestionProvider<CommandSourceStack> {
+        return SuggestionProvider<CommandSourceStack> { _, b ->
+            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { "\"${it.getName()}\"" }, b)
         }
     }
 }

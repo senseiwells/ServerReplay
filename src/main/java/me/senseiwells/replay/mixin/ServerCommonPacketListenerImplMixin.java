@@ -33,7 +33,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
 		at = @At("TAIL")
 	)
 	private void onDisconnect(Component reason, CallbackInfo ci) {
-		PlayerRecorder recorder = PlayerRecorders.removeByUUID(this.playerProfile().getId());
+		PlayerRecorder recorder = PlayerRecorders.getByUUID(this.playerProfile().getId());
 		if (recorder != null) {
 			recorder.stop();
 		}

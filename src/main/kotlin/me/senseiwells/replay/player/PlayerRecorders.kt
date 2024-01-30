@@ -58,7 +58,7 @@ object PlayerRecorders {
     }
 
     @JvmStatic
-    fun removeByUUID(uuid: UUID): PlayerRecorder? {
+    internal fun removeByUUID(uuid: UUID): PlayerRecorder? {
         return this.players.remove(uuid)
     }
 

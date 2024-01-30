@@ -2,33 +2,31 @@ package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
+import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.ChunkPos;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Mixin(ChunkHolder.class)
-public class ChunkHolderMixin {
-	@Shadow @Final ChunkPos pos;
+public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
+	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
 
 	@Inject(
 		method = "broadcast",
 		at = @At("HEAD")
 	)
 	private void onBroadcast(List<ServerPlayer> players, Packet<?> packet, CallbackInfo ci) {
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(this.pos)) {
-				recorder.record(packet);
-			}
+		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.record(packet);
 		}
 	}
 
@@ -41,14 +39,18 @@ public class ChunkHolderMixin {
 		)
 	)
 	private boolean shouldSkipBroadcasting(boolean noPlayers) {
-		if (!noPlayers) {
-			return false;
-		}
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(this.pos)) {
-				return false;
-			}
-		}
-		return true;
+		return noPlayers && !this.replay$recorders.isEmpty();
+	}
+
+	@Override
+	public void replay$addRecorder(ChunkRecorder recorder) {
+		this.replay$recorders.add(recorder);
+		recorder.incrementChunksLoaded();
+	}
+
+	@Override
+	public void replay$removeRecorder(ChunkRecorder recorder) {
+		this.replay$recorders.add(recorder);
+		recorder.decrementChunksLoaded();
 	}
 }

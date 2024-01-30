@@ -1,10 +1,10 @@
 package me.senseiwells.replay.ducks;
 
+import me.senseiwells.replay.chunk.ChunkRecordable;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorderTrackedEntity;
 import org.jetbrains.annotations.NotNull;
 
-public interface ServerReplay$ChunkRecorderTrackedEntity extends ChunkRecorderTrackedEntity {
+public interface ServerReplay$ChunkRecordable extends ChunkRecordable {
 	@Override
 	default void addRecorder(@NotNull ChunkRecorder recorder) {
 		this.replay$addRecorder(recorder);

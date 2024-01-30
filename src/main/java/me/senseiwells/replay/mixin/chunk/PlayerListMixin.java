@@ -79,7 +79,7 @@ public class PlayerListMixin {
 
 		ChunkPos pos = new ChunkPos(BlockPos.containing(x, y, z));
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(pos)) {
+			if (recorder.getChunks().contains(dimension, pos)) {
 				recorder.record(packet);
 			}
 		}

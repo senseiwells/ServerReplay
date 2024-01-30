@@ -1,5 +1,6 @@
 package me.senseiwells.replay.chunk
 
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
@@ -32,6 +33,8 @@ class ChunkRecorder internal constructor(
 
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
+
+    private var loadedChunks = 0
 
     override val level: ServerLevel
         get() = this.chunks.level
@@ -116,17 +119,29 @@ class ChunkRecorder internal constructor(
     }
 
     override fun addTrackedEntity(tracking: TrackedEntity) {
-        (tracking as ChunkRecorderTrackedEntity).addRecorder(this)
+        (tracking as ChunkRecordable).addRecorder(this)
     }
 
     @Internal
-    fun pause(unloaded: ChunkPos) {
-        if (!this.paused() && ReplayConfig.skipWhenChunksUnloaded && this.chunks.contains(unloaded)) {
-            for (pos in this.chunks) {
-                if (this.level.chunkSource.hasChunk(pos.x, pos.z)) {
-                    return
-                }
-            }
+    fun incrementChunksLoaded() {
+        this.loadedChunks++
+        this.resume()
+    }
+
+    @Internal
+    fun decrementChunksLoaded() {
+        this.loadedChunks--
+        if (this.loadedChunks < 0) {
+            ServerReplay.logger.error("Unloaded more chunks than was possible?")
+            this.loadedChunks = 0
+        }
+        if (this.loadedChunks == 0) {
+            this.pause()
+        }
+    }
+
+    private fun pause() {
+        if (!this.paused() && ReplayConfig.skipWhenChunksUnloaded) {
             this.lastPaused = System.currentTimeMillis()
 
             if (ReplayConfig.notifyPlayersLoadingChunks) {
@@ -140,9 +155,8 @@ class ChunkRecorder internal constructor(
         }
     }
 
-    @Internal
-    fun unpause(loaded: ChunkPos) {
-        if (this.paused() && this.chunks.contains(loaded)) {
+    private fun resume() {
+        if (this.paused()) {
             this.totalPausedTime += this.getCurrentPause()
             this.lastPaused = 0L
 
@@ -157,16 +171,16 @@ class ChunkRecorder internal constructor(
         }
     }
 
-    @Internal
-    internal fun paused(): Boolean {
-        return this.lastPaused != 0L
-    }
-
     private fun getCurrentPause(): Long {
         if (this.paused()) {
             return System.currentTimeMillis() - this.lastPaused
         }
         return 0L
+    }
+
+    @Internal
+    internal fun paused(): Boolean {
+        return this.lastPaused != 0L
     }
 
     companion object {

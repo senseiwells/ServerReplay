@@ -1,13 +1,16 @@
 package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import me.senseiwells.replay.chunk.ChunkRecordable;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
-import me.senseiwells.replay.config.ReplayConfig;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,6 +20,8 @@ import java.util.function.BooleanSupplier;
 
 @Mixin(ChunkMap.class)
 public class ChunkMapMixin {
+	@Shadow @Final ServerLevel level;
+
 	@Inject(
 		method = "updateChunkScheduling",
 		at = @At(
@@ -32,10 +37,10 @@ public class ChunkMapMixin {
 		int oldLevel,
 		CallbackInfoReturnable<ChunkHolder> cir
 	) {
-		ChunkPos pos = new ChunkPos(chunkPos);
+		ChunkPos pos = holder.getPos();
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(pos)) {
-				recorder.unpause(pos);
+			if (recorder.getChunks().contains(this.level, pos)) {
+				((ChunkRecordable) holder).addRecorder(recorder);
 			}
 		}
 	}
@@ -53,9 +58,10 @@ public class ChunkMapMixin {
 		CallbackInfo ci,
 		@Local ChunkHolder holder
 	) {
-		if (ReplayConfig.getSkipWhenChunksUnloaded()) {
-			for (ChunkRecorder recorder : ChunkRecorders.all()) {
-				recorder.pause(holder.getPos());
+		ChunkPos pos = holder.getPos();
+		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+			if (recorder.getChunks().contains(this.level, pos)) {
+				((ChunkRecordable) holder).removeRecorder(recorder);
 			}
 		}
 	}

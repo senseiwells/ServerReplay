@@ -1,8 +1,10 @@
 package me.senseiwells.replay.chunk
 
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import kotlin.math.max
 import kotlin.math.min
 
@@ -26,7 +28,15 @@ class ChunkArea(
         )
     }
 
-    fun contains(pos: ChunkPos): Boolean {
+    fun contains(level: ResourceKey<Level>, pos: ChunkPos): Boolean {
+        return this.level.dimension() == level && this.contains(pos)
+    }
+
+    fun contains(level: Level, pos: ChunkPos): Boolean {
+        return this.contains(level.dimension(), pos)
+    }
+
+    private fun contains(pos: ChunkPos): Boolean {
         return this.from.x <= pos.x && this.from.z <= pos.z && this.to.x >= pos.x && this.to.z >= pos.z
     }
 

@@ -43,8 +43,6 @@ class ChunkRecorder internal constructor(
 
     init {
         val center = this.getCenterChunk()
-        println(center.middleBlockX)
-        println(center.middleBlockZ)
         this.dummy.setPosRaw(center.middleBlockX.toDouble(), 100.0, center.middleBlockZ.toDouble())
         this.dummy.setServerLevel(this.level)
         this.dummy.isInvisible = true

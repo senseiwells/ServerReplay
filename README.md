@@ -281,7 +281,7 @@ repositories {
 
 dependencies {
     // For the most recent version use the latest commit hash
-    val version = "e108063c09"
+    val version = "e444c355ad"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
 }
 ```
@@ -296,15 +296,25 @@ class ExampleMod: ModInitializer {
             if (!PlayerRecorders.has(player)) {
                 if (player.level().dimension() == Level.END) {
                     val recorder = PlayerRecorders.create(player)
-                    recorder.start(log = true)
+                    recorder.tryStart(log = true)
                 }
             } else {
-                val existing = PlayerRecorders.get(player)
+                val existing = PlayerRecorders.get(player)!!
                 existing.getCompressedRecordingSize().thenAccept { size ->
                     println("Replay is $size bytes")
                 }
                 existing.stop(save = false)
             }
+        }
+
+        ServerLifecycleEvents.SERVER_STARTED.register { server ->
+            val recorder = ChunkRecorders.create(
+                server.overworld(),
+                ChunkPos.ZERO,
+                ChunkPos(5, 5),
+                "Named"
+            )
+            recorder.tryStart(log = false)
         }
     }
 }

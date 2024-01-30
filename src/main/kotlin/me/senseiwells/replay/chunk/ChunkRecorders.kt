@@ -3,16 +3,15 @@ package me.senseiwells.replay.chunk
 import me.senseiwells.replay.config.ReplayConfig
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
-import java.util.*
 import java.util.concurrent.CompletableFuture
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashMap
 
 object ChunkRecorders {
     private val recorders = LinkedHashMap<ChunkArea, ChunkRecorder>()
     private val closing = HashMap<ChunkArea, CompletableFuture<Long>>()
+
+    val RECORDING_TICKET: TicketType<ChunkPos> = TicketType.create("chunk_recorder", Comparator.comparingLong(ChunkPos::toLong), 1)
 
     @JvmStatic
     fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ChunkRecorder {

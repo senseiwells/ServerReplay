@@ -1,36 +1,28 @@
 package me.senseiwells.replay.chunk
 
-import com.mojang.authlib.GameProfile
-import me.senseiwells.replay.player.PlayerState
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.rejoin.RejoinConnection
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import net.minecraft.Util
-import net.minecraft.network.Connection
+import net.minecraft.core.UUIDUtil
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.server.network.CommonListenerCookie
-import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.GameType
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
-import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 // TODO:
 //  - When everything is unloaded in the chunk area then we skip forward...
+//  - What happens when chunks are initially loaded?
 class ChunkRecorder internal constructor(
     val chunks: ChunkArea,
     val recorderName: String,
@@ -41,18 +33,25 @@ class ChunkRecorder internal constructor(
     override val level: ServerLevel
         get() = this.chunks.level
 
-    init {
-        val center = this.getCenterChunk()
-        this.dummy.setPosRaw(center.middleBlockX.toDouble(), 100.0, center.middleBlockZ.toDouble())
-        this.dummy.setServerLevel(this.level)
-        this.dummy.isInvisible = true
-    }
-
     override fun getName(): String {
         return this.recorderName
     }
 
     override fun start(): Boolean {
+        // We load all the chunks to ensure we can
+        // correctly record the initial chunks.
+        for (pos in this.chunks) {
+            this.level.chunkSource.addRegionTicket(ChunkRecorders.RECORDING_TICKET, pos, 1, pos)
+        }
+
+        val center = this.getCenterChunk()
+        val x = center.middleBlockX
+        val z = center.middleBlockZ
+        val y = this.level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
+        this.dummy.setPosRaw(x.toDouble(), y + 10.0, z.toDouble())
+        this.dummy.setServerLevel(this.level)
+        this.dummy.isInvisible = true
+
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.sendChunksAndEntities()
         return true
@@ -117,6 +116,6 @@ class ChunkRecorder internal constructor(
     }
 
     companion object {
-        private val PROFILE = GameProfile(UUID.randomUUID(), "ChunkRecorder")
+        private val PROFILE = UUIDUtil.createOfflineProfile("ChunkRecorder")
     }
 }

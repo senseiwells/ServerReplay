@@ -2,6 +2,7 @@ package me.senseiwells.replay.recorder
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.util.ducks.ChunkMapInvoker
@@ -57,10 +58,14 @@ interface ChunkSender {
         val chunks = this.level.chunkSource.chunkMap
         chunks as ChunkMapInvoker
         this.forEachChunk { pos ->
-            val holder = chunks.getVisibleChunkIfExists(pos.toLong()) ?: return@forEachChunk
-            val chunk = holder.tickingChunk
-            if (chunk != null) {
-                this.sendChunk(chunks, chunk, seen)
+            val holder = chunks.getVisibleChunkIfExists(pos.toLong())
+            if (holder == null) {
+                ServerReplay.logger.warn("Chunk is not loaded at $pos, failed to send")
+            } else {
+                val chunk = holder.fullChunk
+                if (chunk != null) {
+                    this.sendChunk(chunks, chunk, seen)
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package me.senseiwells.replay.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
 import net.minecraft.network.protocol.Packet;
@@ -29,5 +30,25 @@ public class ChunkHolderMixin {
 				recorder.record(packet);
 			}
 		}
+	}
+
+	@ModifyExpressionValue(
+		method = "broadcastChanges",
+		at = @At(
+			value = "INVOKE",
+			target = "Ljava/util/List;isEmpty()Z",
+			remap = false
+		)
+	)
+	private boolean shouldSkipBroadcasting(boolean noPlayers) {
+		if (!noPlayers) {
+			return false;
+		}
+		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+			if (recorder.getChunks().contains(this.pos)) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

@@ -6,12 +6,14 @@ import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.LevelUtils.viewDistance
-import me.senseiwells.replay.util.ducks.TrackedEntityInvoker
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.*
+import net.minecraft.server.level.ChunkMap
+import net.minecraft.server.level.ChunkTrackingView
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import org.jetbrains.annotations.ApiStatus.Internal

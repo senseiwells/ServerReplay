@@ -4,13 +4,12 @@ import me.senseiwells.replay.config.ReplayConfig
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
-import org.jetbrains.annotations.ApiStatus.Internal
 import java.util.concurrent.CompletableFuture
 
 object ChunkRecorders {
     private val chunks = LinkedHashMap<ChunkArea, ChunkRecorder>()
     private val chunksByName = LinkedHashMap<String, ChunkRecorder>()
-    private val closing = HashMap<ChunkArea, CompletableFuture<Long>>()
+    private val closing = HashMap<String, CompletableFuture<Long>>()
 
     @JvmStatic
     fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ChunkRecorder {
@@ -27,7 +26,7 @@ object ChunkRecorders {
             throw IllegalArgumentException("Recorder with name already exists")
         }
 
-        this.closing[area]?.join()
+        this.closing[name]?.join()
 
         val recorder = ChunkRecorder(
             area,
@@ -80,9 +79,9 @@ object ChunkRecorders {
         return "Chunks (${area.from.x}, ${area.from.z}) to (${area.to.x}, ${area.to.z})"
     }
 
-    internal fun close(server: MinecraftServer, area: ChunkArea, future: CompletableFuture<Long>) {
+    internal fun close(server: MinecraftServer, area: ChunkArea, future: CompletableFuture<Long>, name: String) {
         this.remove(area)
-        this.closing[area] = future
-        future.thenRunAsync({ this.closing.remove(area) }, server)
+        this.closing[name] = future
+        future.thenRunAsync({ this.closing.remove(name) }, server)
     }
 }

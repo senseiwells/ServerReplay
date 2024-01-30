@@ -1,7 +1,6 @@
 package me.senseiwells.replay.mixin;
 
 import com.mojang.authlib.GameProfile;
-import me.senseiwells.replay.ServerReplay;
 import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;

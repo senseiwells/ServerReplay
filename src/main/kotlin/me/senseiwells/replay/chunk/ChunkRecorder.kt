@@ -1,11 +1,9 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import me.senseiwells.replay.util.ducks.ChunkMapInvoker
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
@@ -65,7 +63,7 @@ class ChunkRecorder internal constructor(
     }
 
     override fun closed(future: CompletableFuture<Long>) {
-        ChunkRecorders.close(this.server, this.chunks, future)
+        ChunkRecorders.close(this.server, this.chunks, future, this.getName())
     }
 
     override fun spawnPlayer() {

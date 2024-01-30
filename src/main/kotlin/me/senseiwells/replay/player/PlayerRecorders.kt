@@ -7,8 +7,6 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()

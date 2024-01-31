@@ -1,10 +1,12 @@
 package me.senseiwells.replay.chunk
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.levelgen.structure.BoundingBox
 import kotlin.math.max
 import kotlin.math.min
 
@@ -37,12 +39,27 @@ class ChunkArea(
         return this.contains(level.dimension(), pos)
     }
 
+    fun intersects(level: Level, box: BoundingBox): Boolean {
+        if (this.level.dimension() != level.dimension()) {
+            return false
+        }
+        val fromX = SectionPos.blockToSectionCoord(box.minX())
+        val toX = SectionPos.blockToSectionCoord(box.maxX())
+        val fromZ = SectionPos.blockToSectionCoord(box.minZ())
+        val toZ = SectionPos.blockToSectionCoord(box.maxZ())
+        return this.to.x >= fromX && this.from.x <= toX && this.to.z >= fromZ && this.from.z <= toZ
+    }
+
     private fun contains(pos: ChunkPos): Boolean {
         return this.from.x <= pos.x && this.from.z <= pos.z && this.to.x >= pos.x && this.to.z >= pos.z
     }
 
-    fun contains(pos: BlockPos): Boolean {
+    private fun contains(pos: BlockPos): Boolean {
         return this.contains(ChunkPos(pos))
+    }
+
+    private fun intersects(box: BoundingBox) {
+        box.intersectingChunks()
     }
 
     override fun iterator(): Iterator<ChunkPos> {

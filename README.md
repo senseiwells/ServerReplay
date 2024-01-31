@@ -4,6 +4,28 @@ A completely server-side implementation of the replay mod, this mod allows you
 to record multiple players that are online, or chunk areas, on a server at a time. This will
 produce replay files which can then be used with the replay mod for rendering.
 
+### Why Server-Side?
+
+Compared to the client [Replay Mod](https://www.replaymod.com/) recording
+server-side has many benefits:
+- The ability to record static chunks.
+  - You can specify the exact chunk size (not bound by server view distance).
+  - The recorded chunks may be unloaded without affecting the replay.
+    - No chunk flickering (from unloading and loading the chunks).
+    - The chunks will also not be loaded by the recorder (like, for example, [PCRC](https://github.com/Fallen-Breath/PCRC)).
+    - The recorder can skip periods of time that the area is unloaded.
+- The ability to record individual players.
+  - Players aren't required to install replay mod.
+  - You can record all POVs at once.
+  - Recordings can be automated using the configuration.
+- Recordings can be started at anytime by operators (or anyone with permissions).
+
+However, there are also some downsides and known issues:
+- Some features are not recorded by chunk recordings, e.g. wither boss bar.
+- To view the replay, you must download the file from the server.
+- Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/).
+- Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues please submit a issue.
+
 ## Usage
 
 This mod requires the fabric launcher, fabric-api, and fabric-kotlin.

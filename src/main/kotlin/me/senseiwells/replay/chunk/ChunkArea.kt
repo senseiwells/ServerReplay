@@ -1,6 +1,5 @@
 package me.senseiwells.replay.chunk
 
-import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel

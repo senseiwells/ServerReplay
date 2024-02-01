@@ -141,10 +141,11 @@ object ReplayCommand {
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
         for (player in context.source.server.playerList.players) {
-            if (ReplayConfig.predicate.test(ReplayPlayerContext.of(player))) {
+            if (!PlayerRecorders.has(player) && ReplayConfig.predicate.test(ReplayPlayerContext.of(player))) {
                 PlayerRecorders.create(player).tryStart()
             }
         }
+        ReplayConfig.startChunks(context.source.server)
 
         return 1
     }

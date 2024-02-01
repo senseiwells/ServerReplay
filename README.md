@@ -1,4 +1,4 @@
-# Server Replay
+# <img src="./src/main/resources/assets/serverreplay/icon.png" align="center" width="64px"/> Server Replay
 
 A completely server-side implementation of the replay mod, this mod allows you
 to record multiple players that are online, or chunk areas, on a server at a time. This will

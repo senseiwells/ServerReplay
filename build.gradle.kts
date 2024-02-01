@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+
 plugins {
     kotlin("jvm")
     id("fabric-loom")
@@ -56,6 +58,10 @@ dependencies {
 
 loom {
     accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
+}
+
+tasks.remapJar {
+    archiveVersion.set("${project.version}+mc${project.property("minecraft_version")}")
 }
 
 tasks {

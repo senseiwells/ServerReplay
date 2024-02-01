@@ -1,6 +1,7 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -15,13 +16,13 @@ object ChunkRecorders {
     private val closing = HashMap<String, CompletableFuture<Long>>()
 
     @JvmStatic
-    fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ChunkRecorder {
+    fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ReplayRecorder {
         return this.create(ChunkArea(level, from, to), name)
     }
 
     @JvmStatic
     @JvmOverloads
-    fun create(area: ChunkArea, name: String = generateName(area)): ChunkRecorder {
+    fun create(area: ChunkArea, name: String = generateName(area)): ReplayRecorder {
         if (this.chunks.containsKey(area)) {
             throw IllegalArgumentException("Recorder for chunk area already exists")
         }

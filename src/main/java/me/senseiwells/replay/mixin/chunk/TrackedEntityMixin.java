@@ -91,6 +91,8 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	public void replay$removeAllRecorders() {
 		ClientboundRemoveEntitiesPacket packet = new ClientboundRemoveEntitiesPacket(this.entity.getId());
 		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.onEntityUntracked(this.entity);
+
 			recorder.record(packet);
 		}
 		this.replay$recorders.clear();

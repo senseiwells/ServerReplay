@@ -18,11 +18,9 @@ import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
-import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -83,20 +81,7 @@ class ChunkRecorder internal constructor(
     }
 
     override fun spawnPlayer() {
-        val center = this.chunks.center
-        this.record(ClientboundAddEntityPacket(
-            this.dummy.id,
-            this.dummy.uuid,
-            center.middleBlockX.toDouble(),
-            100.0,
-            center.middleBlockZ.toDouble(),
-            0.0F,
-            0.0F,
-            EntityType.PLAYER,
-            0,
-            Vec3.ZERO,
-            0.0
-        ))
+        this.record(ClientboundAddEntityPacket(this.dummy))
         val tracked = this.dummy.entityData.nonDefaultValues
         if (tracked != null) {
             this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
@@ -149,14 +134,16 @@ class ChunkRecorder internal constructor(
     @Internal
     fun onEntityTracked(entity: Entity) {
         if (entity is WitherBoss) {
-            ((entity as WitherBossAccessor).bossEvent as ChunkRecordable).addRecorder(this)
+            val recordable = ((entity as WitherBossAccessor).bossEvent as ChunkRecordable)
+            recordable.addRecorder(this)
         }
     }
 
     @Internal
     fun onEntityUntracked(entity: Entity) {
         if (entity is WitherBoss) {
-            ((entity as WitherBossAccessor).bossEvent as ChunkRecordable).removeRecorder(this)
+            val recordable = ((entity as WitherBossAccessor).bossEvent as ChunkRecordable)
+            recordable.removeRecorder(this)
         }
     }
 
@@ -216,8 +203,7 @@ class ChunkRecorder internal constructor(
         return 0L
     }
 
-    @Internal
-    internal fun paused(): Boolean {
+    private fun paused(): Boolean {
         return this.lastPaused != 0L
     }
 

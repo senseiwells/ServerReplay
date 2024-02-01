@@ -216,7 +216,7 @@ object ReplayCommand {
         }
         val recorder = ChunkRecorders.create(area, id)
         recorder.tryStart()
-        context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.recorderName}") }, true)
+        context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.getName()}") }, true)
         return 1
     }
 

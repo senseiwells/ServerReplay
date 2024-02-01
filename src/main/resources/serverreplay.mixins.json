@@ -26,6 +26,7 @@
     "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.ServerPlayerMixin",
     "rejoin.TrackedEntityAccessor",
+    "studio.CustomViaPlatformMixin",
     "studio.ZipReplayFileAccessor"
   ],
   "injectors": {

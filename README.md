@@ -153,27 +153,57 @@ After you boot the server a new file will be generated in the path
   "pause_notify_players": true,
   "player_recording_path": "./recordings/players",
   "chunk_recording_path": "./recordings/chunks",
+  "chunks": [],
   "player_predicate": {
     "type": "none"
-  },
-  "chunks": []
+  }
 }
 ```
 
-| Config                          | Description                                                                                                                                                                                                                                                                                                        |
-|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `"enabled"`                     | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                                                                            |
-| `"world_name"`                  | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                                                                                |
-| `"server_name"`                 | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                                                                               |
-| `"max_file_size"`               | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                                                                                 |
-| `"restart_after_max_file_size"` | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                      |
-| `"pause_unloaded_chunks"`       | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p>                                                        |
-| `"pause_notify_players"`        | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                            |
-| `"player_recording_path"`       | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                                                                                    |
-| `"chunk_recording_path"`        | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                                                                     |
-| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates) section. </p>                                                                                                                                                                                             |
-| `"chunks"`                      | <p> The list of chunks to automatically record when the server stars. Chunks should be specified like the example below: <pre><code>{<br/>    "name": "My Chunks",<br/>    "dimension": "minecraft:overworld"<br/>    "fromX": -5,<br/>    "fromZ": -5,<br/>    "toX": 5,<br/>    "toZ": 5<br/>}</code></pre> </p> |
+| Config                          | Description                                                                                                                                                                                                                                                 |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `"enabled"`                     | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                     |
+| `"world_name"`                  | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                         |
+| `"server_name"`                 | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                        |
+| `"max_file_size"`               | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                          |
+| `"restart_after_max_file_size"` | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                               |
+| `"pause_unloaded_chunks"`       | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p> |
+| `"pause_notify_players"`        | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
+| `"player_recording_path"`       | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |
+| `"chunk_recording_path"`        | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                              |
+| `"chunks"`                      | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks) section. </p>                                                                                                                               |
+| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates) section. </p>                                                                                                                                      |
 
+### Chunks
+
+You can define chunk areas to be recorded automatically when the server starts or when
+you enable ServerReplay.
+
+Each chunk definition must include: `"name"`, `"dimension"`, `"fromX"`, `"toX"`, `"fromZ"`, and `"toZ"`. For example:
+```json5
+{
+  // ...
+  "chunks": [
+    {
+      "name": "My Chunks",
+      "dimension": "minecraft:overworld",
+      "fromX": -5,
+      "fromZ": -5,
+      "toX": 5,
+      "toZ": 5
+    },
+    {
+      "name": "My Nether Chunks",
+      "dimension": "minecraft:the_nether",
+      "fromX": 100,
+      "fromZ": 50,
+      "toX": 90,
+      "toZ": 60
+    }
+    // ...
+  ]
+}
+```
 
 ### Predicates
 
@@ -186,7 +216,7 @@ After defining a predicate you must run `/replay reload` in game then players mu
 re-log if they want to be recorded (and meet the predicate criteria). 
 
 Most basic option is just to record all players in which case you can use:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -196,7 +226,7 @@ Most basic option is just to record all players in which case you can use:
 ```
 
 If you wanted to only record players with specific names or uuids you can do the following:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -209,7 +239,7 @@ If you wanted to only record players with specific names or uuids you can do the
 }
 ```
 
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -226,7 +256,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```
 
 If you only wanted to record operators:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -238,7 +268,7 @@ If you only wanted to record operators:
 
 If you only want to record players on specific teams, this is useful for allowing players to be
 added and removed in-game, as you can just add players to a team and then have them re-log:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -253,8 +283,8 @@ added and removed in-game, as you can just add players to a team and then have t
 ```
 
 You are also able to negate predicates, using 'not' and combine them using 'or' and 'and'.
-For example if you wanted to record all non-operators that also don't have the name 'senseiwells' or is on the red team:
-```json
+For example, if you wanted to record all non-operators that also don't have the name 'senseiwells' or is on the red team:
+```json5
 {
   // ...
   "predicate": {
@@ -290,10 +320,9 @@ For example if you wanted to record all non-operators that also don't have the n
 
 ## Developers
 
-If you want more control over when players are recorded, and have more specific
-predicates you can implement this into your own mod.
+If you want more control over, when players are recorded, you can implement this into your own mod.
 
-To implement the API into your project you can simply add the
+To implement the API into your project, you can add the
 following to your `build.gradle.kts`
 
 ```kts

@@ -25,7 +25,9 @@ public class MinecraftServerMixin {
 	private void onServerLoaded(CallbackInfo ci) {
 		ReplayConfig.read();
 
-		ReplayConfig.startChunks((MinecraftServer) (Object) this);
+		if (ReplayConfig.getEnabled()) {
+			ReplayConfig.startChunks((MinecraftServer) (Object) this);
+		}
 	}
 
 	@Inject(

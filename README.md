@@ -171,10 +171,10 @@ After you boot the server a new file will be generated in the path
 | `"pause_notify_players"`        | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
 | `"player_recording_path"`       | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |
 | `"chunk_recording_path"`        | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                              |
-| `"chunks"`                      | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks) section. </p>                                                                                                                               |
-| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates) section. </p>                                                                                                                                      |
+| `"chunks"`                      | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                        |
+| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                               |
 
-### Chunks
+### Chunks Config
 
 You can define chunk areas to be recorded automatically when the server starts or when
 you enable ServerReplay.
@@ -205,7 +205,7 @@ Each chunk definition must include: `"name"`, `"dimension"`, `"fromX"`, `"toX"`,
 }
 ```
 
-### Predicates
+### Predicates Config
 
 You can define a predicate, which determines which players on your server
 will be recorded automatically. 

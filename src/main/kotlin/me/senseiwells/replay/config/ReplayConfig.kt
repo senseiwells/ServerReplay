@@ -39,6 +39,8 @@ object ReplayConfig {
     var skipWhenChunksUnloaded = false
     @JvmStatic
     var notifyPlayersLoadingChunks = true
+    @JvmStatic
+    var fixCarpetBotViewDistance = false
     var worldName = "World"
     var serverName = "Server"
     var maxFileSizeString = "0GB"
@@ -85,6 +87,9 @@ object ReplayConfig {
             if (json.has("restart_after_max_file_size")) {
                 this.restartAfterMaxFileSize = json.get("restart_after_max_file_size").asBoolean
             }
+            if (json.has("fix_carpet_bot_view_distance")) {
+                this.fixCarpetBotViewDistance = json.get("fix_carpet_bot_view_distance").asBoolean
+            }
             if (json.has("pause_unloaded_chunks")) {
                 this.skipWhenChunksUnloaded = json.get("pause_unloaded_chunks").asBoolean
             }
@@ -123,6 +128,7 @@ object ReplayConfig {
             json.addProperty("server_name", this.serverName)
             json.addProperty("max_file_size", this.maxFileSizeString)
             json.addProperty("restart_after_max_file_size", this.restartAfterMaxFileSize)
+            json.addProperty("fix_carpet_bot_view_distance", this.fixCarpetBotViewDistance)
             json.addProperty("pause_unloaded_chunks", this.skipWhenChunksUnloaded)
             json.addProperty("pause_notify_players", this.notifyPlayersLoadingChunks)
             json.addProperty("player_recording_path", this.playerRecordingPath.pathString)

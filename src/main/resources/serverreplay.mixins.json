@@ -20,6 +20,7 @@
     "chunk.ServerBossEventMixin",
     "chunk.TrackedEntityMixin",
     "chunk.WitherBossAccessor",
+    "compat.carpet.EntityPlayerMPFakeMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "rejoin.ChunkMapAccessor",
     "rejoin.ConnectionAccessor",

@@ -21,7 +21,7 @@ server-side has many benefits:
 - Recordings can be started at anytime by operators (or anyone with permissions).
 
 However, there are also some downsides and known issues:
-- Some features are not recorded by chunk recordings, e.g. wither boss bar.
+- Some features are not recorded by chunk recordings, e.g. custom boss bars.
 - To view the replay, you must download the file from the server.
 - Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/).
 - Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues please submit a issue.

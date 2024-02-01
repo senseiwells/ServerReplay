@@ -5,7 +5,10 @@ import com.replaymod.replaystudio.studio.ReplayStudio
 import com.replaymod.replaystudio.util.Utils
 import me.senseiwells.replay.mixin.studio.ZipReplayFileAccessor
 import org.apache.commons.lang3.mutable.MutableLong
-import java.io.*
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.OutputStream
 import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile

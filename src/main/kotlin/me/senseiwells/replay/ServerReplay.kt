@@ -25,7 +25,6 @@ class ServerReplay: ModInitializer {
         @JvmField
         val logger: Logger = LoggerFactory.getLogger("ServerReplay")
 
-        @JvmField
-        val version = "1.0.0"
+        const val VERSION = "1.0.0"
     }
 }

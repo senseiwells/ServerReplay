@@ -1,20 +1,112 @@
-# Server Replay
+# <img src="./src/main/resources/assets/serverreplay/icon.png" align="center" width="64px"/> Server Replay
 
 A completely server-side implementation of the replay mod, this mod allows you
-to record multiple players that are online on a server at a time. This will
+to record multiple players that are online, or chunk areas, on a server at a time. This will
 produce replay files which can then be used with the replay mod for rendering.
 
-Currently, the implementation only allows for recording and following specific
-players, recording a static area is not yet supported.
+### Why Server-Side?
+
+Compared to the client [Replay Mod](https://www.replaymod.com/) recording
+server-side has many benefits:
+- The ability to record static chunks.
+  - You can specify the exact chunk size (not bound by server view distance).
+  - The recorded chunks may be unloaded without affecting the replay.
+    - No chunk flickering (from unloading and loading the chunks).
+    - The chunks will also not be loaded by the recorder (like, for example, [PCRC](https://github.com/Fallen-Breath/PCRC)).
+    - The recorder can skip periods of time that the area is unloaded.
+- The ability to record individual players.
+  - Players aren't required to install replay mod.
+  - You can record all POVs at once.
+  - Recordings can be automated using the configuration.
+- Recordings can be started at anytime by operators (or anyone with permissions).
+
+However, there are also some downsides and known issues:
+- Some features are not recorded by chunk recordings, e.g. wither boss bar.
+- To view the replay, you must download the file from the server.
+- Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/).
+- Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues please submit a issue.
 
 ## Usage
 
-This mod requires the fabric launcher, then to install just simply drag the
-mod into your mods' folder.
+This mod requires the fabric launcher, fabric-api, and fabric-kotlin.
 
-For very simply use-cases you can run `/replay start <player(s)>` and `/replay stop <player(s)>`,
-however this mod also provides the ability to configure and automatically start and
-stop replays. The rest of this document will detail how you can configure this.
+There are two ways of recording on the server, you can either configure it
+to follow and record players from their view. 
+Alternatively, you can record a static area of chunks.
+
+### Quick Start
+
+This section of the documentation will briefly guide you through a basic setup. 
+As well as containing some important information.
+
+#### Players
+
+To record a player on your server you can run `/replay start players <player(s)>`, for example:
+```
+/replay start players senseiwells
+/replay start players @a
+/replay start players @a[gamemode=survival]
+```
+
+Player recorders are tied to the player and will record at the 
+servers view distance.
+
+If the player leaves or the server stops the replay will automatically stop and save.
+
+Alternatively if you wish to stop the recording manually you can run `/replay stop players <player(s)> <save?>`, 
+using this command you can also stop a recording without saving it, for example:
+```
+/replay stop players senseiwells
+/replay stop players @r
+/replay stop players senseiwells false
+```
+
+The replay will then be saved to your `"player_recording_path"` location
+specified in a folder with the player's uuid. 
+By default, this will be in `./recordings/players/<uuid>/<date-and-time>.mcpr`.
+
+This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
+
+#### Chunks
+
+To record an area of chunks on your server you can run `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>`, for example:
+```
+/replay start chunks from -5 -5 to 5 5 in minecraft:overworld named MyChunkRecording
+/replay start chunks from 54 67 to 109 124
+/replay start chunks from 30 30 to 60 60 in minecraft:the_nether 
+```
+
+Alternatively you can specify a chunk and a radius around it to be recorded `/replay start chunks around <chunkX> <chunkZ> radius <radius> in <dimension?> named <name?>`, for example:
+```
+/replay start chunks around 0 0 radius 5
+/replay start chunks around 67 12 radius 16 in minecraft:overworld named Perimeter Recorder
+```
+
+Chunk recorders are static and cannot move, they record the specified chunks.
+An important thing to note is that when the replay starts, the specified chunks
+will be loaded (and generated if necessary). 
+However, after this the chunk recorder does not load the chunks.
+
+If the server stops, the replay will automatically stop and save.
+
+Alternatively if you wish to stop the recording manually you can run `/replay stop chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> <save?>`,
+using this command you can also stop a recording without saving it, for example:
+```
+/replay stop chunks from 0 0 to 5 5 in minecraft:overworld false
+/replay stop chunks from 54 67 to 109 124
+```
+
+You can also stop the chunks by using their name using `/replay stop chunks named <name> <save?>`, for example:
+```
+/replay stop chunks named "Perimeter Recorder" false
+/replay stop chunks named MyChunkRecording
+```
+
+The replay will then be saved to your `"chunk_recording_path"` location
+specified in a folder with the chunk recorders name.
+By default, this will be in `./recordings/chunks/<name>/<date-and-time>.mcpr`.
+
+This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
 ### Commands
 
@@ -25,14 +117,24 @@ have the permission `replay.commands.replay` to access these commands.
 - `/replay enable` Enables the replay mod to automatically recording players that should
   be recorded based on the given predicate (more details in the [Predicates](#predicates) section).
 - `/replay disable` Disables the replay mod from automatically recording players, this will
-  also stop any currently recording players.
-- `/replay start <player(s)>` Manually starts recording the replay for some given player(s).
-- `/replay stop <player(s)> <save?>` Manually stops recording the replay for some given player(s),
+  also stop any currently recording players and chunks.
+- `/replay start players <player(s)>` Manually starts recording the replay for some given player(s).
+- `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>` 
+  Manually starts recording the replay for the given chunk area, if no dimension is specified the command user's
+  dimension will be used instead, the name determines where the replay file will be saved in the recording path.
+- `/replay start chunks around <chunkX> <chunkZ> radius <radius> in <dimension?> named <name?>`
+  This achieves the same as the command above; however, you can specify a radius around a given chunk instead.
+- `/replay stop players <player(s)> <save?>` Manually stops recording the replay for some given player(s),
   you may optionally pass in whether the replay should be saved; by default, this is true.
-- `/replay stop <save?>` Manually stops **all** replays you may optionally pass in whether the
+- `/replay stop chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> <save?>` 
+  Manually stops recording the replay for the given chunk area, if no dimension is specified the command user's
+  dimension will be used instead, you may optionally pass in whether the replay should be saved; by default, this is true.
+- `/replay stop chunks named <name> <save?>`
+  This lets you do the same as the command above; however, you can specify the chunk area by its name.
+- `/replay stop [chunks|players] all <save?>` Manually stops **all** chunks or player replays you may optionally pass in whether the
   replay should be saved; by default, this is true.
 - `/replay status` Sends a status message of whether replay is enabled and a list of all the
-  players that are currently being recorded and how long they've been recorded for.
+  players and chunks that are currently being recorded, how long they've been recorded for, and their file sizes.
 - `/replay reload` Reloads the config file for the replay mod.
 
 ### Configuring
@@ -45,40 +147,76 @@ After you boot the server a new file will be generated in the path
   "enabled": false,
   "world_name": "World",
   "server_name": "Server",
-  "recording_path": "./recordings",
-  "predicate": {
+  "max_file_size": "0GB",
+  "restart_after_max_file_size": false,
+  "pause_unloaded_chunks": false,
+  "pause_notify_players": true,
+  "player_recording_path": "./recordings/players",
+  "chunk_recording_path": "./recordings/chunks",
+  "chunks": [],
+  "player_predicate": {
     "type": "none"
   }
 }
 ```
 
-### Enabling and Disabling
+| Config                          | Description                                                                                                                                                                                                                                                 |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `"enabled"`                     | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                     |
+| `"world_name"`                  | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                         |
+| `"server_name"`                 | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                        |
+| `"max_file_size"`               | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                          |
+| `"restart_after_max_file_size"` | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                               |
+| `"pause_unloaded_chunks"`       | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p> |
+| `"pause_notify_players"`        | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
+| `"player_recording_path"`       | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |
+| `"chunk_recording_path"`        | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                              |
+| `"chunks"`                      | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                        |
+| `"player_predicate"`            | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                               |
 
-By default, the replay functionality is disabled, you can enable it by either
-changing the `config.json` then running `/replay reload` in game, or by simply
-just running `/replay enable` or `/replay disable` in game.
+### Chunks Config
 
-This will then check whether any online players should be recorded and start their
-recording accordingly.
+You can define chunk areas to be recorded automatically when the server starts or when
+you enable ServerReplay.
 
-### Recording Path
+Each chunk definition must include: `"name"`, `"dimension"`, `"fromX"`, `"toX"`, `"fromZ"`, and `"toZ"`. For example:
+```json5
+{
+  // ...
+  "chunks": [
+    {
+      "name": "My Chunks",
+      "dimension": "minecraft:overworld",
+      "fromX": -5,
+      "fromZ": -5,
+      "toX": 5,
+      "toZ": 5
+    },
+    {
+      "name": "My Nether Chunks",
+      "dimension": "minecraft:the_nether",
+      "fromX": 100,
+      "fromZ": 50,
+      "toX": 90,
+      "toZ": 60
+    }
+    // ...
+  ]
+}
+```
 
-This determines where your recordings are saved. By default, this is `./recordings`, 
-then there will be subdirectories which are named according to the player's uuid, then
-any replays will be located in there which are named by date and time.
-For example: `./recordings/d4fca8c4-e083-4300-9a73-bf438847861c/2023-05-22--13-38-13.mcpr`
+### Predicates Config
 
-### Predicates
-
-You must define a predicate, which determines which players on your server
-will be recorded, you can do this by specifying whether players have a specific uuid, 
+You can define a predicate, which determines which players on your server
+will be recorded automatically. 
+You can do this by specifying whether players have a specific uuid, 
 name, are on a specific team, or whether they are an operator.
 
 After defining a predicate you must run `/replay reload` in game then players must 
 re-log if they want to be recorded (and meet the predicate criteria). 
 
 Most basic option is just to record all players in which case you can use:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -88,7 +226,7 @@ Most basic option is just to record all players in which case you can use:
 ```
 
 If you wanted to only record players with specific names or uuids you can do the following:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -101,7 +239,7 @@ If you wanted to only record players with specific names or uuids you can do the
 }
 ```
 
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -118,7 +256,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```
 
 If you only wanted to record operators:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -130,7 +268,7 @@ If you only wanted to record operators:
 
 If you only want to record players on specific teams, this is useful for allowing players to be
 added and removed in-game, as you can just add players to a team and then have them re-log:
-```json
+```json5
 {
   // ...
   "predicate": {
@@ -145,8 +283,8 @@ added and removed in-game, as you can just add players to a team and then have t
 ```
 
 You are also able to negate predicates, using 'not' and combine them using 'or' and 'and'.
-For example if you wanted to record all non-operators that also don't have the name 'senseiwells' or is on the red team:
-```json
+For example, if you wanted to record all non-operators that also don't have the name 'senseiwells' or is on the red team:
+```json5
 {
   // ...
   "predicate": {
@@ -182,10 +320,9 @@ For example if you wanted to record all non-operators that also don't have the n
 
 ## Developers
 
-If you want more control over when players are recorded, and have more specific
-predicates you can implement this into your own mod.
+If you want more control over, when players are recorded, you can implement this into your own mod.
 
-To implement the API into your project you can simply add the
+To implement the API into your project, you can add the
 following to your `build.gradle.kts`
 
 ```kts
@@ -197,24 +334,12 @@ repositories {
 
 dependencies {
     // For the most recent version use the latest commit hash
-    val version = "e108063c09"
+    val version = "e444c355ad"
     modImplementation("com.github.Senseiwells:ServerReplay:$version")
 }
 ```
 
-You can then set the predicate to your own by setting the field:
-```kt
-class ExampleMod: ModInitializer {
-    override fun onInitialize() {
-        PlayerRecorders.predicate = Predicate<ReplayPlayerContext> { context ->
-            context.team == null && context.permissions == 0
-        }
-    }
-}
-```
-
-However it is more likely that you want complete control over starting and
-stopping recordings which is given to you:
+Here's a basic example with what you can do:
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {
@@ -223,15 +348,25 @@ class ExampleMod: ModInitializer {
             if (!PlayerRecorders.has(player)) {
                 if (player.level().dimension() == Level.END) {
                     val recorder = PlayerRecorders.create(player)
-                    recorder.start(log = true)
+                    recorder.tryStart(log = true)
                 }
             } else {
-                val existing = PlayerRecorders.get(player)
+                val existing = PlayerRecorders.get(player)!!
                 existing.getCompressedRecordingSize().thenAccept { size ->
                     println("Replay is $size bytes")
                 }
                 existing.stop(save = false)
             }
+        }
+
+        ServerLifecycleEvents.SERVER_STARTED.register { server ->
+            val recorder = ChunkRecorders.create(
+                server.overworld(),
+                ChunkPos.ZERO,
+                ChunkPos(5, 5),
+                "Named"
+            )
+            recorder.tryStart(log = false)
         }
     }
 }

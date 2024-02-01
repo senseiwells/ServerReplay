@@ -1,11 +1,10 @@
 package me.senseiwells.replay.mixin;
 
 import com.mojang.authlib.GameProfile;
-import me.senseiwells.replay.ServerReplay;
 import me.senseiwells.replay.config.ReplayConfig;
-import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import me.senseiwells.replay.player.predicates.ReplayPlayerContext;
+import me.senseiwells.replay.recorder.ReplayRecorder;
 import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -35,9 +34,9 @@ public class ServerLoginPacketListenerImplMixin {
 		CallbackInfo ci
 	) {
 		GameProfile profile = this.authenticatedProfile;
-		if (profile != null && ReplayConfig.getEnabled() && PlayerRecorders.predicate.test(new ReplayPlayerContext(this.server, profile))) {
-			ServerReplay.logger.info("Started to record player '{}'", profile.getName());
-			PlayerRecorder recorder = PlayerRecorders.create(this.server, profile);
+		if (profile != null && ReplayConfig.getEnabled() && ReplayConfig.predicate.test(new ReplayPlayerContext(this.server, profile))) {
+			ReplayRecorder recorder = PlayerRecorders.create(this.server, profile);
+			recorder.logStart();
 			recorder.afterLogin();
 		}
 	}

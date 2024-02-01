@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+
 plugins {
     kotlin("jvm")
     id("fabric-loom")
@@ -33,6 +35,7 @@ dependencies {
     })
 
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
+    modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)
@@ -44,7 +47,6 @@ dependencies {
         exclude(group = "com.google.guava", module = "guava")
         exclude(group = "com.google.code.gson", module = "gson")
     })
-    include(modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")!!)
     include(modImplementation("me.lucko:fabric-permissions-api:${property("permissions_version")}")!!)
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
@@ -56,6 +58,10 @@ dependencies {
 
 loom {
     accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
+}
+
+tasks.remapJar {
+    archiveVersion.set("${project.version}+mc${project.property("minecraft_version")}")
 }
 
 tasks {

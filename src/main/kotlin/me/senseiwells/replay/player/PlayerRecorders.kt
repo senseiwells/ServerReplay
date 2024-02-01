@@ -2,23 +2,19 @@ package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()
     private val closing = HashMap<UUID, CompletableFuture<Long>>()
 
-    @JvmField
-    var predicate = ReplayConfig.predicate
-
     @JvmStatic
-    fun create(player: ServerPlayer): PlayerRecorder {
+    fun create(player: ServerPlayer): ReplayRecorder {
         if (player is RejoinedReplayPlayer) {
             throw IllegalArgumentException("Cannot create a replay for a rejoining player")
         }
@@ -26,7 +22,7 @@ object PlayerRecorders {
     }
 
     @JvmStatic
-    fun create(server: MinecraftServer, profile: GameProfile): PlayerRecorder {
+    fun create(server: MinecraftServer, profile: GameProfile): ReplayRecorder {
         if (this.players.containsKey(profile.id)) {
             throw IllegalArgumentException("Player already has a recorder")
         }
@@ -39,7 +35,7 @@ object PlayerRecorders {
         val recorder = PlayerRecorder(
             server,
             profile,
-            ReplayConfig.recordingPath.resolve(profile.id.toString())
+            ReplayConfig.playerRecordingPath.resolve(profile.id.toString())
         )
         this.players[profile.id] = recorder
         return recorder
@@ -61,7 +57,7 @@ object PlayerRecorders {
     }
 
     @JvmStatic
-    fun removeByUUID(uuid: UUID): PlayerRecorder? {
+    internal fun removeByUUID(uuid: UUID): PlayerRecorder? {
         return this.players.remove(uuid)
     }
 

@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +42,11 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	)
 	private boolean shouldSkipBroadcasting(boolean noPlayers) {
 		return noPlayers && !this.replay$recorders.isEmpty();
+	}
+
+	@Override
+	public Collection<ChunkRecorder> replay$getRecorders() {
+		return this.replay$recorders;
 	}
 
 	@Override

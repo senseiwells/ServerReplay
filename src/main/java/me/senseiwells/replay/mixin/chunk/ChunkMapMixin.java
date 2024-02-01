@@ -38,10 +38,8 @@ public class ChunkMapMixin {
 		CallbackInfoReturnable<ChunkHolder> cir
 	) {
 		ChunkPos pos = holder.getPos();
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().contains(this.level, pos)) {
-				((ChunkRecordable) holder).addRecorder(recorder);
-			}
+		for (ChunkRecorder recorder : ChunkRecorders.containing(this.level.dimension(), pos)) {
+			((ChunkRecordable) holder).addRecorder(recorder);
 		}
 	}
 

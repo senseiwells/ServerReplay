@@ -1,6 +1,5 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import me.senseiwells.replay.chunk.ChunkArea;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
@@ -8,6 +7,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,10 +22,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Mixin(ChunkMap.TrackedEntity.class)
 public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
@@ -50,15 +47,8 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	)
 	private void onUpdate(List<ServerPlayer> playersList, CallbackInfo ci) {
 		ChunkPos pos = this.entity.chunkPosition();
-		Level level = this.entity.level();
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			ChunkArea area = recorder.getChunks();
-			if (area.contains(level, pos)) {
-				this.addRecorder(recorder);
-			} else {
-				this.removeRecorder(recorder);
-			}
-		}
+		ResourceKey<Level> level = this.entity.level().dimension();
+		ChunkRecorders.updateRecordable(this, level, pos);
 	}
 
 	@Inject(
@@ -70,17 +60,27 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	}
 
 	@Override
+	public Collection<ChunkRecorder> replay$getRecorders() {
+		return this.replay$recorders;
+	}
+
+	@Override
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder)) {
 			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
+			// The player parameter is never used, we can just pass in null
 			this.serverEntity.sendPairingData(null, list::add);
 			recorder.record(new ClientboundBundlePacket(list));
+
+			recorder.onEntityTracked(this.entity);
 		}
 	}
 
 	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder)) {
+			recorder.onEntityUntracked(this.entity);
+
 			recorder.record(new ClientboundRemoveEntitiesPacket(
 				this.entity.getId()
 			));

@@ -2,6 +2,7 @@ package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
@@ -142,6 +144,20 @@ class ChunkRecorder internal constructor(
             return packet.radius == this.getViewDistance()
         }
         return super.canRecordPacket(packet)
+    }
+
+    @Internal
+    fun onEntityTracked(entity: Entity) {
+        if (entity is WitherBoss) {
+            ((entity as WitherBossAccessor).bossEvent as ChunkRecordable).addRecorder(this)
+        }
+    }
+
+    @Internal
+    fun onEntityUntracked(entity: Entity) {
+        if (entity is WitherBoss) {
+            ((entity as WitherBossAccessor).bossEvent as ChunkRecordable).removeRecorder(this)
+        }
     }
 
     @Internal

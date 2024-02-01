@@ -69,14 +69,14 @@ This file can then be put in `./replay_recordings` on your client and be opened 
 
 #### Chunks
 
-To record an area of chunks on your server you can run `/replay start chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> named <name?>`, for example:
+To record an area of chunks on your server you can run `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>`, for example:
 ```
 /replay start chunks from -5 -5 to 5 5 in minecraft:overworld named MyChunkRecording
 /replay start chunks from 54 67 to 109 124
 /replay start chunks from 30 30 to 60 60 in minecraft:the_nether 
 ```
 
-Alternatively you can specify a chunk and a radius around it to be recorded `/replay start chunks around <x> <z> radius <radius> in <dimension?> named <name?>`, for example:
+Alternatively you can specify a chunk and a radius around it to be recorded `/replay start chunks around <chunkX> <chunkZ> radius <radius> in <dimension?> named <name?>`, for example:
 ```
 /replay start chunks around 0 0 radius 5
 /replay start chunks around 67 12 radius 16 in minecraft:overworld named Perimeter Recorder
@@ -89,7 +89,7 @@ However, after this the chunk recorder does not load the chunks.
 
 If the server stops, the replay will automatically stop and save.
 
-Alternatively if you wish to stop the recording manually you can run `/replay stop chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> <save?>`,
+Alternatively if you wish to stop the recording manually you can run `/replay stop chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> <save?>`,
 using this command you can also stop a recording without saving it, for example:
 ```
 /replay stop chunks from 0 0 to 5 5 in minecraft:overworld false
@@ -119,14 +119,14 @@ have the permission `replay.commands.replay` to access these commands.
 - `/replay disable` Disables the replay mod from automatically recording players, this will
   also stop any currently recording players and chunks.
 - `/replay start players <player(s)>` Manually starts recording the replay for some given player(s).
-- `/replay start chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> named <name?>` 
+- `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>` 
   Manually starts recording the replay for the given chunk area, if no dimension is specified the command user's
   dimension will be used instead, the name determines where the replay file will be saved in the recording path.
-- `/replay start chunks around <x> <z> radius <radius> in <dimension?> named <name?>`
+- `/replay start chunks around <chunkX> <chunkZ> radius <radius> in <dimension?> named <name?>`
   This achieves the same as the command above; however, you can specify a radius around a given chunk instead.
 - `/replay stop players <player(s)> <save?>` Manually stops recording the replay for some given player(s),
   you may optionally pass in whether the replay should be saved; by default, this is true.
-- `/replay stop chunks from <fromX> <fromZ> to <toX> <toZ> in <dimension?> <save?>` 
+- `/replay stop chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> <save?>` 
   Manually stops recording the replay for the given chunk area, if no dimension is specified the command user's
   dimension will be used instead, you may optionally pass in whether the replay should be saved; by default, this is true.
 - `/replay stop chunks named <name> <save?>`

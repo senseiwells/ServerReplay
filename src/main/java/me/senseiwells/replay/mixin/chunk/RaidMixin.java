@@ -34,27 +34,16 @@ public class RaidMixin {
 		at = @At("TAIL")
 	)
 	private void onUpdate(CallbackInfo ci) {
-		int raidDistance = 96;
+		int raidRange = 96;
 		int centerX = this.center.getX();
 		int centerY = this.center.getY();
 		int centerZ = this.center.getZ();
 		BoundingBox box = new BoundingBox(
-			centerX - raidDistance, centerY - raidDistance, centerZ - raidDistance,
-			centerX + raidDistance, centerY + raidDistance, centerZ + raidDistance
+			centerX - raidRange, centerY - raidRange, centerZ - raidRange,
+			centerX + raidRange, centerY + raidRange, centerZ + raidRange
 		);
 
-		ChunkRecordable recordable = ((ChunkRecordable) this.raidEvent);
-		Collection<ChunkRecorder> existing = recordable.getRecorders();
-
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (recorder.getChunks().intersects(this.level, box)) {
-				if (!existing.contains(recorder)) {
-					recordable.addRecorder(recorder);
-				}
-			} else if (existing.contains(recorder)) {
-				recordable.removeRecorder(recorder);
-			}
-		}
+		ChunkRecorders.updateRecordable((ChunkRecordable) this.raidEvent, this.level.dimension(), box);
 	}
 
 	@Inject(

@@ -1,9 +1,12 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.config.ReplayConfig
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.levelgen.structure.BoundingBox
 import java.util.concurrent.CompletableFuture
 
 object ChunkRecorders {
@@ -63,17 +66,61 @@ object ChunkRecorders {
         return this.chunks[area]
     }
 
+    @JvmStatic
+    fun containing(level: ResourceKey<Level>, chunk: ChunkPos): List<ChunkRecorder> {
+        return this.chunks.values.filter { it.chunks.contains(level, chunk) }
+    }
+
+    @JvmStatic
+    fun intersecting(level: ResourceKey<Level>, box: BoundingBox): List<ChunkRecorder> {
+        return this.chunks.values.filter { it.chunks.intersects(level, box) }
+    }
+
+    @JvmStatic
+    fun all(): Collection<ChunkRecorder> {
+        return ArrayList(this.chunks.values)
+    }
+
+    @JvmStatic
+    fun updateRecordable(
+        recordable: ChunkRecordable,
+        level: ResourceKey<Level>,
+        chunk: ChunkPos
+    ) {
+        this.updateRecordable(recordable) { it.contains(level, chunk) }
+    }
+
+    @JvmStatic
+    fun updateRecordable(
+        recordable: ChunkRecordable,
+        level: ResourceKey<Level>,
+        box: BoundingBox
+    ) {
+        this.updateRecordable(recordable) { it.intersects(level, box) }
+    }
+
+    private fun updateRecordable(
+        recordable: ChunkRecordable,
+        predicate: (ChunkArea) -> Boolean
+    ) {
+        val existing = recordable.getRecorders()
+        for (recorder in this.chunks.values) {
+            if (predicate(recorder.chunks)) {
+                if (!existing.contains(recorder)) {
+                    recordable.addRecorder(recorder)
+                }
+            } else if (existing.contains(recorder)) {
+                recordable.removeRecorder(recorder)
+            }
+        }
+    }
+
     internal fun remove(area: ChunkArea): ChunkRecorder? {
         val recorder = this.chunks.remove(area)
         if (recorder != null) {
             this.chunksByName.remove(recorder.getName())
         }
         return recorder
-    }
-
-    @JvmStatic
-    fun all(): Collection<ChunkRecorder> {
-        return ArrayList(this.chunks.values)
     }
 
     fun generateName(area: ChunkArea): String {

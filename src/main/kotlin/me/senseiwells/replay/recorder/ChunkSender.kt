@@ -3,7 +3,6 @@ package me.senseiwells.replay.recorder
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.mixin.chunk.ServerChunkCacheInvoker
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import net.minecraft.network.protocol.Packet
@@ -60,7 +59,6 @@ interface ChunkSender {
         this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
 
         val source = this.level.chunkSource
-        source as ServerChunkCacheInvoker
         val chunks = source.chunkMap
         this.forEachChunk { pos ->
             val chunk = source.getChunk(pos.x, pos.z, true)

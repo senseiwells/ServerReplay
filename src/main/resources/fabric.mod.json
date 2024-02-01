@@ -3,7 +3,7 @@
   "id": "server-replay",
   "version": "${version}",
   "name": "Server Replay Mod",
-  "description": "",
+  "description": "Record replays for replay mod on the server-side!",
   "authors": [
     "Sensei"
   ],

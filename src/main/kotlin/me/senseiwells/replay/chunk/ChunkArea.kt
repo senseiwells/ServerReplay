@@ -35,12 +35,8 @@ class ChunkArea(
         return this.level.dimension() == level && this.contains(pos)
     }
 
-    fun contains(level: Level, pos: ChunkPos): Boolean {
-        return this.contains(level.dimension(), pos)
-    }
-
-    fun intersects(level: Level, box: BoundingBox): Boolean {
-        if (this.level.dimension() != level.dimension()) {
+    fun intersects(level: ResourceKey<Level>, box: BoundingBox): Boolean {
+        if (this.level.dimension() != level) {
             return false
         }
         val fromX = SectionPos.blockToSectionCoord(box.minX())
@@ -52,14 +48,6 @@ class ChunkArea(
 
     private fun contains(pos: ChunkPos): Boolean {
         return this.from.x <= pos.x && this.from.z <= pos.z && this.to.x >= pos.x && this.to.z >= pos.z
-    }
-
-    private fun contains(pos: BlockPos): Boolean {
-        return this.contains(ChunkPos(pos))
-    }
-
-    private fun intersects(box: BoundingBox) {
-        box.intersectingChunks()
     }
 
     override fun iterator(): Iterator<ChunkPos> {

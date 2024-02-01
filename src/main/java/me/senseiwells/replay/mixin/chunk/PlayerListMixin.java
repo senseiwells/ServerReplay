@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignatureCache;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.resources.ResourceKey;
@@ -112,6 +113,13 @@ public class PlayerListMixin {
 		CallbackInfo ci
 	) {
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+			if (message.isSystem()) {
+				recorder.record(new ClientboundDisguisedChatPacket(
+					message.decoratedContent(),
+					boundChatType.toNetwork(this.server.registryAccess())
+				));
+				continue;
+			}
 			recorder.record(new ClientboundPlayerChatPacket(
 				message.link().sender(),
 				message.link().index(),

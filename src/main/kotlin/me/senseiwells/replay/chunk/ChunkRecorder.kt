@@ -1,7 +1,6 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
@@ -166,10 +165,10 @@ class ChunkRecorder internal constructor(
     }
 
     private fun pause() {
-        if (!this.paused() && ReplayConfig.skipWhenChunksUnloaded) {
+        if (!this.paused() && ServerReplay.config.skipWhenChunksUnloaded) {
             this.lastPaused = System.currentTimeMillis()
 
-            if (ReplayConfig.notifyPlayersLoadingChunks) {
+            if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
                     this.server.playerList.broadcastSystemMessage(
                         Component.literal("Paused recording for ${this.getName()}, chunks were unloaded"),
@@ -185,7 +184,7 @@ class ChunkRecorder internal constructor(
             this.totalPausedTime += this.getCurrentPause()
             this.lastPaused = 0L
 
-            if (ReplayConfig.notifyPlayersLoadingChunks) {
+            if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
                     this.server.playerList.broadcastSystemMessage(
                         Component.literal("Resumed recording for ${this.getName()}, chunks were loaded"),

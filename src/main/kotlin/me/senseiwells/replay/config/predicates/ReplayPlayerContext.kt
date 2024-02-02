@@ -1,4 +1,4 @@
-package me.senseiwells.replay.player.predicates
+package me.senseiwells.replay.config.predicates
 
 import com.mojang.authlib.GameProfile
 import net.minecraft.server.MinecraftServer

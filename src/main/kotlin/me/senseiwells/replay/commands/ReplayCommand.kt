@@ -7,12 +7,12 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import me.lucko.fabric.api.permissions.v0.Permissions
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
-import me.senseiwells.replay.player.predicates.ReplayPlayerContext
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.FileUtils
 import net.minecraft.commands.CommandSourceStack
@@ -133,29 +133,25 @@ object ReplayCommand {
     }
 
     private fun onEnable(context: CommandContext<CommandSourceStack>): Int {
-        if (ReplayConfig.enabled) {
+        if (ServerReplay.config.enabled) {
             context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
             return 0
         }
-        ReplayConfig.enabled = true
+        ServerReplay.config.enabled = true
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
-        for (player in context.source.server.playerList.players) {
-            if (!PlayerRecorders.has(player) && ReplayConfig.predicate.test(ReplayPlayerContext.of(player))) {
-                PlayerRecorders.create(player).tryStart()
-            }
-        }
-        ReplayConfig.startChunks(context.source.server)
+        ServerReplay.config.startPlayers(context.source.server)
+        ServerReplay.config.startChunks(context.source.server)
 
         return 1
     }
 
     private fun onDisable(context: CommandContext<CommandSourceStack>): Int {
-        if (!ReplayConfig.enabled) {
+        if (!ServerReplay.config.enabled) {
             context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
             return 0
         }
-        ReplayConfig.enabled = false
+        ServerReplay.config.enabled = false
         for (recorders in PlayerRecorders.all()) {
             recorders.stop()
         }
@@ -287,7 +283,7 @@ object ReplayCommand {
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
-        ReplayConfig.read()
+        ServerReplay.config = ReplayConfig.read()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }
@@ -301,7 +297,7 @@ object ReplayCommand {
         }
 
         val builder = StringBuilder("ServerReplay is ")
-            .append(if (ReplayConfig.enabled) "enabled" else "disabled")
+            .append(if (ServerReplay.config.enabled) "enabled" else "disabled")
             .append("\n")
 
         this.appendRecorders(builder, "Players", PlayerRecorders.all(), style)
@@ -331,7 +327,7 @@ object ReplayCommand {
                     .append("time", time)
                     .append("raw", FileUtils.formatSize(recorder.getRawRecordingSize()))
                     .append("compressed", FileUtils.formatSize(compressed.join()))
-                if (ReplayConfig.debug) {
+                if (ServerReplay.config.debug) {
                     sub.append("debug", recorder.getDebugPacketData())
                 }
                 builder.append(sub.toString()).append("\n")

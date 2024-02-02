@@ -110,7 +110,7 @@ abstract class ReplayRecorder(
 
             outgoing.write(buf)
 
-            if (ReplayConfig.debug) {
+            if (ServerReplay.config.debug) {
                 val type = outgoing::class.java
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
@@ -163,7 +163,7 @@ abstract class ReplayRecorder(
             return CompletableFuture.failedFuture(IllegalStateException("Cannot stop replay after already stopped"))
         }
 
-        if (ReplayConfig.debug) {
+        if (ServerReplay.config.debug) {
             ServerReplay.logger.info("Replay ${this.getName()} Debug Packet Data:\n${this.getDebugPacketData()}")
         }
 
@@ -279,7 +279,8 @@ abstract class ReplayRecorder(
     }
 
     private fun checkFileSize() {
-        if (ReplayConfig.maxFileSize <= 0) {
+        val maxFileSize = ServerReplay.config.maxFileSize
+        if (maxFileSize.bytes <= 0) {
             return
         }
         val time = System.currentTimeMillis()
@@ -288,15 +289,15 @@ abstract class ReplayRecorder(
         }
         this.lastSizeCheck = time
         this.getCompressedRecordingSize().thenAccept { compressed ->
-            if (compressed > ReplayConfig.maxFileSize) {
+            if (compressed > maxFileSize.bytes) {
                 ServerReplay.logger.info(
-                    "Stopped recording replay for ${this.getName()}, over max file size ${ReplayConfig.maxFileSizeString}!"
+                    "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
                 )
                 this.stop(true).thenAcceptAsync({ size ->
                     ServerReplay.logger.info(
                         "Saved last replay for ${this.getName()}, compressed to file size of ${FileUtils.formatSize(size)}"
                     )
-                    if (ReplayConfig.restartAfterMaxFileSize && this.canContinueRecording()) {
+                    if (ServerReplay.config.restartAfterMaxFileSize && this.canContinueRecording()) {
                         if (this.restart()) {
                             ServerReplay.logger.info("Restarted recording for ${this.getName()}")
                         } else {
@@ -363,8 +364,8 @@ abstract class ReplayRecorder(
     private fun createNewMeta(): ReplayMetaData {
         val meta = ReplayMetaData()
         meta.isSingleplayer = false
-        meta.serverName = ReplayConfig.worldName
-        meta.customServerName = ReplayConfig.serverName
+        meta.serverName = ServerReplay.config.worldName
+        meta.customServerName = ServerReplay.config.serverName
         meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
         meta.mcVersion = DetectedVersion.BUILT_IN.name
@@ -377,7 +378,7 @@ abstract class ReplayRecorder(
         }
         @Suppress("DEPRECATION")
         val pathHash = Hashing.sha1().hashString(packet.url, StandardCharsets.UTF_8).toString()
-        val path = ReplayConfig.root().resolve("packs").resolve(pathHash)
+        val path = ReplayConfig.root.resolve("packs").resolve(pathHash)
 
         val requestId = this.packId++
         if (!path.exists() || !this.writeResourcePack(path.readBytes(), packet.hash, requestId)) {

@@ -1,6 +1,6 @@
 package me.senseiwells.replay.util
 
-import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.core.Holder
 import net.minecraft.network.protocol.Packet
@@ -56,23 +56,23 @@ object ReplayOptimizerUtils {
     }
 
     fun optimisePackets(recorder: ReplayRecorder, packet: Packet<*>): Boolean {
-        if (ReplayConfig.optimizeEntityPackets) {
+        if (ServerReplay.config.optimizeEntityPackets) {
             if (this.optimiseEntity(recorder, packet)) {
                 return true
             }
         }
 
-        if (ReplayConfig.optimizeExplosionPackets && packet is ClientboundExplodePacket) {
+        if (ServerReplay.config.optimizeExplosionPackets && packet is ClientboundExplodePacket) {
             this.optimiseExplosions(recorder, packet)
             return true
         }
 
-        if (ReplayConfig.ignoreLightPackets && packet is ClientboundLightUpdatePacket) {
+        if (ServerReplay.config.ignoreLightPackets && packet is ClientboundLightUpdatePacket) {
             return true
         }
 
         val type = packet::class.java
-        if (ReplayConfig.ignoreSoundPackets && SOUNDS.contains(type)) {
+        if (ServerReplay.config.ignoreSoundPackets && SOUNDS.contains(type)) {
             return true
         }
         return IGNORED.contains(type)

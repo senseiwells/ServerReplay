@@ -1,7 +1,7 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
-import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.MinecraftServer
@@ -35,7 +35,7 @@ object PlayerRecorders {
         val recorder = PlayerRecorder(
             server,
             profile,
-            ReplayConfig.playerRecordingPath.resolve(profile.id.toString())
+            ServerReplay.config.playerRecordingPath.resolve(profile.id.toString())
         )
         this.players[profile.id] = recorder
         return recorder
@@ -54,11 +54,6 @@ object PlayerRecorders {
     @JvmStatic
     fun getByUUID(uuid: UUID): PlayerRecorder? {
         return this.players[uuid]
-    }
-
-    @JvmStatic
-    internal fun removeByUUID(uuid: UUID): PlayerRecorder? {
-        return this.players.remove(uuid)
     }
 
     @JvmStatic

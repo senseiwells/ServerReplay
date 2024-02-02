@@ -7,7 +7,6 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import me.lucko.fabric.api.permissions.v0.Permissions
-import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
@@ -327,13 +326,15 @@ object ReplayCommand {
                 val secs = seconds % 60
                 val time = "%02d:%02d:%02d".format(hours, minutes, secs)
 
-                val built = ToStringBuilder(recorder, style)
+                val sub = ToStringBuilder(recorder, style)
                     .append("name", recorder.getName())
                     .append("time", time)
                     .append("raw", FileUtils.formatSize(recorder.getRawRecordingSize()))
                     .append("compressed", FileUtils.formatSize(compressed.join()))
-                    .toString()
-                builder.append(built).append("\n")
+                if (ReplayConfig.debug) {
+                    sub.append("debug", recorder.getDebugPacketData())
+                }
+                builder.append(sub.toString()).append("\n")
             }
         } else {
             builder.append("Not Currently Recording $type").append("\n")

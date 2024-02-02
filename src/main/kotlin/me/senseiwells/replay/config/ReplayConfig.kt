@@ -32,6 +32,8 @@ object ReplayConfig {
 
     @JvmStatic
     var enabled: Boolean = false
+    @JvmStatic
+    var debug: Boolean = false
 
     @JvmStatic
     var skipWhenChunksUnloaded = false
@@ -41,6 +43,8 @@ object ReplayConfig {
     var fixCarpetBotViewDistance = false
     var ignoreSoundPackets = false
     var ignoreLightPackets = true
+    var optimizeExplosionPackets = true
+    var optimizeEntityPackets = false
 
     var worldName = "World"
     var serverName = "Server"
@@ -75,6 +79,9 @@ object ReplayConfig {
             if (json.has("enabled")) {
                 this.enabled = json.get("enabled").asBoolean
             }
+            if (json.has("debug")) {
+                this.debug = json.get("debug").asBoolean
+            }
             if (json.has("world_name")) {
                 this.worldName = json.get("world_name").asString
             }
@@ -97,14 +104,17 @@ object ReplayConfig {
             if (json.has("ignore_light_packets")) {
                 this.ignoreLightPackets = json.get("ignore_light_packets").asBoolean
             }
+            if (json.has("optimize_explosion_packets")) {
+                this.optimizeExplosionPackets = json.get("optimize_explosion_packets").asBoolean
+            }
+            if (json.has("optimize_entity_packets")) {
+                this.optimizeEntityPackets = json.get("optimize_entity_packets").asBoolean
+            }
             if (json.has("pause_unloaded_chunks")) {
                 this.skipWhenChunksUnloaded = json.get("pause_unloaded_chunks").asBoolean
             }
             if (json.has("pause_notify_players")) {
                 this.notifyPlayersLoadingChunks = json.get("pause_notify_players").asBoolean
-            }
-            if (json.has("recording_path")) {
-                this.playerRecordingPath = Path.of(json.get("recording_path").asString)
             }
             if (json.has("player_recording_path")) {
                 this.playerRecordingPath = Path.of(json.get("player_recording_path").asString)
@@ -131,6 +141,9 @@ object ReplayConfig {
         try {
             val json = JsonObject()
             json.addProperty("enabled", this.enabled)
+            if (this.debug) {
+                json.addProperty("debug", true)
+            }
             json.addProperty("world_name", this.worldName)
             json.addProperty("server_name", this.serverName)
             json.addProperty("max_file_size", this.maxFileSizeString)
@@ -138,6 +151,8 @@ object ReplayConfig {
             json.addProperty("fix_carpet_bot_view_distance", this.fixCarpetBotViewDistance)
             json.addProperty("ignore_sound_packets", this.ignoreSoundPackets)
             json.addProperty("ignore_light_packets", this.ignoreLightPackets)
+            json.addProperty("optimize_explosion_packets", this.optimizeExplosionPackets)
+            json.addProperty("optimize_entity_packets", this.optimizeEntityPackets)
             json.addProperty("pause_unloaded_chunks", this.skipWhenChunksUnloaded)
             json.addProperty("pause_notify_players", this.notifyPlayersLoadingChunks)
             json.addProperty("player_recording_path", this.playerRecordingPath.pathString)

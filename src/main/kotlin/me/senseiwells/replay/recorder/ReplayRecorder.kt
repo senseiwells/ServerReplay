@@ -12,6 +12,7 @@ import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.util.DebugPacketData
 import me.senseiwells.replay.util.FileUtils
 import me.senseiwells.replay.util.ReplayOptimizerUtils
 import me.senseiwells.replay.util.SizedZipReplayFile
@@ -27,10 +28,9 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.EntityType
-import org.apache.commons.lang3.mutable.MutableInt
 import org.jetbrains.annotations.ApiStatus.Internal
-import org.jetbrains.annotations.VisibleForTesting
 import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -41,7 +41,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.HashMap
 import kotlin.io.path.*
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
@@ -51,6 +50,7 @@ abstract class ReplayRecorder(
     protected val profile: GameProfile,
     private val recordings: Path
 ) {
+    private val packets by lazy { Object2ObjectOpenHashMap<Class<*>, DebugPacketData>() }
     private val executor: ExecutorService
 
     private val replay: SizedZipReplayFile
@@ -74,6 +74,8 @@ abstract class ReplayRecorder(
     val recordingPlayerUUID: UUID
         get() = this.profile.id
 
+    abstract val level: ServerLevel
+
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
@@ -90,7 +92,10 @@ abstract class ReplayRecorder(
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
-        if (this.ignore || this.stopped || ReplayOptimizerUtils.canIgnorePacket(outgoing)) {
+        if (this.ignore || this.stopped) {
+            return
+        }
+        if (ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
             return
         }
 
@@ -104,6 +109,12 @@ abstract class ReplayRecorder(
             val state = this.protocolAsState()
 
             outgoing.write(buf)
+
+            if (ReplayConfig.debug) {
+                val type = outgoing::class.java
+                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
+            }
+
             val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
 
             val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
@@ -152,6 +163,10 @@ abstract class ReplayRecorder(
             return CompletableFuture.failedFuture(IllegalStateException("Cannot stop replay after already stopped"))
         }
 
+        if (ReplayConfig.debug) {
+            ServerReplay.logger.info("Replay ${this.getName()} Debug Packet Data:\n${this.getDebugPacketData()}")
+        }
+
         // We only save if the player has actually logged in...
         val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
         this.closed(future)
@@ -168,6 +183,13 @@ abstract class ReplayRecorder(
 
     fun getCompressedRecordingSize(): CompletableFuture<Long> {
         return CompletableFuture.supplyAsync({ this.replay.getCompressedFileSize() }, this.executor)
+    }
+
+    @Internal
+    fun getDebugPacketData(): String {
+        return this.packets.values
+            .sortedByDescending { it.size }
+            .joinToString(separator = "\n", transform = DebugPacketData::format)
     }
 
     @Internal

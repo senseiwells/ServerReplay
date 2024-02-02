@@ -156,6 +156,7 @@ After you boot the server a new file will be generated in the path
   "fix_carpet_bot_view_distance": false,
   "ignore_sound_packets": false,
   "ignore_light_packets": true,
+  "optimize_tnt_packets": false,
   "pause_unloaded_chunks": false,
   "pause_notify_players": true,
   "player_recording_path": "./recordings/players",
@@ -177,6 +178,8 @@ After you boot the server a new file will be generated in the path
 | `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot.                                                                 |
 | `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                      |
 | `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                  |
+| `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                            |
+| `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                           |
 | `"pause_unloaded_chunks"`        | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p> |
 | `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
 | `"player_recording_path"`        | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |

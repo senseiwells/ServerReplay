@@ -9,9 +9,11 @@ import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.Unpooled
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.util.FileUtils
+import me.senseiwells.replay.util.ReplayOptimizerUtils
 import me.senseiwells.replay.util.SizedZipReplayFile
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
@@ -24,10 +26,11 @@ import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
-import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.EntityType
+import org.apache.commons.lang3.mutable.MutableInt
 import org.jetbrains.annotations.ApiStatus.Internal
+import org.jetbrains.annotations.VisibleForTesting
 import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -38,6 +41,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.HashMap
 import kotlin.io.path.*
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
@@ -83,26 +87,16 @@ abstract class ReplayRecorder(
     }
 
     fun record(outgoing: MinecraftPacket<*>) {
-        if (this.ignore) {
-            return
-        }
-
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
-        if (this.stopped) {
-            return
-        }
-
-        if (outgoing is ClientboundLoginCompressionPacket) {
+        if (this.ignore || this.stopped || ReplayOptimizerUtils.canIgnorePacket(outgoing)) {
             return
         }
 
         if (this.prePacket(outgoing)) {
             return
         }
-
-        // ServerReplay.logger.info("Recording packet ${outgoing::class.java}: $outgoing")
 
         val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
@@ -349,7 +343,7 @@ abstract class ReplayRecorder(
         meta.isSingleplayer = false
         meta.serverName = ReplayConfig.worldName
         meta.customServerName = ReplayConfig.serverName
-        meta.generator = "ServerReplay v${ServerReplay.VERSION}"
+        meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
         meta.mcVersion = DetectedVersion.BUILT_IN.name
         return meta

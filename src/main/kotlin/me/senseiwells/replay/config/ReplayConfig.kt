@@ -5,7 +5,6 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
-import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.chunk.ChunkRecorders.create
 import me.senseiwells.replay.player.predicates.NonePredicate
@@ -21,7 +20,6 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import java.nio.file.Path
-import java.util.function.Consumer
 import java.util.function.Predicate
 import kotlin.io.path.*
 
@@ -41,6 +39,9 @@ object ReplayConfig {
     var notifyPlayersLoadingChunks = true
     @JvmStatic
     var fixCarpetBotViewDistance = false
+    var ignoreSoundPackets = false
+    var ignoreLightPackets = true
+
     var worldName = "World"
     var serverName = "Server"
     var maxFileSizeString = "0GB"
@@ -90,6 +91,12 @@ object ReplayConfig {
             if (json.has("fix_carpet_bot_view_distance")) {
                 this.fixCarpetBotViewDistance = json.get("fix_carpet_bot_view_distance").asBoolean
             }
+            if (json.has("ignore_sound_packets")) {
+                this.ignoreSoundPackets = json.get("ignore_sound_packets").asBoolean
+            }
+            if (json.has("ignore_light_packets")) {
+                this.ignoreLightPackets = json.get("ignore_light_packets").asBoolean
+            }
             if (json.has("pause_unloaded_chunks")) {
                 this.skipWhenChunksUnloaded = json.get("pause_unloaded_chunks").asBoolean
             }
@@ -129,6 +136,8 @@ object ReplayConfig {
             json.addProperty("max_file_size", this.maxFileSizeString)
             json.addProperty("restart_after_max_file_size", this.restartAfterMaxFileSize)
             json.addProperty("fix_carpet_bot_view_distance", this.fixCarpetBotViewDistance)
+            json.addProperty("ignore_sound_packets", this.ignoreSoundPackets)
+            json.addProperty("ignore_light_packets", this.ignoreLightPackets)
             json.addProperty("pause_unloaded_chunks", this.skipWhenChunksUnloaded)
             json.addProperty("pause_notify_players", this.notifyPlayersLoadingChunks)
             json.addProperty("player_recording_path", this.playerRecordingPath.pathString)

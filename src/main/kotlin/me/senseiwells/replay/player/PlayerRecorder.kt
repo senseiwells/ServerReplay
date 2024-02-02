@@ -5,7 +5,6 @@ import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import me.senseiwells.replay.util.LevelUtils.viewDistance
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
@@ -85,7 +84,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
-        ChunkTrackingView.of(this.getCenterChunk(), this.level.viewDistance).forEach(consumer)
+        ChunkTrackingView.of(this.getCenterChunk(), this.server.playerList.viewDistance).forEach(consumer)
     }
 
     override fun sendPacket(packet: Packet<*>) {

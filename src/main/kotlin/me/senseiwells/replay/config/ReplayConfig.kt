@@ -11,13 +11,14 @@ import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.chunk.ChunkAreaConfig
-import me.senseiwells.replay.config.predicates.*
+import me.senseiwells.replay.config.predicates.NonePredicate
+import me.senseiwells.replay.config.predicates.ReplayPlayerContext
+import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.config.serialization.FileSizeSerializer
 import me.senseiwells.replay.config.serialization.PathSerializer
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.util.FileSize
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import org.apache.commons.lang3.SerializationException
 import java.io.IOException

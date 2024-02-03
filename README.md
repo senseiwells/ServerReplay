@@ -193,7 +193,7 @@ After you boot the server a new file will be generated in the path
 You can define chunk areas to be recorded automatically when the server starts or when
 you enable ServerReplay.
 
-Each chunk definition must include: `"name"`, `"dimension"`, `"fromX"`, `"toX"`, `"fromZ"`, and `"toZ"`. For example:
+Each chunk definition must include: `"name"`, `"dimension"`, `"from_x"`, `"to_x"`, `"from_z"`, and `"to_z"`. For example:
 ```json5
 {
   // ...

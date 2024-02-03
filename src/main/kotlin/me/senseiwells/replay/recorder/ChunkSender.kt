@@ -53,6 +53,7 @@ interface ChunkSender {
 
         this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
         this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
+        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
 
         val source = this.level.chunkSource
         val chunks = source.chunkMap

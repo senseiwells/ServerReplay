@@ -52,6 +52,7 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder)) {
 			recorder.incrementChunksLoaded();
+			recorder.addRecordable(this);
 		}
 	}
 
@@ -59,6 +60,7 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder)) {
 			recorder.decrementChunksLoaded();
+			recorder.removeRecordable(this);
 		}
 	}
 
@@ -66,6 +68,7 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	public void replay$removeAllRecorders() {
 		for (ChunkRecorder recorder : this.replay$recorders) {
 			recorder.decrementChunksLoaded();
+			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
 	}

@@ -67,6 +67,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	@Override
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder)) {
+			recorder.addRecordable(this);
 			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
 			// The player parameter is never used, we can just pass in null
 			this.serverEntity.sendPairingData(null, list::add);
@@ -84,6 +85,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 			recorder.record(new ClientboundRemoveEntitiesPacket(
 				this.entity.getId()
 			));
+			recorder.removeRecordable(this);
 		}
 	}
 
@@ -94,6 +96,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 			recorder.onEntityUntracked(this.entity);
 
 			recorder.record(packet);
+			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
 	}

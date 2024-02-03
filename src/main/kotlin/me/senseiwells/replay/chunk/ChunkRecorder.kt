@@ -32,6 +32,8 @@ class ChunkRecorder internal constructor(
 ): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
     private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
 
+    private val recordables = HashSet<ChunkRecordable>()
+
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
 
@@ -76,6 +78,14 @@ class ChunkRecorder internal constructor(
     }
 
     override fun closed(future: CompletableFuture<Long>) {
+        for (recordable in ArrayList(this.recordables)) {
+            recordable.removeRecorder(this)
+        }
+
+        if (this.recordables.isNotEmpty()) {
+            ServerReplay.logger.warn("Failed to unlink all chunk recordables")
+        }
+
         ChunkRecorders.close(this.server, this.chunks, future, this.getName())
     }
 
@@ -128,6 +138,16 @@ class ChunkRecorder internal constructor(
             return packet.radius == this.getViewDistance()
         }
         return super.canRecordPacket(packet)
+    }
+
+    @Internal
+    fun addRecordable(recordable: ChunkRecordable) {
+        this.recordables.add(recordable)
+    }
+
+    @Internal
+    fun removeRecordable(recordable: ChunkRecordable) {
+        this.recordables.remove(recordable)
     }
 
     @Internal

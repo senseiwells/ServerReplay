@@ -81,6 +81,7 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder) && this.visible) {
 			recorder.record(ClientboundBossEventPacket.createAddPacket(this));
+			recorder.addRecordable(this);
 		}
 	}
 
@@ -88,6 +89,7 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder) && this.visible) {
 			recorder.record(ClientboundBossEventPacket.createRemovePacket(this.getId()));
+			recorder.removeRecordable(this);
 		}
 	}
 
@@ -98,6 +100,9 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 			for (ChunkRecorder recorder : this.replay$recorders) {
 				recorder.record(packet);
 			}
+		}
+		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
 	}

@@ -1,5 +1,6 @@
 package me.senseiwells.replay.chunk
 
+import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
@@ -227,6 +228,6 @@ class ChunkRecorder internal constructor(
     }
 
     companion object {
-        private val PROFILE = UUIDUtil.createOfflineProfile("-ChunkRecorder-")
+        private val PROFILE = GameProfile(UUIDUtil.createOfflinePlayerUUID("-ChunkRecorder-"), "-ChunkRecorder-")
     }
 }

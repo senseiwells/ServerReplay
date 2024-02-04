@@ -77,9 +77,6 @@ public abstract class ServerLevelMixin extends Level {
 		float radius,
 		boolean causeFire,
 		Level.ExplosionInteraction interaction,
-		ParticleOptions smallParticles,
-		ParticleOptions largeParticles,
-		SoundEvent sound,
 		CallbackInfoReturnable<Explosion> cir,
 		@Local Explosion explosion
 	) {
@@ -89,11 +86,7 @@ public abstract class ServerLevelMixin extends Level {
 				posX, posY, posZ, radius,
 				explosion.getToBlow(),
 				// Knock-back
-				Vec3.ZERO,
-				explosion.getBlockInteraction(),
-				explosion.getSmallExplosionParticles(),
-				explosion.getLargeExplosionParticles(),
-				explosion.getExplosionSound()
+				Vec3.ZERO
 			));
 		}
 	}

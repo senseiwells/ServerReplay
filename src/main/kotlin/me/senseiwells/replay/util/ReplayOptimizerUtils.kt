@@ -3,10 +3,12 @@ package me.senseiwells.replay.util
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.core.Holder
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.item.PrimedTnt
@@ -97,7 +99,7 @@ object ReplayOptimizerUtils {
         // Based on Explosion#finalizeExplosion
         val random = recorder.level.random
         recorder.record(ClientboundSoundPacket(
-            Holder.direct(packet.explosionSound),
+            Holder.direct(SoundEvents.GENERIC_EXPLODE),
             SoundSource.BLOCKS,
             packet.x, packet.y, packet.z,
             4.0F,
@@ -105,11 +107,10 @@ object ReplayOptimizerUtils {
             random.nextLong()
         ))
 
-        val breaks = packet.blockInteraction != Explosion.BlockInteraction.KEEP
-        val particles = if (packet.power >= 2.0F && breaks) {
-            packet.largeExplosionParticles
+        val particles = if (packet.power >= 2.0F) {
+            ParticleTypes.EXPLOSION
         } else {
-            packet.smallExplosionParticles
+            ParticleTypes.EXPLOSION_EMITTER
         }
         recorder.record(ClientboundLevelParticlesPacket(
             particles,

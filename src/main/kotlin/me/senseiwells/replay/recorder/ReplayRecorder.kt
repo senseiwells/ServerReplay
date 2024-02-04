@@ -21,7 +21,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
+import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
@@ -254,7 +254,7 @@ abstract class ReplayRecorder(
                 }
                 return true
             }
-            is ClientboundResourcePackPushPacket -> {
+            is ClientboundResourcePackPacket -> {
                 return this.downloadAndRecordResourcePack(packet)
             }
         }
@@ -372,7 +372,7 @@ abstract class ReplayRecorder(
         return meta
     }
 
-    private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPushPacket): Boolean {
+    private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPacket): Boolean {
         if (packet.url.startsWith("replay://")) {
             return false
         }
@@ -392,11 +392,10 @@ abstract class ReplayRecorder(
                 null
             }
         }
-        this.record(ClientboundResourcePackPushPacket(
-            packet.id,
+        this.record(ClientboundResourcePackPacket(
             "replay://${requestId}",
             "",
-            packet.required,
+            packet.isRequired,
             packet.prompt
         ))
         return true

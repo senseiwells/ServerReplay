@@ -47,7 +47,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	)
 	private void onUpdate(List<ServerPlayer> playersList, CallbackInfo ci) {
 		ChunkPos pos = this.entity.chunkPosition();
-		ResourceKey<Level> level = this.entity.level().dimension();
+		ResourceKey<Level> level = this.entity.getLevel().dimension();
 		ChunkRecorders.updateRecordable(this, level, pos);
 	}
 
@@ -69,8 +69,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 		if (this.replay$chunks.add(recorder)) {
 			recorder.addRecordable(this);
 			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
-			// The player parameter is never used, we can just pass in null
-			this.serverEntity.sendPairingData(null, list::add);
+			this.serverEntity.sendPairingData(list::add);
 			recorder.record(new ClientboundBundlePacket(list));
 
 			recorder.onEntityTracked(this.entity);

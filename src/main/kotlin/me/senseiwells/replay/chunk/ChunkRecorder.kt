@@ -55,7 +55,7 @@ class ChunkRecorder internal constructor(
         val z = center.middleBlockZ
         val y = this.level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
         this.dummy.setPosRaw(x.toDouble(), y + 10.0, z.toDouble())
-        this.dummy.setServerLevel(this.level)
+        this.dummy.setLevel(this.level)
         this.dummy.isInvisible = true
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)

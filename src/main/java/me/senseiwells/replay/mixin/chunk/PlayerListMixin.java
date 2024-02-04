@@ -71,7 +71,7 @@ public class PlayerListMixin {
 		Packet<?> packet,
 		CallbackInfo ci
 	) {
-		if (except instanceof ServerPlayer player && player.level().dimension() == dimension) {
+		if (except instanceof ServerPlayer player && player.getLevel().dimension() == dimension) {
 			PlayerRecorder recorder = PlayerRecorders.get(player);
 			if (recorder != null) {
 				recorder.record(packet);

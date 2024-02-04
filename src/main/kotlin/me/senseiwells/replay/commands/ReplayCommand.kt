@@ -138,7 +138,7 @@ object ReplayCommand {
             return 0
         }
         ServerReplay.config.enabled = true
-        context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
+        context.source.sendSuccess(Component.literal("ServerReplay is now enabled!"), true)
 
         ServerReplay.config.startPlayers(context.source.server)
         ServerReplay.config.startChunks(context.source.server)
@@ -158,7 +158,7 @@ object ReplayCommand {
         for (recorders in ChunkRecorders.all()) {
             recorders.stop()
         }
-        context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
+        context.source.sendSuccess(Component.literal("ServerReplay is now disabled! Stopped all recordings."), true)
         return 1
     }
 
@@ -170,7 +170,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        context.source.sendSuccess(Component.literal("Successfully started $i recordings"), true)
         return i
     }
 
@@ -213,7 +213,7 @@ object ReplayCommand {
         }
         val recorder = ChunkRecorders.create(area, id)
         recorder.tryStart()
-        context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.getName()}") }, true)
+        context.source.sendSuccess(Component.literal("Successfully started chunk replay: ${recorder.getName()}"), true)
         return 1
     }
 
@@ -230,7 +230,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
+        context.source.sendSuccess(Component.literal("Successfully stopped $i recordings"), true)
         return i
     }
 
@@ -266,7 +266,7 @@ object ReplayCommand {
             return 0
         }
         recorder.stop(save)
-        context.source.sendSuccess({ Component.literal("Successfully stopped recording") }, true)
+        context.source.sendSuccess(Component.literal("Successfully stopped recording"), true)
         return 1
     }
 
@@ -278,13 +278,13 @@ object ReplayCommand {
         for (recorder in recorders) {
             recorder.stop(save)
         }
-        context.source.sendSuccess({ Component.literal("Successfully stopped all recordings.") }, true)
+        context.source.sendSuccess(Component.literal("Successfully stopped all recordings."), true)
         return 1
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
         ServerReplay.config = ReplayConfig.read()
-        context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
+        context.source.sendSuccess(Component.literal("Successfully reloaded config."), true)
         return 1
     }
 

@@ -30,7 +30,7 @@ class PlayerRecorder internal constructor(
         get() = this.server.playerList.getPlayer(this.recordingPlayerUUID)
 
     override val level: ServerLevel
-        get() = this.getPlayerOrThrow().serverLevel()
+        get() = this.getPlayerOrThrow().getLevel()
 
     fun getPlayerOrThrow(): ServerPlayer {
         return this.player ?: throw IllegalStateException("Tried to get player before player joined")
@@ -65,9 +65,7 @@ class PlayerRecorder internal constructor(
 
     fun spawnPlayer(player: ServerEntity) {
         val list = ArrayList<Packet<ClientGamePacketListener>>()
-        // The player parameter is never used, we can just pass in null
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        player.sendPairingData(null, list::add)
+        player.sendPairingData(list::add)
         this.record(ClientboundBundlePacket(list))
     }
 
@@ -121,7 +119,7 @@ class PlayerRecorder internal constructor(
 
     private fun getPlayerServerEntity(): ServerEntity {
         val player = this.getPlayerOrThrow()
-        val chunks = player.serverLevel().chunkSource.chunkMap as ChunkMapAccessor
+        val chunks = player.getLevel().chunkSource.chunkMap as ChunkMapAccessor
         val tracking = chunks.entityMap.get(player.id)
 
         return (tracking as TrackedEntityAccessor).serverEntity

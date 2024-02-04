@@ -81,7 +81,8 @@ interface ChunkSender {
             chunk,
             chunks.lightEngine,
             null,
-            null
+            null,
+            true
         ))
 
         val leashed = ArrayList<Mob>()

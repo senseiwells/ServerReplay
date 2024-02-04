@@ -15,7 +15,7 @@ import net.minecraft.world.scores.Objective
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: ReplayRecorder
-): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
+): ServerPlayer(original.server, original.getLevel(), original.gameProfile) {
     companion object {
         fun rejoin(player: ServerPlayer, recorder: ReplayRecorder) {
             recorder.afterLogin()
@@ -38,7 +38,7 @@ class RejoinedReplayPlayer private constructor(
 
         val server = this.server
         val players = server.playerList
-        val level = this.serverLevel()
+        val level = this.getLevel()
         val levelData = level.levelData
         val rules = level.gameRules
         this.recorder.record(ClientboundLoginPacket(
@@ -58,8 +58,7 @@ class RejoinedReplayPlayer private constructor(
             !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
             level.isDebug,
             level.isFlat,
-            this.original.lastDeathLocation,
-            this.original.portalCooldown
+            this.original.lastDeathLocation
         ))
         this.recorder.record(ClientboundUpdateEnabledFeaturesPacket(FeatureFlags.REGISTRY.toNames(level.enabledFeatures())))
         this.recorder.record(ClientboundCustomPayloadPacket(ClientboundCustomPayloadPacket.BRAND, PacketByteBufs.create().writeUtf(this.server.serverModName)))

@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.21"
+    id("me.modmuss50.mod-publish-plugin") version "0.4.5"
     id("fabric-loom")
     `maven-publish`
     java
@@ -73,6 +74,36 @@ tasks {
 
     jar {
         from("LICENSE")
+    }
+
+    publishMods {
+        file = remapJar.get().archiveFile.get()
+        changelog = """
+        
+        """
+        type = STABLE
+        modLoaders.add("fabric")
+
+        val minecraftVersion = "${property("minecraft_version")}"
+
+        displayName = "ServerReplay $minecraftVersion v${project.version}"
+        version = "${project.version}+mc${minecraftVersion}"
+
+        modrinth {
+            accessToken = providers.environmentVariable("MODRINTH_API_KEY")
+            projectId = "sH0dfrKf"
+            minecraftVersions.add(minecraftVersion)
+
+            requires {
+                id = "P7dR8mSH"
+            }
+            requires {
+                id = "Ha28R6CL"
+            }
+            optional {
+                id = "Vebnzrzj"
+            }
+        }
     }
 
     publishing {

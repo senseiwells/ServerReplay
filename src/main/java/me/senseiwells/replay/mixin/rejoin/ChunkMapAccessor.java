@@ -14,9 +14,6 @@ public interface ChunkMapAccessor {
 	@Accessor("entityMap")
 	Int2ObjectMap<ChunkMap.TrackedEntity> getEntityMap();
 
-	@Accessor("serverViewDistance")
-	int getViewDistance();
-
 	@Accessor("lightEngine")
 	ThreadedLevelLightEngine getLightEngine();
 

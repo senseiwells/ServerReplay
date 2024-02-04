@@ -6,11 +6,7 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
-import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket
-import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket
-import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ChunkMap
 import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ServerLevel
@@ -57,6 +53,7 @@ interface ChunkSender {
 
         this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
         this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
+        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
 
         val source = this.level.chunkSource
         val chunks = source.chunkMap

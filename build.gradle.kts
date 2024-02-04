@@ -1,7 +1,6 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
-
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization") version "1.9.21"
     id("fabric-loom")
     `maven-publish`
     java
@@ -38,6 +37,8 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
+    modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
+
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the
     // jar and yeet the org.slf4j packages then rezip the jar.
@@ -48,8 +49,6 @@ dependencies {
         exclude(group = "com.google.code.gson", module = "gson")
     })
     include(modImplementation("me.lucko:fabric-permissions-api:${property("permissions_version")}")!!)
-
-    modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
 
     // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
 

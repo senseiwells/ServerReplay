@@ -2,7 +2,6 @@ package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
@@ -82,6 +81,7 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder) && this.visible) {
 			recorder.record(ClientboundBossEventPacket.createAddPacket(this));
+			recorder.addRecordable(this);
 		}
 	}
 
@@ -89,6 +89,7 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder) && this.visible) {
 			recorder.record(ClientboundBossEventPacket.createRemovePacket(this.getId()));
+			recorder.removeRecordable(this);
 		}
 	}
 
@@ -99,6 +100,9 @@ public abstract class ServerBossEventMixin extends BossEvent implements ServerRe
 			for (ChunkRecorder recorder : this.replay$recorders) {
 				recorder.record(packet);
 			}
+		}
+		for (ChunkRecorder recorder : this.replay$recorders) {
+			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
 	}

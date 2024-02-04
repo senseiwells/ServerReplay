@@ -1,22 +1,19 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
+import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import me.senseiwells.replay.util.LevelUtils.viewDistance
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundBundlePacket
+import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ChunkMap
-import net.minecraft.server.level.ChunkTrackingView
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.*
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
-import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
@@ -26,12 +23,6 @@ class PlayerRecorder internal constructor(
     profile: GameProfile,
     recordings: Path,
 ): ReplayRecorder(server, profile, recordings), ChunkSender {
-    private val state: PlayerState
-
-    init {
-        this.state = PlayerState(this)
-    }
-
     private val player: ServerPlayer?
         get() = this.server.playerList.getPlayer(this.recordingPlayerUUID)
 
@@ -40,11 +31,6 @@ class PlayerRecorder internal constructor(
 
     fun getPlayerOrThrow(): ServerPlayer {
         return this.player ?: throw IllegalStateException("Tried to get player before player joined")
-    }
-
-    @Internal
-    fun tick(player: ServerPlayer) {
-        this.state.tick(player)
     }
 
     override fun getName(): String {
@@ -69,11 +55,21 @@ class PlayerRecorder internal constructor(
 
     override fun spawnPlayer() {
         val player = this.getPlayerOrThrow()
-        this.record(ClientboundAddEntityPacket(player))
-        val tracked = player.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(player.id, tracked))
+        if (!player.isRemoved) {
+            this.spawnPlayer(this.getPlayerServerEntity())
         }
+    }
+
+    fun spawnPlayer(player: ServerEntity) {
+        val list = ArrayList<Packet<ClientGamePacketListener>>()
+        // The player parameter is never used, we can just pass in null
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+        player.sendPairingData(null, list::add)
+        this.record(ClientboundBundlePacket(list))
+    }
+
+    fun removePlayer(player: ServerPlayer) {
+        this.record(ClientboundRemoveEntitiesPacket(player.id))
     }
 
     override fun canContinueRecording(): Boolean {
@@ -85,7 +81,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
-        ChunkTrackingView.of(this.getCenterChunk(), this.level.viewDistance).forEach(consumer)
+        ChunkTrackingView.of(this.getCenterChunk(), this.server.playerList.viewDistance).forEach(consumer)
     }
 
     override fun sendPacket(packet: Packet<*>) {
@@ -109,5 +105,13 @@ class PlayerRecorder internal constructor(
 
     override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
         (tracking as TrackedEntityAccessor).serverEntity.addPairing(this.getPlayerOrThrow())
+    }
+
+    private fun getPlayerServerEntity(): ServerEntity {
+        val player = this.getPlayerOrThrow()
+        val chunks = player.serverLevel().chunkSource.chunkMap as ChunkMapAccessor
+        val tracking = chunks.entityMap.get(player.id)
+
+        return (tracking as TrackedEntityAccessor).serverEntity
     }
 }

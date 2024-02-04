@@ -1,6 +1,6 @@
 package me.senseiwells.replay.chunk
 
-import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -35,7 +35,7 @@ object ChunkRecorders {
         val recorder = ChunkRecorder(
             area,
             name,
-            ReplayConfig.chunkRecordingPath.resolve(name)
+            ServerReplay.config.chunkRecordingPath.resolve(name)
         )
         this.chunks[area] = recorder
         this.chunksByName[name] = recorder
@@ -73,6 +73,7 @@ object ChunkRecorders {
     }
 
     @JvmStatic
+    @Suppress("unused")
     fun intersecting(level: ResourceKey<Level>, box: BoundingBox): List<ChunkRecorder> {
         return this.chunks.values.filter { it.chunks.intersects(level, box) }
     }

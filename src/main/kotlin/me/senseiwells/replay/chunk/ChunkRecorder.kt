@@ -1,7 +1,6 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
@@ -32,6 +31,8 @@ class ChunkRecorder internal constructor(
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
     private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+
+    private val recordables = HashSet<ChunkRecordable>()
 
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
@@ -77,6 +78,14 @@ class ChunkRecorder internal constructor(
     }
 
     override fun closed(future: CompletableFuture<Long>) {
+        for (recordable in ArrayList(this.recordables)) {
+            recordable.removeRecorder(this)
+        }
+
+        if (this.recordables.isNotEmpty()) {
+            ServerReplay.logger.warn("Failed to unlink all chunk recordables")
+        }
+
         ChunkRecorders.close(this.server, this.chunks, future, this.getName())
     }
 
@@ -132,6 +141,16 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
+    fun addRecordable(recordable: ChunkRecordable) {
+        this.recordables.add(recordable)
+    }
+
+    @Internal
+    fun removeRecordable(recordable: ChunkRecordable) {
+        this.recordables.remove(recordable)
+    }
+
+    @Internal
     fun onEntityTracked(entity: Entity) {
         if (entity is WitherBoss) {
             val recordable = ((entity as WitherBossAccessor).bossEvent as ChunkRecordable)
@@ -166,10 +185,10 @@ class ChunkRecorder internal constructor(
     }
 
     private fun pause() {
-        if (!this.paused() && ReplayConfig.skipWhenChunksUnloaded) {
+        if (!this.paused() && ServerReplay.config.skipWhenChunksUnloaded) {
             this.lastPaused = System.currentTimeMillis()
 
-            if (ReplayConfig.notifyPlayersLoadingChunks) {
+            if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
                     this.server.playerList.broadcastSystemMessage(
                         Component.literal("Paused recording for ${this.getName()}, chunks were unloaded"),
@@ -185,7 +204,7 @@ class ChunkRecorder internal constructor(
             this.totalPausedTime += this.getCurrentPause()
             this.lastPaused = 0L
 
-            if (ReplayConfig.notifyPlayersLoadingChunks) {
+            if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
                     this.server.playerList.broadcastSystemMessage(
                         Component.literal("Resumed recording for ${this.getName()}, chunks were loaded"),

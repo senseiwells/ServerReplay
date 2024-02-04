@@ -2,7 +2,6 @@ package me.senseiwells.replay.ducks;
 
 import me.senseiwells.replay.chunk.ChunkRecordable;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;

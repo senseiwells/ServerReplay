@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin;
+package me.senseiwells.replay.mixin.common;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.chunk.ChunkRecorder;

@@ -1,5 +1,6 @@
-package me.senseiwells.replay.mixin;
+package me.senseiwells.replay.mixin.common;
 
+import me.senseiwells.replay.ServerReplay;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.config.ReplayConfig;
@@ -23,10 +24,8 @@ public class MinecraftServerMixin {
 		)
 	)
 	private void onServerLoaded(CallbackInfo ci) {
-		ReplayConfig.read();
-
-		if (ReplayConfig.getEnabled()) {
-			ReplayConfig.startChunks((MinecraftServer) (Object) this);
+		if (ServerReplay.config.getEnabled()) {
+			ServerReplay.config.startChunks((MinecraftServer) (Object) this);
 		}
 	}
 
@@ -40,7 +39,7 @@ public class MinecraftServerMixin {
 		boolean forced,
 		CallbackInfoReturnable<Boolean> cir
 	) {
-		ReplayConfig.write();
+		ReplayConfig.write(ServerReplay.config);
 	}
 
 	@Inject(

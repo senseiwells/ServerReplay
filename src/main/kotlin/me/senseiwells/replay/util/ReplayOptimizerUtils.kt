@@ -31,7 +31,8 @@ object ReplayOptimizerUtils {
         ClientboundSetExperiencePacket::class.java,
         ClientboundPlayerAbilitiesPacket::class.java,
         ClientboundLoginCompressionPacket::class.java,
-
+        ClientboundCommandSuggestionsPacket::class.java,
+        ClientboundCommandsPacket::class.java
     )
     private val SOUNDS = setOf<Class<out Packet<*>>>(
         ClientboundSoundPacket::class.java,

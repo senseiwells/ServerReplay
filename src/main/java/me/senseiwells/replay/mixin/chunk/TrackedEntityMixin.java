@@ -3,6 +3,7 @@ package me.senseiwells.replay.mixin.chunk;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
+import me.senseiwells.replay.player.PlayerRecorder;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
@@ -26,7 +27,7 @@ import java.util.*;
 
 @Mixin(ChunkMap.TrackedEntity.class)
 public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
-	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
+	@Unique private final Set<ChunkRecorder> replay$chunks = new HashSet<>();
 
 	@Shadow @Final Entity entity;
 	@Shadow @Final ServerEntity serverEntity;
@@ -36,7 +37,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 		at = @At("HEAD")
 	)
 	private void onBroadcast(Packet<?> packet, CallbackInfo ci) {
-		for (ChunkRecorder recorder : this.replay$recorders) {
+		for (ChunkRecorder recorder : this.replay$chunks) {
 			recorder.record(packet);
 		}
 	}
@@ -61,12 +62,12 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 
 	@Override
 	public Collection<ChunkRecorder> replay$getRecorders() {
-		return this.replay$recorders;
+		return this.replay$chunks;
 	}
 
 	@Override
 	public void replay$addRecorder(ChunkRecorder recorder) {
-		if (this.replay$recorders.add(recorder)) {
+		if (this.replay$chunks.add(recorder)) {
 			recorder.addRecordable(this);
 			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
 			// The player parameter is never used, we can just pass in null
@@ -79,7 +80,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 
 	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
-		if (this.replay$recorders.remove(recorder)) {
+		if (this.replay$chunks.remove(recorder)) {
 			recorder.onEntityUntracked(this.entity);
 
 			recorder.record(new ClientboundRemoveEntitiesPacket(
@@ -92,12 +93,12 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	@Override
 	public void replay$removeAllRecorders() {
 		ClientboundRemoveEntitiesPacket packet = new ClientboundRemoveEntitiesPacket(this.entity.getId());
-		for (ChunkRecorder recorder : this.replay$recorders) {
+		for (ChunkRecorder recorder : this.replay$chunks) {
 			recorder.onEntityUntracked(this.entity);
 
 			recorder.record(packet);
 			recorder.removeRecordable(this);
 		}
-		this.replay$recorders.clear();
+		this.replay$chunks.clear();
 	}
 }

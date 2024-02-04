@@ -264,7 +264,7 @@ abstract class ReplayRecorder(
     private fun postPacket(packet: MinecraftPacket<*>) {
         when (packet) {
             is ClientboundRespawnPacket -> {
-                this.spawnPlayer()
+                // this.spawnPlayer()
             }
             is ClientboundPlayerInfoUpdatePacket -> {
                 val uuid = this.recordingPlayerUUID

@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin;
+package me.senseiwells.replay.mixin.player;
 
 import com.mojang.authlib.GameProfile;
 import me.senseiwells.replay.ServerReplay;

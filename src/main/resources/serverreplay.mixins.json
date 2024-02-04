@@ -14,6 +14,7 @@
     "chunk.ServerBossEventMixin",
     "chunk.TrackedEntityMixin",
     "chunk.WitherBossAccessor",
+    "common.ChunkMapMixin",
     "common.MinecraftServerMixin",
     "common.ServerLevelMixin",
     "compat.carpet.EntityPlayerMPFakeMixin",

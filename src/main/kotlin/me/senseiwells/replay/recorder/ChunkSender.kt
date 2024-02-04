@@ -37,7 +37,7 @@ interface ChunkSender {
     fun addTrackedEntity(tracking: TrackedEntity)
 
     fun getViewDistance(): Int {
-        return (this.level.chunkSource.chunkMap as ChunkMapAccessor).viewDistance
+        return this.level.server.playerList.viewDistance
     }
 
     @NonExtendable
@@ -87,11 +87,12 @@ interface ChunkSender {
         val leashed = ArrayList<Mob>()
         val ridden = ArrayList<Entity>()
 
+        val viewDistance = this.level.server.playerList.viewDistance
         for (tracked in chunks.entityMap.values) {
             val entity = (tracked as TrackedEntityAccessor).entity
             if (this.isValidEntity(entity) && entity.chunkPosition() == chunk.pos) {
                 if (!seen.contains(entity.id)) {
-                    val range = min(tracked.getRange(), chunks.viewDistance * 16).toDouble()
+                    val range = min(tracked.getRange(), viewDistance * 16).toDouble()
                     if (this.shouldTrackEntity(entity, range)) {
                         this.addTrackedEntity(tracked)
                         seen.add(entity.id)
@@ -119,9 +120,10 @@ interface ChunkSender {
     fun sendChunkEntities(seen: IntSet) {
         val chunks = this.level.chunkSource.chunkMap
         val entities = (chunks as ChunkMapAccessor).entityMap
+        val viewDistance = this.level.server.playerList.viewDistance
         for (tracked in entities.values) {
             val entity = (tracked as TrackedEntityAccessor).entity
-            val range = min(tracked.getRange(), chunks.viewDistance * 16).toDouble()
+            val range = min(tracked.getRange(), viewDistance * 16).toDouble()
             if (this.shouldTrackEntity(entity, range)) {
                 this.addTrackedEntity(tracked)
             }

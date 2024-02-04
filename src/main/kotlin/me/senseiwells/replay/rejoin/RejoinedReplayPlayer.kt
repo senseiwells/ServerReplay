@@ -1,31 +1,30 @@
 package me.senseiwells.replay.rejoin
 
+import me.senseiwells.replay.mixin.common.PlayerListAccessor
 import me.senseiwells.replay.recorder.ReplayRecorder
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.server.network.CommonListenerCookie
+import net.minecraft.tags.TagNetworkSerialization
+import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.level.GameRules
-import net.minecraft.world.scores.DisplaySlot
+import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: ReplayRecorder
-): ServerPlayer(original.server, original.serverLevel(), original.gameProfile, original.clientInformation()) {
+): ServerPlayer(original.server, original.serverLevel(), original.gameProfile) {
     companion object {
         fun rejoin(player: ServerPlayer, recorder: ReplayRecorder) {
             recorder.afterLogin()
 
             val rejoined = RejoinedReplayPlayer(player, recorder)
             val connection = RejoinConnection()
-            val cookies = CommonListenerCookie(player.gameProfile, 0, player.clientInformation())
-
-            RejoinConfigurationPacketListener(rejoined, connection, cookies).startConfiguration()
-            recorder.afterConfigure()
 
             rejoined.load(player.saveWithoutId(CompoundTag()))
-            rejoined.place(connection, cookies)
+            rejoined.place(connection)
         }
     }
 
@@ -33,12 +32,9 @@ class RejoinedReplayPlayer private constructor(
         this.id = this.original.id
     }
 
-    private fun place(
-        connection: RejoinConnection,
-        cookies: CommonListenerCookie
-    ) {
+    private fun place(connection: RejoinConnection) {
         // Create the fake packet listener
-        val listener = RejoinGamePacketListener(this, connection, cookies)
+        val listener = RejoinGamePacketListener(this, connection)
 
         val server = this.server
         val players = server.playerList
@@ -48,19 +44,30 @@ class RejoinedReplayPlayer private constructor(
         this.recorder.record(ClientboundLoginPacket(
             this.id,
             levelData.isHardcore,
+            this.original.gameMode.gameModeForPlayer,
+            this.original.gameMode.previousGameModeForPlayer,
             server.levelKeys(),
+            (players as PlayerListAccessor).frozenRegistries,
+            level.dimensionTypeId(),
+            level.dimension(),
+            BiomeManager.obfuscateSeed(level.seed),
             players.maxPlayers,
             players.viewDistance,
             players.simulationDistance,
             rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
             !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
-            rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
-            this.createCommonSpawnInfo(level)
+            level.isDebug,
+            level.isFlat,
+            this.original.lastDeathLocation,
+            this.original.portalCooldown
         ))
+        this.recorder.record(ClientboundUpdateEnabledFeaturesPacket(FeatureFlags.REGISTRY.toNames(level.enabledFeatures())))
+        this.recorder.record(ClientboundCustomPayloadPacket(ClientboundCustomPayloadPacket.BRAND, PacketByteBufs.create().writeUtf(this.server.serverModName)))
         this.recorder.record(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
         this.recorder.record(ClientboundPlayerAbilitiesPacket(this.abilities))
         this.recorder.record(ClientboundSetCarriedItemPacket(this.inventory.selected))
         this.recorder.record(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
+        this.recorder.record(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.server.registries())))
         players.sendPlayerPermissionLevel(this)
 
         this.recipeBook.sendInitialRecipeBook(this)
@@ -71,8 +78,8 @@ class RejoinedReplayPlayer private constructor(
         }
 
         val set = HashSet<Objective>()
-        for (displaySlot in DisplaySlot.values()) {
-            val objective = scoreboard.getDisplayObjective(displaySlot)
+        for (i in 0..18) {
+            val objective = scoreboard.getDisplayObjective(i)
             if (objective != null && !set.contains(objective)) {
                 for (packet in scoreboard.getStartTrackingPackets(objective)) {
                     this.recorder.record(packet)
@@ -98,6 +105,10 @@ class RejoinedReplayPlayer private constructor(
             if (event.players.contains(this.original) && event.isVisible) {
                 this.recorder.record(ClientboundBossEventPacket.createAddPacket(event))
             }
+        }
+
+        this.server.serverResourcePack.ifPresent { packet ->
+            this.sendTexturePack(packet.url, packet.hash, packet.isRequired, packet.prompt)
         }
 
         for (mobEffectInstance in this.activeEffects) {

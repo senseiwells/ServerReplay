@@ -13,7 +13,6 @@ import net.minecraft.sounds.SoundSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.item.PrimedTnt
 import net.minecraft.world.entity.projectile.Projectile
-import net.minecraft.world.level.Explosion
 
 object ReplayOptimizerUtils {
     private val IGNORED = setOf<Class<out Packet<*>>>(

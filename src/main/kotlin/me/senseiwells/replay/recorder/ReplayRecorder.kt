@@ -21,11 +21,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
-import net.minecraft.network.protocol.game.ClientboundBundlePacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundRespawnPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -105,7 +101,7 @@ abstract class ReplayRecorder(
 
         val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
-            val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
+            val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
             val state = this.protocolAsState()
 
             outgoing.write(buf)
@@ -200,11 +196,6 @@ abstract class ReplayRecorder(
         // We will not have recorded this, so we need to do it manually.
         this.record(ClientboundGameProfilePacket(this.profile))
 
-        this.protocol = ConnectionProtocol.CONFIGURATION
-    }
-
-    @Internal
-    fun afterConfigure() {
         this.protocol = ConnectionProtocol.PLAY
     }
 
@@ -355,7 +346,6 @@ abstract class ReplayRecorder(
     private fun protocolAsState(): State {
         return when (this.protocol) {
             ConnectionProtocol.PLAY -> State.PLAY
-            ConnectionProtocol.CONFIGURATION -> State.CONFIGURATION
             ConnectionProtocol.LOGIN -> State.LOGIN
             else -> throw IllegalStateException("Expected connection protocol to be 'PLAY', 'CONFIGURATION' or 'LOGIN'")
         }

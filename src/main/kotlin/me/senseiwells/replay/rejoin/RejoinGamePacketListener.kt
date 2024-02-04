@@ -4,14 +4,12 @@ import me.senseiwells.replay.ServerReplay
 import net.minecraft.network.Connection
 import net.minecraft.network.PacketSendListener
 import net.minecraft.network.protocol.Packet
-import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 
 class RejoinGamePacketListener(
     replay: RejoinedReplayPlayer,
-    connection: Connection,
-    cookies: CommonListenerCookie
-): ServerGamePacketListenerImpl(replay.server, connection, replay, cookies) {
+    connection: Connection
+): ServerGamePacketListenerImpl(replay.server, connection, replay) {
     // We don't store extra fields in this class because certain
     // mods like sending packets DURING the construction, *cough* syncmatica *cough*
     private val replay: RejoinedReplayPlayer

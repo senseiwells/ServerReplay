@@ -14,7 +14,6 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
-import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
@@ -31,7 +30,7 @@ class ChunkRecorder internal constructor(
     val recorderName: String,
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
-    private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+    private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE)
 
     private val recordables = HashSet<ChunkRecordable>()
 

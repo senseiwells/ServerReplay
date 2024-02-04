@@ -12,7 +12,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
 @Serializable
-class ChunkAreaConfig constructor(
+class ChunkAreaConfig(
     val name: String,
     @SerialName("dimension")
     @Serializable(with = ResourceLocationSerializer::class)

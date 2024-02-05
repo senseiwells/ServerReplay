@@ -58,6 +58,12 @@ dependencies {
 
 loom {
     accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
+
+    runs {
+        getByName("server") {
+            runDir = "run/${project.property("minecraft_version")}"
+        }
+    }
 }
 
 tasks.remapJar {

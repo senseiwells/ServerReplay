@@ -83,9 +83,7 @@ class PlayerRecorder internal constructor(
         val viewDistance = this.server.playerList.viewDistance
         for (chunkX in centerChunkX - viewDistance - 1..centerChunkX + viewDistance + 1) {
             for (chunkZ in centerChunkZ - viewDistance - 1..centerChunkZ + viewDistance + 1) {
-                if (ChunkMap.isChunkInRange(chunkX, chunkZ, centerChunkX, centerChunkZ, viewDistance)) {
-                    consumer.accept(ChunkPos(chunkX, chunkZ))
-                }
+                consumer.accept(ChunkPos(chunkX, chunkZ))
             }
         }
     }

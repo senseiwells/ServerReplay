@@ -2,10 +2,10 @@ package me.senseiwells.replay.rejoin
 
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.minecraft.core.RegistryAccess
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.tags.TagNetworkSerialization
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
@@ -41,17 +41,16 @@ class RejoinedReplayPlayer private constructor(
         val rules = level.gameRules
         this.recorder.record(ClientboundLoginPacket(
             this.id,
-            levelData.isHardcore,
             this.original.gameMode.gameModeForPlayer,
             this.original.gameMode.previousGameModeForPlayer,
-            server.levelKeys(),
-            server.registryAccess(),
-            level.dimensionTypeRegistration(),
-            level.dimension(),
             BiomeManager.obfuscateSeed(level.seed),
+            levelData.isHardcore,
+            server.levelKeys(),
+            server.registryAccess() as RegistryAccess.RegistryHolder,
+            level.dimensionType(),
+            level.dimension(),
             players.maxPlayers,
             players.viewDistance,
-            players.simulationDistance,
             rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
             !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
             level.isDebug,
@@ -62,7 +61,7 @@ class RejoinedReplayPlayer private constructor(
         this.recorder.record(ClientboundPlayerAbilitiesPacket(this.abilities))
         this.recorder.record(ClientboundSetCarriedItemPacket(this.inventory.selected))
         this.recorder.record(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
-        this.recorder.record(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.server.registryAccess())))
+        this.recorder.record(ClientboundUpdateTagsPacket(this.server.tags.serializeToNetwork(server.registryAccess())))
         players.sendPlayerPermissionLevel(this)
 
         this.recipeBook.sendInitialRecipeBook(this)

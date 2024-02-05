@@ -38,7 +38,7 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
-    modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
+    modImplementation("carpet:fabric-carpet:${property("minecraft_version")}-${property("carpet_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the

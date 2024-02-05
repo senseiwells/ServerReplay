@@ -48,7 +48,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	)
 	private void onUpdate(List<ServerPlayer> playersList, CallbackInfo ci) {
 		ChunkPos pos = this.entity.chunkPosition();
-		ResourceKey<Level> level = this.entity.getLevel().dimension();
+		ResourceKey<Level> level = this.entity.level.dimension();
 		ChunkRecorders.updateRecordable(this, level, pos);
 	}
 

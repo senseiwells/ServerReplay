@@ -53,7 +53,6 @@ interface ChunkSender {
 
         this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
         this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
-        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
 
         val source = this.level.chunkSource
         val chunks = source.chunkMap
@@ -77,13 +76,8 @@ interface ChunkSender {
 
         // We don't need to use the chunkSender
         // We are only writing the packets to disk...
-        this.sendPacket(ClientboundLevelChunkWithLightPacket(
-            chunk,
-            chunks.lightEngine,
-            null,
-            null,
-            true
-        ))
+        this.sendPacket(ClientboundLevelChunkPacket(chunk))
+        this.sendPacket(ClientboundLightUpdatePacket(chunk.pos, chunks.lightEngine, null, null, true))
 
         val leashed = ArrayList<Mob>()
         val ridden = ArrayList<Entity>()

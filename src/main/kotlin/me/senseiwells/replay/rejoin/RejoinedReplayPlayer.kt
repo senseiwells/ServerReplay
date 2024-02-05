@@ -1,13 +1,11 @@
 package me.senseiwells.replay.rejoin
 
-import me.senseiwells.replay.mixin.common.PlayerListAccessor
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.TagNetworkSerialization
-import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
@@ -47,8 +45,8 @@ class RejoinedReplayPlayer private constructor(
             this.original.gameMode.gameModeForPlayer,
             this.original.gameMode.previousGameModeForPlayer,
             server.levelKeys(),
-            (players as PlayerListAccessor).frozenRegistries,
-            level.dimensionTypeId(),
+            server.registryAccess(),
+            level.dimensionTypeRegistration(),
             level.dimension(),
             BiomeManager.obfuscateSeed(level.seed),
             players.maxPlayers,
@@ -57,16 +55,14 @@ class RejoinedReplayPlayer private constructor(
             rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
             !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
             level.isDebug,
-            level.isFlat,
-            this.original.lastDeathLocation
+            level.isFlat
         ))
-        this.recorder.record(ClientboundUpdateEnabledFeaturesPacket(FeatureFlags.REGISTRY.toNames(level.enabledFeatures())))
         this.recorder.record(ClientboundCustomPayloadPacket(ClientboundCustomPayloadPacket.BRAND, PacketByteBufs.create().writeUtf(this.server.serverModName)))
         this.recorder.record(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
         this.recorder.record(ClientboundPlayerAbilitiesPacket(this.abilities))
         this.recorder.record(ClientboundSetCarriedItemPacket(this.inventory.selected))
         this.recorder.record(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
-        this.recorder.record(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.server.registries())))
+        this.recorder.record(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.server.registryAccess())))
         players.sendPlayerPermissionLevel(this)
 
         this.recipeBook.sendInitialRecipeBook(this)
@@ -88,7 +84,6 @@ class RejoinedReplayPlayer private constructor(
         }
 
         listener.teleport(this.x, this.y, this.z, this.yRot, this.xRot)
-        server.status?.let { this.sendServerStatus(it) }
 
         // We do this to ensure that we have ALL the players
         // including any 'fake' chunk players
@@ -97,7 +92,9 @@ class RejoinedReplayPlayer private constructor(
             uniques.add(this)
         }
 
-        this.recorder.record(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(uniques))
+        for (player in uniques) {
+            this.recorder.record(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, player))
+        }
         players.sendLevelInfo(this, level)
 
         for (event in server.customBossEvents.events) {
@@ -106,8 +103,13 @@ class RejoinedReplayPlayer private constructor(
             }
         }
 
-        this.server.serverResourcePack.ifPresent { packet ->
-            this.sendTexturePack(packet.url, packet.hash, packet.isRequired, packet.prompt)
+        if (this.server.resourcePack.isNotEmpty()) {
+            this.sendTexturePack(
+                server.resourcePack,
+                server.resourcePackHash,
+                server.isResourcePackRequired,
+                server.resourcePackPrompt
+            )
         }
 
         for (mobEffectInstance in this.activeEffects) {

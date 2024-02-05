@@ -4,8 +4,6 @@ import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ChunkMap;
@@ -22,7 +20,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Mixin(ChunkMap.TrackedEntity.class)
 public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
@@ -68,9 +69,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$chunks.add(recorder)) {
 			recorder.addRecordable(this);
-			List<Packet<ClientGamePacketListener>> list = new ArrayList<>();
-			this.serverEntity.sendPairingData(list::add);
-			recorder.record(new ClientboundBundlePacket(list));
+			this.serverEntity.sendPairingData(recorder::record);
 
 			recorder.onEntityTracked(this.entity);
 		}

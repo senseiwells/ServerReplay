@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.config.serialization.ResourceLocationSerializer
-import net.minecraft.core.registries.Registries
+import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
@@ -27,7 +27,7 @@ class ChunkAreaConfig(
     val toZ: Int
 ) {
     val dimension: ResourceKey<Level> by lazy {
-        ResourceKey.create(Registries.DIMENSION, this.location)
+        ResourceKey.create(Registry.DIMENSION_REGISTRY, this.location)
     }
 
     fun toChunkArea(server: MinecraftServer): ChunkArea? {

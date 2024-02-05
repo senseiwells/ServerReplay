@@ -16,7 +16,6 @@
     "chunk.WitherBossAccessor",
     "common.ChunkMapMixin",
     "common.MinecraftServerMixin",
-    "common.PlayerListAccessor",
     "common.ServerLevelMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "player.PlayerListMixin",

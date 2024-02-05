@@ -2,7 +2,6 @@ package me.senseiwells.replay.util
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
-import net.minecraft.core.Holder
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
@@ -16,7 +15,6 @@ import net.minecraft.world.entity.projectile.Projectile
 
 object ReplayOptimizerUtils {
     private val IGNORED = setOf<Class<out Packet<*>>>(
-        ClientboundBlockChangedAckPacket::class.java,
         ClientboundOpenBookPacket::class.java,
         ClientboundOpenScreenPacket::class.java,
         ClientboundUpdateRecipesPacket::class.java,
@@ -98,12 +96,11 @@ object ReplayOptimizerUtils {
         // Based on Explosion#finalizeExplosion
         val random = recorder.level.random
         recorder.record(ClientboundSoundPacket(
-            Holder.direct(SoundEvents.GENERIC_EXPLODE),
+            SoundEvents.GENERIC_EXPLODE,
             SoundSource.BLOCKS,
             packet.x, packet.y, packet.z,
             4.0F,
-            (1 + (random.nextFloat() - random.nextFloat()) * 0.2F) * 0.7F,
-            random.nextLong()
+            (1 + (random.nextFloat() - random.nextFloat()) * 0.2F) * 0.7F
         ))
 
         val particles = if (packet.power >= 2.0F) {

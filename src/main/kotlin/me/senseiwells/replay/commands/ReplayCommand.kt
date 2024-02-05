@@ -20,7 +20,7 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
-import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.builder.StandardToStringStyle
@@ -134,11 +134,11 @@ object ReplayCommand {
 
     private fun onEnable(context: CommandContext<CommandSourceStack>): Int {
         if (ServerReplay.config.enabled) {
-            context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
+            context.source.sendFailure(TextComponent("ServerReplay is already enabled!"))
             return 0
         }
         ServerReplay.config.enabled = true
-        context.source.sendSuccess(Component.literal("ServerReplay is now enabled!"), true)
+        context.source.sendSuccess(TextComponent("ServerReplay is now enabled!"), true)
 
         ServerReplay.config.startPlayers(context.source.server)
         ServerReplay.config.startChunks(context.source.server)
@@ -148,7 +148,7 @@ object ReplayCommand {
 
     private fun onDisable(context: CommandContext<CommandSourceStack>): Int {
         if (!ServerReplay.config.enabled) {
-            context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
+            context.source.sendFailure(TextComponent("ServerReplay is already disabled!"))
             return 0
         }
         ServerReplay.config.enabled = false
@@ -158,7 +158,7 @@ object ReplayCommand {
         for (recorders in ChunkRecorders.all()) {
             recorders.stop()
         }
-        context.source.sendSuccess(Component.literal("ServerReplay is now disabled! Stopped all recordings."), true)
+        context.source.sendSuccess(TextComponent("ServerReplay is now disabled! Stopped all recordings."), true)
         return 1
     }
 
@@ -170,7 +170,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess(Component.literal("Successfully started $i recordings"), true)
+        context.source.sendSuccess(TextComponent("Successfully started $i recordings"), true)
         return i
     }
 
@@ -208,12 +208,12 @@ object ReplayCommand {
     ): Int {
         val id = if (name != null) name else ChunkRecorders.generateName(area)
         if (!ChunkRecorders.isAvailable(area, id)) {
-            context.source.sendFailure(Component.literal("Failed to start chunk replay, already exists"))
+            context.source.sendFailure(TextComponent("Failed to start chunk replay, already exists"))
             return 0
         }
         val recorder = ChunkRecorders.create(area, id)
         recorder.tryStart()
-        context.source.sendSuccess(Component.literal("Successfully started chunk replay: ${recorder.getName()}"), true)
+        context.source.sendSuccess(TextComponent("Successfully started chunk replay: ${recorder.getName()}"), true)
         return 1
     }
 
@@ -230,7 +230,7 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess(Component.literal("Successfully stopped $i recordings"), true)
+        context.source.sendSuccess(TextComponent("Successfully stopped $i recordings"), true)
         return i
     }
 
@@ -262,11 +262,11 @@ object ReplayCommand {
         save: Boolean
     ): Int {
         if (recorder == null) {
-            context.source.sendFailure(Component.literal("No such recorder for that area exists"))
+            context.source.sendFailure(TextComponent("No such recorder for that area exists"))
             return 0
         }
         recorder.stop(save)
-        context.source.sendSuccess(Component.literal("Successfully stopped recording"), true)
+        context.source.sendSuccess(TextComponent("Successfully stopped recording"), true)
         return 1
     }
 
@@ -278,13 +278,13 @@ object ReplayCommand {
         for (recorder in recorders) {
             recorder.stop(save)
         }
-        context.source.sendSuccess(Component.literal("Successfully stopped all recordings."), true)
+        context.source.sendSuccess(TextComponent("Successfully stopped all recordings."), true)
         return 1
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
         ServerReplay.config = ReplayConfig.read()
-        context.source.sendSuccess(Component.literal("Successfully reloaded config."), true)
+        context.source.sendSuccess(TextComponent("Successfully reloaded config."), true)
         return 1
     }
 
@@ -303,7 +303,7 @@ object ReplayCommand {
         this.appendRecorders(builder, "Players", PlayerRecorders.all(), style)
         this.appendRecorders(builder, "Chunks", ChunkRecorders.all(), style)
 
-        context.source.sendSystemMessage(Component.literal(builder.removeSuffix("\n").toString()))
+        context.source.sendSuccess(TextComponent(builder.removeSuffix("\n").toString()), false)
         return 1
     }
 

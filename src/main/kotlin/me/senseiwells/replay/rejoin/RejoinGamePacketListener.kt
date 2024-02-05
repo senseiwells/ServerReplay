@@ -1,8 +1,9 @@
 package me.senseiwells.replay.rejoin
 
+import io.netty.util.concurrent.Future
+import io.netty.util.concurrent.GenericFutureListener
 import me.senseiwells.replay.ServerReplay
 import net.minecraft.network.Connection
-import net.minecraft.network.PacketSendListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 
@@ -15,7 +16,8 @@ class RejoinGamePacketListener(
     private val replay: RejoinedReplayPlayer
         get() = this.player as RejoinedReplayPlayer
 
-    override fun send(packet: Packet<*>, listener: PacketSendListener?) {
+
+    override fun send(packet: Packet<*>, listener: GenericFutureListener<out Future<in Void>>?) {
         try {
             this.replay.recorder.record(packet)
         } catch (e: Exception) {

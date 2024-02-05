@@ -7,8 +7,6 @@ import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.game.ClientGamePacketListener
-import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ChunkMap
@@ -64,9 +62,7 @@ class PlayerRecorder internal constructor(
     }
 
     fun spawnPlayer(player: ServerEntity) {
-        val list = ArrayList<Packet<ClientGamePacketListener>>()
-        player.sendPairingData(list::add)
-        this.record(ClientboundBundlePacket(list))
+        player.sendPairingData(this::record)
     }
 
     fun removePlayer(player: ServerPlayer) {

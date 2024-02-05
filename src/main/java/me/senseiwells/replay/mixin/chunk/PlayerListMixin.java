@@ -7,34 +7,24 @@ import me.senseiwells.replay.player.PlayerRecorders;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MessageSignatureCache;
-import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
-import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
+import net.minecraft.network.protocol.game.ClientboundChatPacket;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 @Mixin(PlayerList.class)
 public class PlayerListMixin {
-	@Shadow @Final private MinecraftServer server;
-
 	@Inject(
 		method = "broadcastAll(Lnet/minecraft/network/protocol/Packet;)V",
 		at = @At("HEAD")
@@ -78,7 +68,7 @@ public class PlayerListMixin {
 			}
 		}
 
-		ChunkPos pos = new ChunkPos(BlockPos.containing(x, y, z));
+		ChunkPos pos = new ChunkPos(new BlockPos(x, y, z));
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
 			if (recorder.getChunks().contains(dimension, pos)) {
 				recorder.record(packet);
@@ -87,48 +77,33 @@ public class PlayerListMixin {
 	}
 
 	@Inject(
-		method = "broadcastSystemMessage(Lnet/minecraft/network/chat/Component;Ljava/util/function/Function;Z)V",
+		method = "broadcastMessage(Lnet/minecraft/network/chat/Component;Ljava/util/function/Function;Lnet/minecraft/network/chat/ChatType;Ljava/util/UUID;)V",
 		at = @At("HEAD")
 	)
 	private void onBroadcastSystemMessage(
-		Component serverMessage,
-		Function<ServerPlayer, Component> playerMessageFactory,
-		boolean bypassHiddenChat,
+		Component message,
+		Function<ServerPlayer, Component> filter,
+		ChatType type,
+		UUID uuid,
 		CallbackInfo ci
 	) {
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			recorder.record(new ClientboundSystemChatPacket(serverMessage, bypassHiddenChat));
+			recorder.record(new ClientboundChatPacket(message, type, uuid));
 		}
 	}
 
 	@Inject(
-		method = "broadcastChatMessage(Lnet/minecraft/network/chat/PlayerChatMessage;Ljava/util/function/Predicate;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/network/chat/ChatType$Bound;)V",
+		method = "broadcastMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/ChatType;Ljava/util/UUID;)V",
 		at = @At("HEAD")
 	)
 	private void onBroadcastChatMessage(
-		PlayerChatMessage message,
-		Predicate<ServerPlayer> shouldFilterMessageTo,
-		@Nullable ServerPlayer sender,
-		ChatType.Bound boundChatType,
+		Component message,
+		ChatType type,
+		UUID uuid,
 		CallbackInfo ci
 	) {
 		for (ChunkRecorder recorder : ChunkRecorders.all()) {
-			if (message.isSystem()) {
-				recorder.record(new ClientboundDisguisedChatPacket(
-					message.decoratedContent(),
-					boundChatType.toNetwork(this.server.registryAccess())
-				));
-				continue;
-			}
-			recorder.record(new ClientboundPlayerChatPacket(
-				message.link().sender(),
-				message.link().index(),
-				message.signature(),
-				message.signedBody().pack(MessageSignatureCache.createDefault()),
-				message.unsignedContent(),
-				message.filterMask(),
-				boundChatType.toNetwork(this.server.registryAccess())
-			));
+			recorder.record(new ClientboundChatPacket(message, type, uuid));
 		}
 	}
 }

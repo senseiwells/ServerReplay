@@ -1,6 +1,5 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.chunk.ChunkRecordable;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
@@ -50,7 +49,7 @@ public class RaidMixin {
 		method = "playSound",
 		at = @At("TAIL")
 	)
-	private void onPlayerSound(BlockPos pos, CallbackInfo ci, @Local(ordinal = 0) long seed) {
+	private void onPlayerSound(BlockPos pos, CallbackInfo ci) {
 		Collection<ChunkRecorder> recorders = ((ChunkRecordable) this.raidEvent).getRecorders();
 		if (!recorders.isEmpty()) {
 			ClientboundSoundPacket packet = new ClientboundSoundPacket(
@@ -60,8 +59,7 @@ public class RaidMixin {
 				this.center.getY(),
 				this.center.getZ(),
 				64,
-				1.0F,
-				seed
+				1.0F
 			);
 			for (ChunkRecorder recorder : recorders) {
 				recorder.record(packet);

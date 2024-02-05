@@ -19,7 +19,7 @@ public class MinecraftServerMixin {
 		method = "runServer",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/MinecraftServer;buildServerStatus()Lnet/minecraft/network/protocol/status/ServerStatus;",
+			target = "Lnet/minecraft/server/MinecraftServer;updateStatusIcon(Lnet/minecraft/network/protocol/status/ServerStatus;)V",
 			shift = At.Shift.AFTER
 		)
 	)

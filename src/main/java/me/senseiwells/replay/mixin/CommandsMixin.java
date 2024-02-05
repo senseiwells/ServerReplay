@@ -2,7 +2,6 @@ package me.senseiwells.replay.mixin;
 
 import com.mojang.brigadier.CommandDispatcher;
 import me.senseiwells.replay.commands.ReplayCommand;
-import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import org.spongepowered.asm.mixin.Final;
@@ -22,7 +21,6 @@ public class CommandsMixin {
 	)
 	private void onRegisterCommands(
 		Commands.CommandSelection commandSelection,
-		CommandBuildContext commandBuildContext,
 		CallbackInfo ci
 	) {
 		ReplayCommand.register(this.dispatcher);

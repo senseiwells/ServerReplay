@@ -21,7 +21,10 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.*
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket
+import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -102,6 +105,11 @@ abstract class ReplayRecorder(
         val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
             val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
+            if (id == null) {
+                ServerReplay.logger.error("Tried recording packet for wrong phase: ${outgoing::class.java}, ignoring...")
+                return
+            }
+
             val state = this.protocolAsState()
 
             outgoing.write(buf)
@@ -239,12 +247,6 @@ abstract class ReplayRecorder(
                     this.saveMeta()
                 }
             }
-            is ClientboundBundlePacket -> {
-                for (sub in packet.subPackets()) {
-                    this.record(sub)
-                }
-                return true
-            }
             is ClientboundResourcePackPacket -> {
                 return this.downloadAndRecordResourcePack(packet)
             }
@@ -257,12 +259,14 @@ abstract class ReplayRecorder(
             is ClientboundRespawnPacket -> {
                 // this.spawnPlayer()
             }
-            is ClientboundPlayerInfoUpdatePacket -> {
+            is ClientboundPlayerInfoPacket -> {
                 val uuid = this.recordingPlayerUUID
-                for (entry in packet.newEntries()) {
-                    if (uuid == entry.profileId) {
-                        this.spawnPlayer()
-                        break
+                if (packet.action == ClientboundPlayerInfoPacket.Action.ADD_PLAYER) {
+                    for (entry in packet.entries) {
+                        if (uuid == entry.profile.id) {
+                            this.spawnPlayer()
+                            break
+                        }
                     }
                 }
             }
@@ -366,7 +370,7 @@ abstract class ReplayRecorder(
         if (packet.url.startsWith("replay://")) {
             return false
         }
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "UnstableApiUsage")
         val pathHash = Hashing.sha1().hashString(packet.url, StandardCharsets.UTF_8).toString()
         val path = ReplayConfig.root.resolve("packs").resolve(pathHash)
 
@@ -392,7 +396,7 @@ abstract class ReplayRecorder(
     }
 
     private fun writeResourcePack(bytes: ByteArray, expectedHash: String, id: Int): Boolean {
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "UnstableApiUsage")
         val packHash = Hashing.sha1().hashBytes(bytes).toString()
         if (expectedHash == packHash) {
             this.executor.execute {

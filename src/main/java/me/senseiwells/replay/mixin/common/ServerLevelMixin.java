@@ -7,7 +7,6 @@ import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ClientboundExplodePacket;
@@ -37,8 +36,8 @@ import java.util.function.Supplier;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin extends Level {
-	protected ServerLevelMixin(WritableLevelData levelData, ResourceKey<Level> dimension, RegistryAccess registryAccess, Holder<DimensionType> dimensionTypeRegistration, Supplier<ProfilerFiller> profiler, boolean isClientSide, boolean isDebug, long biomeZoomSeed, int maxChainedNeighborUpdates) {
-		super(levelData, dimension, registryAccess, dimensionTypeRegistration, profiler, isClientSide, isDebug, biomeZoomSeed, maxChainedNeighborUpdates);
+	protected ServerLevelMixin(WritableLevelData levelData, ResourceKey<Level> dimension, Holder<DimensionType> dimensionTypeRegistration, Supplier<ProfilerFiller> profiler, boolean isClientSide, boolean isDebug, long biomeZoomSeed) {
+		super(levelData, dimension, dimensionTypeRegistration, profiler, isClientSide, isDebug, biomeZoomSeed);
 	}
 
 	@Shadow @Nullable public abstract Entity getEntity(int id);
@@ -75,11 +74,11 @@ public abstract class ServerLevelMixin extends Level {
 		double posZ,
 		float radius,
 		boolean causeFire,
-		Level.ExplosionInteraction interaction,
+		Explosion.BlockInteraction interaction,
 		CallbackInfoReturnable<Explosion> cir,
 		@Local Explosion explosion
 	) {
-		ChunkPos chunkPos = new ChunkPos(BlockPos.containing(posX, posY, posZ));
+		ChunkPos chunkPos = new ChunkPos(new BlockPos(posX, posY, posZ));
 		for (ChunkRecorder recorder : ChunkRecorders.containing(this.dimension(), chunkPos)) {
 			recorder.record(new ClientboundExplodePacket(
 				posX, posY, posZ, radius,
@@ -107,7 +106,7 @@ public abstract class ServerLevelMixin extends Level {
 		CallbackInfoReturnable<Integer> cir,
 		@Local ClientboundLevelParticlesPacket packet
 	) {
-		ChunkPos chunkPos = new ChunkPos(BlockPos.containing(posX, posY, posZ));
+		ChunkPos chunkPos = new ChunkPos(new BlockPos(posX, posY, posZ));
 		for (ChunkRecorder recorder : ChunkRecorders.containing(this.dimension(), chunkPos)) {
 			recorder.record(packet);
 		}

@@ -1,8 +1,9 @@
 package me.senseiwells.replay.mixin.player;
 
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
-import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,10 +19,10 @@ public class ServerGamePacketListenerImplMixin {
 	@Shadow public ServerPlayer player;
 
 	@Inject(
-		method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+		method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/util/concurrent/GenericFutureListener;)V",
 		at = @At("HEAD")
 	)
-	private void onPacket(Packet<?> packet, PacketSendListener listener, CallbackInfo ci) {
+	private void onPacket(Packet<?> packet, GenericFutureListener<? extends Future<? super Void>> listener, CallbackInfo ci) {
 		PlayerRecorder recorder = PlayerRecorders.get(this.player);
 		if (recorder != null) {
 			recorder.record(packet);

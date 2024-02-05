@@ -7,8 +7,9 @@ import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import net.minecraft.core.UUIDUtil
-import net.minecraft.network.chat.Component
+import net.minecraft.Util
+import net.minecraft.network.chat.ChatType
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.boss.wither.WitherBoss
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -91,10 +93,7 @@ class ChunkRecorder internal constructor(
 
     override fun spawnPlayer() {
         this.record(ClientboundAddEntityPacket(this.dummy))
-        val tracked = this.dummy.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
-        }
+        this.record(ClientboundSetEntityDataPacket(this.dummy.id, this.dummy.entityData, true))
     }
 
     override fun getTimestamp(): Long {
@@ -190,9 +189,10 @@ class ChunkRecorder internal constructor(
 
             if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
-                    this.server.playerList.broadcastSystemMessage(
-                        Component.literal("Paused recording for ${this.getName()}, chunks were unloaded"),
-                        false
+                    this.server.playerList.broadcastMessage(
+                        TextComponent("Paused recording for ${this.getName()}, chunks were unloaded"),
+                        ChatType.SYSTEM,
+                        Util.NIL_UUID
                     )
                 }
             }
@@ -206,9 +206,10 @@ class ChunkRecorder internal constructor(
 
             if (ServerReplay.config.notifyPlayersLoadingChunks) {
                 this.ignore {
-                    this.server.playerList.broadcastSystemMessage(
-                        Component.literal("Resumed recording for ${this.getName()}, chunks were loaded"),
-                        false
+                    this.server.playerList.broadcastMessage(
+                        TextComponent("Resumed recording for ${this.getName()}, chunks were loaded"),
+                        ChatType.SYSTEM,
+                        Util.NIL_UUID
                     )
                 }
             }
@@ -227,6 +228,6 @@ class ChunkRecorder internal constructor(
     }
 
     companion object {
-        private val PROFILE = GameProfile(UUIDUtil.createOfflinePlayerUUID("-ChunkRecorder-"), "-ChunkRecorder-")
+        private val PROFILE = GameProfile(Player.createPlayerUUID("-ChunkRecorder-"), "-ChunkRecorder-")
     }
 }

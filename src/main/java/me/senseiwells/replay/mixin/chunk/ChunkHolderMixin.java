@@ -40,7 +40,10 @@ public class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 		)
 	)
 	private boolean shouldSkipBroadcasting(boolean noPlayers) {
-		return noPlayers && !this.replay$recorders.isEmpty();
+		if (!this.replay$recorders.isEmpty()) {
+			return false;
+		}
+		return noPlayers;
 	}
 
 	@Override

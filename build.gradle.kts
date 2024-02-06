@@ -83,21 +83,23 @@ tasks {
     }
 
     publishMods {
-        file = remapJar.get().archiveFile.get()
-        changelog = """
-        
-        """
+        file = remapJar.get().archiveFile
+        changelog.set(
+            """
+            - Port to 1.20.1
+            """.trimIndent()
+        )
         type = STABLE
         modLoaders.add("fabric")
 
         val minecraftVersion = "${property("minecraft_version")}"
 
-        displayName = "ServerReplay $minecraftVersion v${project.version}"
+        displayName = "ServerReplay ${project.version} for $minecraftVersion"
         version = "${project.version}+mc${minecraftVersion}"
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_API_KEY")
-            projectId = "sH0dfrKf"
+            projectId = "qCvSZ8ra"
             minecraftVersions.add(minecraftVersion)
 
             requires {

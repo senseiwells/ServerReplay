@@ -83,10 +83,12 @@ tasks {
     }
 
     publishMods {
-        file = remapJar.get().archiveFile.get()
-        changelog = """
+        file = remapJar.get().archiveFile
+        changelog.set(
+            """
         
-        """
+            """.trimIndent()
+        )
         type = STABLE
         modLoaders.add("fabric")
 
@@ -97,7 +99,7 @@ tasks {
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_API_KEY")
-            projectId = "sH0dfrKf"
+            projectId = "qCvSZ8ra"
             minecraftVersions.add(minecraftVersion)
 
             requires {

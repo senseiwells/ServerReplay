@@ -86,7 +86,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-        
+            - Port to 1.20.1
             """.trimIndent()
         )
         type = STABLE
@@ -94,7 +94,7 @@ tasks {
 
         val minecraftVersion = "${property("minecraft_version")}"
 
-        displayName = "ServerReplay $minecraftVersion v${project.version}"
+        displayName = "ServerReplay ${project.version} for $minecraftVersion"
         version = "${project.version}+mc${minecraftVersion}"
 
         modrinth {

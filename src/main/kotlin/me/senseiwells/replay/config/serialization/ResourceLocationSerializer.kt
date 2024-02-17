@@ -14,6 +14,7 @@ object ResourceLocationSerializer: KSerializer<ResourceLocation> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("dimension", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: ResourceLocation) {
+
         encoder.encodeString(value.toString())
     }
 

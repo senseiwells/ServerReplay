@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
+import java.util.concurrent.CompletableFuture
 
 object ReplayCommand {
     @JvmStatic
@@ -300,22 +301,42 @@ object ReplayCommand {
             .append(if (ServerReplay.config.enabled) "enabled" else "disabled")
             .append("\n")
 
-        this.appendRecorders(builder, "Players", PlayerRecorders.all(), style)
-        this.appendRecorders(builder, "Chunks", ChunkRecorders.all(), style)
+        val players = this.getStatusFuture("Players", PlayerRecorders.all(), style)
+        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.all(), style)
 
-        context.source.sendSuccess(TextComponent(builder.removeSuffix("\n").toString()), false)
+        CompletableFuture.runAsync {
+            for (player in players) {
+                builder.append(player.join())
+            }
+            for (chunk in chunks) {
+                builder.append(chunk.join())
+            }
+
+            context.source.server.execute {
+                context.source.sendSuccess(
+                    TextComponent(builder.removeSuffix("\n").toString()),
+                    true
+                )
+            }
+        }
+
+        var message = "Generating replay status..."
+        if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+            message += "\nCalculating compressed sizes of replays (this may take a while)"
+        }
+        context.source.sendSuccess(TextComponent(message), true)
         return 1
     }
 
-    private fun appendRecorders(
-        builder: StringBuilder,
+    private fun getStatusFuture(
         type: String,
         recorders: Collection<ReplayRecorder>,
         style: StandardToStringStyle,
-    ) {
+    ): List<CompletableFuture<String>> {
         if (recorders.isNotEmpty()) {
-            builder.append("Currently Recording $type:").append("\n")
-            for ((recorder, compressed) in recorders.map { it to it.getCompressedRecordingSize() }) {
+            val futures = ArrayList<CompletableFuture<String>>()
+            futures.add(CompletableFuture.completedFuture("Currently Recording $type:\n"))
+            for (recorder in recorders) {
                 val seconds = recorder.getTotalRecordingTime() / 1000
                 val hours = seconds / 3600
                 val minutes = seconds % 3600 / 60
@@ -326,15 +347,18 @@ object ReplayCommand {
                     .append("name", recorder.getName())
                     .append("time", time)
                     .append("raw", FileUtils.formatSize(recorder.getRawRecordingSize()))
-                    .append("compressed", FileUtils.formatSize(compressed.join()))
-                if (ServerReplay.config.debug) {
-                    sub.append("debug", recorder.getDebugPacketData())
+                if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+                    val compressed = recorder.getCompressedRecordingSize()
+                    futures.add(compressed.thenApplyAsync {
+                        "${sub.append("compressed", FileUtils.formatSize(it))}\n"
+                    })
+                } else {
+                    futures.add(CompletableFuture.completedFuture("$sub\n"))
                 }
-                builder.append(sub.toString()).append("\n")
             }
-        } else {
-            builder.append("Not Currently Recording $type").append("\n")
+            return futures
         }
+        return listOf(CompletableFuture.completedFuture("Not Currently Recording $type\n"))
     }
 
     private fun suggestChunkX(): SuggestionProvider<CommandSourceStack> {

@@ -56,6 +56,9 @@ class ReplayConfig {
     @SerialName("restart_after_max_file_size")
     var restartAfterMaxFileSize = false
 
+    @SerialName("include_compressed_in_status")
+    var includeCompressedReplaySizeInStatus = true
+
     @SerialName("pause_unloaded_chunks")
     var skipWhenChunksUnloaded = false
     @SerialName("pause_notify_players")

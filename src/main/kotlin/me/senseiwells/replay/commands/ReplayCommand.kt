@@ -314,19 +314,17 @@ object ReplayCommand {
 
             context.source.server.execute {
                 context.source.sendSuccess(
-                    { Component.literal(builder.removeSuffix("\n").toString()) },
+                    TextComponent(builder.removeSuffix("\n").toString()),
                     true
                 )
             }
         }
 
-        context.source.sendSuccess({
-            var message = "Generating replay status..."
-            if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
-                message += "\nCalculating compressed sizes of replays (this may take a while)"
-            }
-            Component.literal(message)
-        }, true)
+        var message = "Generating replay status..."
+        if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+            message += "\nCalculating compressed sizes of replays (this may take a while)"
+        }
+        context.source.sendSuccess(TextComponent(message), true)
         return 1
     }
 

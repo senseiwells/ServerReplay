@@ -108,7 +108,11 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Port to 1.20.1
+            - Added some extra meta-data to replay files (to help with debugging)
+            - Added extra configurations:
+                - `fixed_daylight_cycle` - allows you to set a fixed time of day for the recording 
+                - `ignore_chat_packets` - ignore all chat packets
+                - `ignore_scoreboard_packets` - ignore all scoreboard packets
             """.trimIndent()
         )
         type = STABLE

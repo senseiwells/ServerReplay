@@ -42,7 +42,6 @@ object ReplayOptimizerUtils {
     )
     private val SCOREBOARD = setOf<Class<out Packet<*>>>(
         ClientboundSetScorePacket::class.java,
-        ClientboundResetScorePacket::class.java,
         ClientboundSetObjectivePacket::class.java,
         ClientboundSetDisplayObjectivePacket::class.java
     )

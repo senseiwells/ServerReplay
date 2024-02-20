@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.21"
     id("me.modmuss50.mod-publish-plugin") version "0.4.5"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("fabric-loom")
     `maven-publish`
     java
@@ -9,6 +10,10 @@ plugins {
 
 group = property("maven_group")!!
 version = property("mod_version")!!
+
+val releaseVersion = "${project.version}+mc${project.property("minecraft_version")}"
+
+val shade by configurations.creating
 
 repositories {
     maven {
@@ -43,8 +48,11 @@ dependencies {
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the
     // jar and yeet the org.slf4j packages then rezip the jar.
-    include(modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
+    shade(modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
         exclude(group = "org.slf4j")
+        exclude(group = "it.unimi.dsi")
+        exclude(group = "org.apache.commons")
+        exclude(group = "commons-cli")
         exclude(group = "com.google.guava", module = "guava-jdk5")
         exclude(group = "com.google.guava", module = "guava")
         exclude(group = "com.google.code.gson", module = "gson")
@@ -66,10 +74,6 @@ loom {
     }
 }
 
-tasks.remapJar {
-    archiveVersion.set("${project.version}+mc${project.property("minecraft_version")}")
-}
-
 tasks {
     processResources {
         inputs.property("version", project.version)
@@ -78,8 +82,26 @@ tasks {
         }
     }
 
-    jar {
+    remapJar {
+        archiveVersion.set(releaseVersion)
+
+        inputFile.set(shadowJar.get().archiveFile)
+    }
+
+    remapSourcesJar {
+        archiveVersion.set(releaseVersion)
+    }
+
+    shadowJar {
+        destinationDirectory.set(File("./build/devlibs"))
+        isZip64 = true
+
         from("LICENSE")
+
+        relocate("com.github.steveice10", "shadow.server_replay.com.github.steveice10")
+        configurations = listOf(shade)
+
+        archiveClassifier = "shaded"
     }
 
     publishMods {

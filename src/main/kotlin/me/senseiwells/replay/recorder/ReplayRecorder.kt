@@ -26,7 +26,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket
 import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket

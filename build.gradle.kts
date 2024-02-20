@@ -109,6 +109,7 @@ tasks {
         changelog.set(
             """
             - Added some extra meta-data to replay files (to help with debugging)
+            - Fixed conflict with GeyserMC (some issues may persist, but it will not crash on launch now)
             - Added extra configurations:
                 - `fixed_daylight_cycle` - allows you to set a fixed time of day for the recording 
                 - `ignore_chat_packets` - ignore all chat packets

@@ -155,11 +155,15 @@ After you boot the server a new file will be generated in the path
   "player_recording_path": "./recordings/players",
   "max_file_size": "0GB",
   "restart_after_max_file_size": false,
+  "include_compressed_in_status": true,
+  "fixed_daylight_cycle": -1,
   "pause_unloaded_chunks": false,
   "pause_notify_players": true,
   "fix_carpet_bot_view_distance": false,
   "ignore_sound_packets": false,
   "ignore_light_packets": true,
+  "ignore_chat_packets": false,
+  "ignore_scoreboard_packets": false,
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
   "player_predicate": {
@@ -181,9 +185,12 @@ After you boot the server a new file will be generated in the path
 | `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
 | `"restart_after_max_file_size"`  | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                               |
 | `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                          |
-| `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot.                                                                 |
+| `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>   |
+| `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                            |
 | `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                      |
 | `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                  |
+| `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                         |
+| `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                     |
 | `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                            |
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                           |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                               |

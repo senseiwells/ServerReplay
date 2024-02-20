@@ -2,7 +2,6 @@ package me.senseiwells.replay.rejoin
 
 import me.senseiwells.replay.api.ReplaySenders
 import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.mixin.common.PlayerListAccessor
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs

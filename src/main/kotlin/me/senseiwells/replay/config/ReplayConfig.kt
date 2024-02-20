@@ -5,9 +5,7 @@ import kotlinx.serialization.EncodeDefault.Mode
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
-import kotlinx.serialization.json.encodeToStream
+import kotlinx.serialization.json.*
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.chunk.ChunkAreaConfig
@@ -59,6 +57,9 @@ class ReplayConfig {
     @SerialName("include_compressed_in_status")
     var includeCompressedReplaySizeInStatus = true
 
+    @SerialName("fixed_daylight_cycle")
+    var fixedDaylightCycle = -1L
+
     @SerialName("pause_unloaded_chunks")
     var skipWhenChunksUnloaded = false
     @SerialName("pause_notify_players")
@@ -69,6 +70,10 @@ class ReplayConfig {
     var ignoreSoundPackets = false
     @SerialName("ignore_light_packets")
     var ignoreLightPackets = true
+    @SerialName("ignore_chat_packets")
+    var ignoreChatPackets = false
+    @SerialName("ignore_scoreboard_packets")
+    var ignoreScoreboardPackets = false
     @SerialName("optimize_explosion_packets")
     var optimizeExplosionPackets = true
     @SerialName("optimize_entity_packets")
@@ -146,6 +151,10 @@ class ReplayConfig {
             } catch (e: SerializationException) {
                 ServerReplay.logger.error("Failed to serialize replay config", e)
             }
+        }
+
+        internal fun toJson(config: ReplayConfig): JsonElement {
+            return json.encodeToJsonElement(config)
         }
     }
 }

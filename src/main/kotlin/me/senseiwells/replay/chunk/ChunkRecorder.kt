@@ -1,5 +1,7 @@
 package me.senseiwells.replay.chunk
 
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
@@ -22,6 +24,7 @@ import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -98,6 +101,20 @@ class ChunkRecorder internal constructor(
 
     override fun getTimestamp(): Long {
         return super.getTimestamp() - this.totalPausedTime - this.getCurrentPause()
+    }
+
+    override fun appendToStatus(builder: ToStringBuilder) {
+        builder.append("chunks_world", this.chunks.level.dimension().location())
+        builder.append("chunks_from", this.chunks.from)
+        builder.append("chunks_to", this.chunks.to)
+    }
+
+    override fun addMetadata(map: MutableMap<String, JsonElement>) {
+        super.addMetadata(map)
+        map["chunks_world"] = JsonPrimitive(this.chunks.level.dimension().location().toString())
+        map["chunks_from"] = JsonPrimitive(this.chunks.from.toString())
+        map["chunks_to"] = JsonPrimitive(this.chunks.to.toString())
+        map["paused_time"] = JsonPrimitive(this.totalPausedTime)
     }
 
     override fun canContinueRecording(): Boolean {

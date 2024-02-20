@@ -2,12 +2,14 @@ package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.RejoinedPacketSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import kotlin.collections.ArrayList
 
 object PlayerRecorders {
     private val players = LinkedHashMap<UUID, PlayerRecorder>()

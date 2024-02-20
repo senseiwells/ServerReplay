@@ -31,18 +31,13 @@ object ReplayOptimizerUtils {
         ClientboundPlayerAbilitiesPacket::class.java,
         ClientboundLoginCompressionPacket::class.java,
         ClientboundCommandSuggestionsPacket::class.java,
-        ClientboundCustomChatCompletionsPacket::class.java,
         ClientboundCommandsPacket::class.java
     )
     private val CHAT = setOf<Class<out Packet<*>>>(
-        ClientboundPlayerChatPacket::class.java,
-        ClientboundDeleteChatPacket::class.java,
-        ClientboundSystemChatPacket::class.java,
-        ClientboundDisguisedChatPacket::class.java
+        ClientboundChatPacket::class.java
     )
     private val SCOREBOARD = setOf<Class<out Packet<*>>>(
         ClientboundSetScorePacket::class.java,
-        ClientboundResetScorePacket::class.java,
         ClientboundSetObjectivePacket::class.java,
         ClientboundSetDisplayObjectivePacket::class.java
     )

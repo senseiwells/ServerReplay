@@ -30,7 +30,6 @@ import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.entity.EntityType
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -274,13 +273,11 @@ abstract class ReplayRecorder(
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
         when (packet) {
-            is ClientboundAddEntityPacket -> {
-                if (packet.type == EntityType.PLAYER) {
-                    val uuids = this.meta.players.toMutableSet()
-                    uuids.add(packet.uuid.toString())
-                    this.meta.players = uuids.toTypedArray()
-                    this.saveMeta()
-                }
+            is ClientboundAddPlayerPacket -> {
+                val uuids = this.meta.players.toMutableSet()
+                uuids.add(packet.playerId.toString())
+                this.meta.players = uuids.toTypedArray()
+                this.saveMeta()
             }
             is ClientboundBundlePacket -> {
                 for (sub in packet.subPackets()) {

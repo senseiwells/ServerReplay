@@ -14,7 +14,6 @@ import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.util.FileUtils
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -23,8 +22,6 @@ import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
-import org.apache.commons.lang3.builder.StandardToStringStyle
-import org.apache.commons.lang3.builder.ToStringBuilder
 import java.util.concurrent.CompletableFuture
 
 object ReplayCommand {
@@ -290,19 +287,12 @@ object ReplayCommand {
     }
 
     private fun status(context: CommandContext<CommandSourceStack>): Int {
-        val style = StandardToStringStyle().apply {
-            fieldSeparator = ", "
-            fieldNameValueSeparator = " = "
-            isUseClassName = false
-            isUseIdentityHashCode = false
-        }
-
         val builder = StringBuilder("ServerReplay is ")
             .append(if (ServerReplay.config.enabled) "enabled" else "disabled")
             .append("\n")
 
-        val players = this.getStatusFuture("Players", PlayerRecorders.all(), style)
-        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.all(), style)
+        val players = this.getStatusFuture("Players", PlayerRecorders.all())
+        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.all())
 
         CompletableFuture.runAsync {
             for (player in players) {
@@ -332,31 +322,13 @@ object ReplayCommand {
 
     private fun getStatusFuture(
         type: String,
-        recorders: Collection<ReplayRecorder>,
-        style: StandardToStringStyle,
+        recorders: Collection<ReplayRecorder>
     ): List<CompletableFuture<String>> {
         if (recorders.isNotEmpty()) {
             val futures = ArrayList<CompletableFuture<String>>()
             futures.add(CompletableFuture.completedFuture("Currently Recording $type:\n"))
             for (recorder in recorders) {
-                val seconds = recorder.getTotalRecordingTime() / 1000
-                val hours = seconds / 3600
-                val minutes = seconds % 3600 / 60
-                val secs = seconds % 60
-                val time = "%02d:%02d:%02d".format(hours, minutes, secs)
-
-                val sub = ToStringBuilder(recorder, style)
-                    .append("name", recorder.getName())
-                    .append("time", time)
-                    .append("raw", FileUtils.formatSize(recorder.getRawRecordingSize()))
-                if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
-                    val compressed = recorder.getCompressedRecordingSize()
-                    futures.add(compressed.thenApplyAsync {
-                        "${sub.append("compressed", FileUtils.formatSize(it))}\n"
-                    })
-                } else {
-                    futures.add(CompletableFuture.completedFuture("$sub\n"))
-                }
+                futures.add(recorder.getStatusWithSize())
             }
             return futures
         }

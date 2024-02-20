@@ -1,5 +1,9 @@
 package me.senseiwells.replay.rejoin
 
+import me.senseiwells.replay.api.ReplaySenders
+import me.senseiwells.replay.chunk.ChunkRecorder
+import me.senseiwells.replay.mixin.common.PlayerListAccessor
+import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.nbt.CompoundTag
@@ -114,6 +118,13 @@ class RejoinedReplayPlayer private constructor(
 
         for (mobEffectInstance in this.activeEffects) {
             this.recorder.record(ClientboundUpdateMobEffectPacket(this.id, mobEffectInstance))
+        }
+
+        for (sender in ReplaySenders.senders) {
+            when (this.recorder) {
+                is PlayerRecorder -> sender.recordAdditionalPlayerPackets(this.recorder)
+                is ChunkRecorder -> sender.recordAdditionalChunkPackets(this.recorder)
+            }
         }
     }
 }

@@ -10,6 +10,11 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.util.DebugPacketData
@@ -28,7 +33,8 @@ import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.entity.EntityType
+import org.apache.commons.lang3.builder.StandardToStringStyle
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.io.IOException
 import java.net.URL
@@ -189,6 +195,33 @@ abstract class ReplayRecorder(
         return CompletableFuture.supplyAsync({ this.replay.getCompressedFileSize() }, this.executor)
     }
 
+    fun getStatusWithSize(): CompletableFuture<String> {
+        val builder = ToStringBuilder(this, StandardToStringStyle().apply {
+            fieldSeparator = ", "
+            fieldNameValueSeparator = " = "
+            isUseClassName = false
+            isUseIdentityHashCode = false
+        })
+        val seconds = this.getTotalRecordingTime() / 1000
+        val hours = seconds / 3600
+        val minutes = seconds % 3600 / 60
+        val secs = seconds % 60
+        val time = "%02d:%02d:%02d".format(hours, minutes, secs)
+        builder.append("name", this.getName())
+        builder.append("time", time)
+
+        this.appendToStatus(builder)
+
+        builder.append("raw_size", FileUtils.formatSize(this.getRawRecordingSize()))
+        if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+            val compressed = this.getCompressedRecordingSize()
+            return compressed.thenApplyAsync {
+                "${builder.append("compressed_size", FileUtils.formatSize(it))}"
+            }
+        }
+        return CompletableFuture.completedFuture(builder.toString())
+    }
+
     @Internal
     fun getDebugPacketData(): String {
         return this.packets.values
@@ -221,6 +254,15 @@ abstract class ReplayRecorder(
         return this.getTotalRecordingTime()
     }
 
+    protected open fun appendToStatus(builder: ToStringBuilder) {
+
+    }
+
+    protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
+        map["name"] = JsonPrimitive(this.getName())
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config)
+    }
+
     abstract fun getName(): String
 
     protected abstract fun start(): Boolean
@@ -239,13 +281,11 @@ abstract class ReplayRecorder(
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
         when (packet) {
-            is ClientboundAddEntityPacket -> {
-                if (packet.type == EntityType.PLAYER) {
-                    val uuids = this.meta.players.toMutableSet()
-                    uuids.add(packet.uuid.toString())
-                    this.meta.players = uuids.toTypedArray()
-                    this.saveMeta()
-                }
+            is ClientboundAddPlayerPacket -> {
+                val uuids = this.meta.players.toMutableSet()
+                uuids.add(packet.playerId.toString())
+                this.meta.players = uuids.toTypedArray()
+                this.saveMeta()
             }
             is ClientboundResourcePackPacket -> {
                 return this.downloadAndRecordResourcePack(packet)
@@ -338,6 +378,13 @@ abstract class ReplayRecorder(
 
         this.executor.execute {
             this.replay.writeMetaData(registry, this.meta)
+
+            this.replay.write(ENTRY_SERVER_REPLAY_META).use {
+                val json = HashMap<String, JsonElement>()
+                this.addMetadata(json)
+                @OptIn(ExperimentalSerializationApi::class)
+                Json.encodeToStream(json, it)
+            }
         }
     }
 
@@ -417,5 +464,9 @@ abstract class ReplayRecorder(
             return true
         }
         return false
+    }
+
+    companion object {
+        private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
     }
 }

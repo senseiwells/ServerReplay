@@ -32,7 +32,20 @@ object ReplayOptimizerUtils {
         ClientboundPlayerAbilitiesPacket::class.java,
         ClientboundLoginCompressionPacket::class.java,
         ClientboundCommandSuggestionsPacket::class.java,
+        ClientboundCustomChatCompletionsPacket::class.java,
         ClientboundCommandsPacket::class.java
+    )
+    private val CHAT = setOf<Class<out Packet<*>>>(
+        ClientboundPlayerChatPacket::class.java,
+        ClientboundDeleteChatPacket::class.java,
+        ClientboundSystemChatPacket::class.java,
+        ClientboundDisguisedChatPacket::class.java
+    )
+    private val SCOREBOARD = setOf<Class<out Packet<*>>>(
+        ClientboundSetScorePacket::class.java,
+        ClientboundResetScorePacket::class.java,
+        ClientboundSetObjectivePacket::class.java,
+        ClientboundSetDisplayObjectivePacket::class.java
     )
     private val SOUNDS = setOf<Class<out Packet<*>>>(
         ClientboundSoundPacket::class.java,
@@ -72,8 +85,20 @@ object ReplayOptimizerUtils {
             return true
         }
 
+        val time = ServerReplay.config.fixedDaylightCycle
+        if (time >= 0 && packet is ClientboundSetTimePacket && packet.dayTime != -time) {
+            recorder.record(ClientboundSetTimePacket(packet.gameTime, time, false))
+            return true
+        }
+
         val type = packet::class.java
         if (ServerReplay.config.ignoreSoundPackets && SOUNDS.contains(type)) {
+            return true
+        }
+        if (ServerReplay.config.ignoreChatPackets && CHAT.contains(type)) {
+            return true
+        }
+        if (ServerReplay.config.ignoreScoreboardPackets && SCOREBOARD.contains(type)) {
             return true
         }
         return IGNORED.contains(type)

@@ -31,9 +31,10 @@ class RejoinConfigurationPacketListener(
             // configuration checks.
             // We must manually pong.
             this.handlePong(ServerboundPongPacket(0))
-            return
         }
+    }
 
+    fun runConfigurationTasks() {
         // We do not have to wait for the client to respond
         for (task in this.tasks) {
             task.start(this::send)

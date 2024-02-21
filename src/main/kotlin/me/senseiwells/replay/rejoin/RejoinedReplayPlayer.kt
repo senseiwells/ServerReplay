@@ -2,8 +2,8 @@ package me.senseiwells.replay.rejoin
 
 import me.senseiwells.replay.api.ReplaySenders
 import me.senseiwells.replay.chunk.ChunkRecorder
+import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.player.PlayerRecorder
-import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
@@ -25,7 +25,10 @@ class RejoinedReplayPlayer private constructor(
             val connection = RejoinConnection()
             val cookies = CommonListenerCookie(player.gameProfile, 0, player.clientInformation())
 
-            RejoinConfigurationPacketListener(rejoined, connection, cookies).startConfiguration()
+            val config = RejoinConfigurationPacketListener(rejoined, connection, cookies)
+            config.startConfiguration()
+            rejoined.sendResourcePacks()
+            config.runConfigurationTasks()
             recorder.afterConfigure()
 
             rejoined.load(player.saveWithoutId(CompoundTag()))
@@ -35,6 +38,16 @@ class RejoinedReplayPlayer private constructor(
 
     init {
         this.id = this.original.id
+    }
+
+    private fun sendResourcePacks() {
+        val connection = this.original.connection
+        // Our connection may be null if we're using a fake player
+        if (connection is `ServerReplay$PackTracker`) {
+            for (packet in connection.`replay$getPacks`()) {
+                this.recorder.record(packet)
+            }
+        }
     }
 
     private fun place(

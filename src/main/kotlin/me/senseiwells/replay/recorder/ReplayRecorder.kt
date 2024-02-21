@@ -436,7 +436,9 @@ abstract class ReplayRecorder(
                 path.parent.createDirectories()
                 val bytes = URL(packet.url).openStream().readAllBytes()
                 path.writeBytes(bytes)
-                this.writeResourcePack(bytes, packet.hash, requestId)
+                if (!this.writeResourcePack(bytes, packet.hash, requestId)) {
+                    ServerReplay.logger.error("Resource pack hashes do not match! Pack '${packet.url}' will not be loaded...")
+                }
             }.exceptionally {
                 ServerReplay.logger.error("Failed to download resource pack", it)
                 null
@@ -454,7 +456,7 @@ abstract class ReplayRecorder(
     private fun writeResourcePack(bytes: ByteArray, expectedHash: String, id: Int): Boolean {
         @Suppress("DEPRECATION")
         val packHash = Hashing.sha1().hashBytes(bytes).toString()
-        if (expectedHash == packHash) {
+        if (expectedHash == "" || expectedHash == packHash) {
             this.executor.execute {
                 try {
                     val index = this.replay.resourcePackIndex ?: HashMap()

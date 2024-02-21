@@ -1,7 +1,7 @@
 package me.senseiwells.replay.mixin.rejoin;
 
+import io.netty.util.concurrent.GenericFutureListener;
 import me.senseiwells.replay.ducks.ServerReplay$PackTracker;
-import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundResourcePackPacket;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -19,12 +19,12 @@ public class ServerGamePacketListenerImplMixin implements ServerReplay$PackTrack
 	@Unique @Nullable private ClientboundResourcePackPacket replay$pack = null;
 
 	@Inject(
-		method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+		method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/util/concurrent/GenericFutureListener;)V",
 		at = @At("HEAD")
 	)
 	private void onSendPacket(
 		Packet<?> packet,
-		@Nullable PacketSendListener packetSendListener,
+		@Nullable GenericFutureListener<?> packetSendListener,
 		CallbackInfo ci
 	) {
 		if (packet instanceof ClientboundResourcePackPacket resources) {

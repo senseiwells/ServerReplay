@@ -1,6 +1,8 @@
 package me.senseiwells.replay.mixin;
 
 import com.mojang.brigadier.CommandDispatcher;
+import me.senseiwells.replay.ServerReplay;
+import me.senseiwells.replay.commands.PackCommand;
 import me.senseiwells.replay.commands.ReplayCommand;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -24,5 +26,9 @@ public class CommandsMixin {
 		CallbackInfo ci
 	) {
 		ReplayCommand.register(this.dispatcher);
+
+		if (ServerReplay.config.getDebug()) {
+			PackCommand.register(this.dispatcher);
+		}
 	}
 }

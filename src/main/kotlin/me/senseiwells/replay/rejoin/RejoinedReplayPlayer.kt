@@ -3,6 +3,7 @@ package me.senseiwells.replay.rejoin
 import me.senseiwells.replay.api.ReplaySenders
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.mixin.common.PlayerListAccessor
+import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -33,6 +34,15 @@ class RejoinedReplayPlayer private constructor(
 
     init {
         this.id = this.original.id
+    }
+
+    private fun sendResourcePacks() {
+        val connection = this.original.connection
+        // Our connection may be null if we're using a fake player
+        if (connection is `ServerReplay$PackTracker`) {
+            val packet = connection.`replay$getPack`() ?: return
+            this.recorder.record(packet)
+        }
     }
 
     private fun place(connection: RejoinConnection) {
@@ -110,6 +120,7 @@ class RejoinedReplayPlayer private constructor(
             }
         }
 
+        this.sendResourcePacks()
         this.server.serverResourcePack.ifPresent { packet ->
             this.sendTexturePack(packet.url, packet.hash, packet.isRequired, packet.prompt)
         }

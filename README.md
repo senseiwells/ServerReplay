@@ -73,6 +73,8 @@ around the carpet bot will be recorded.
 
 #### Chunks
 
+> **IMPORTANT NOTE:** While the mod will record the chunks you specify, the Minecraft client will **not** render the outermost chunks. So to record an area of **visible** chunks, you must add one chunk to your border, e.g. recording a visible area from `-5, -5` to `5, 5` you must record between `-6, -6` and `6, 6`.
+
 To record an area of chunks on your server you can run `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>`, for example:
 ```
 /replay start chunks from -5 -5 to 5 5 in minecraft:overworld named MyChunkRecording

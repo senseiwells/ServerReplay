@@ -6,7 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
+import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
 
 object PackCommand {
     @JvmStatic

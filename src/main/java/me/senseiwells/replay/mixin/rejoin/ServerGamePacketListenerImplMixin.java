@@ -3,8 +3,8 @@ package me.senseiwells.replay.mixin.rejoin;
 import me.senseiwells.replay.ducks.ServerReplay$PackTracker;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.common.ClientboundResourcePackPacket;
-import net.minecraft.server.network.ServerCommonPacketListenerImpl;
+import net.minecraft.network.protocol.game.ClientboundResourcePackPacket;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ServerCommonPacketListenerImpl.class)
-public class ServerCommonPacketListenerImplMixin implements ServerReplay$PackTracker {
+@Mixin(ServerGamePacketListenerImpl.class)
+public class ServerGamePacketListenerImplMixin implements ServerReplay$PackTracker {
 	// We need to keep track of what pack a player has...
 	// We don't really care if the player accepts / declines them, we'll record them anyway.
 	@Unique @Nullable private ClientboundResourcePackPacket replay$pack = null;

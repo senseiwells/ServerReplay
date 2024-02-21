@@ -1,6 +1,6 @@
 package me.senseiwells.replay.ducks;
 
-import net.minecraft.network.protocol.common.ClientboundResourcePackPacket;
+import net.minecraft.network.protocol.game.ClientboundResourcePackPacket;
 import org.jetbrains.annotations.Nullable;
 
 public interface ServerReplay$PackTracker {

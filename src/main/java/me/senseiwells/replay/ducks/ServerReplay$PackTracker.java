@@ -1,11 +1,10 @@
 package me.senseiwells.replay.ducks;
 
-import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
-
-import java.util.Collection;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPacket;
+import org.jetbrains.annotations.Nullable;
 
 public interface ServerReplay$PackTracker {
-	void replay$addPacks(Collection<ClientboundResourcePackPushPacket> packs);
+	void replay$setPack(@Nullable ClientboundResourcePackPacket pack);
 
-	Collection<ClientboundResourcePackPushPacket> replay$getPacks();
+	@Nullable ClientboundResourcePackPacket replay$getPack();
 }

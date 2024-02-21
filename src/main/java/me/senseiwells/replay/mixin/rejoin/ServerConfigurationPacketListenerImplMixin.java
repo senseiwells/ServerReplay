@@ -2,7 +2,7 @@ package me.senseiwells.replay.mixin.rejoin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.ducks.ServerReplay$PackTracker;
-import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPacket;
 import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
@@ -10,8 +10,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.Collection;
 
 @Mixin(ServerConfigurationPacketListenerImpl.class)
 public class ServerConfigurationPacketListenerImplMixin {
@@ -28,7 +26,7 @@ public class ServerConfigurationPacketListenerImplMixin {
 		@Local ServerPlayer serverPlayer
 	) {
 		// Merge the packs into the GamePacketListener
-		Collection<ClientboundResourcePackPushPacket> packs = ((ServerReplay$PackTracker) this).replay$getPacks();
-		((ServerReplay$PackTracker) serverPlayer.connection).replay$addPacks(packs);
+		ClientboundResourcePackPacket pack = ((ServerReplay$PackTracker) this).replay$getPack();
+		((ServerReplay$PackTracker) serverPlayer.connection).replay$setPack(pack);
 	}
 }

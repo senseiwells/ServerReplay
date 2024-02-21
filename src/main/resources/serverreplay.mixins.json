@@ -24,6 +24,7 @@
     "player.TrackedEntityMixin",
     "rejoin.ChunkMapAccessor",
     "rejoin.ConnectionAccessor",
+    "rejoin.ServerGamePacketListenerImplMixin",
     "rejoin.ServerPlayerMixin",
     "rejoin.TrackedEntityAccessor",
     "studio.CustomViaPlatformMixin",

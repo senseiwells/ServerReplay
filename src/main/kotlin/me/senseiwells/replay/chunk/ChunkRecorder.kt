@@ -23,6 +23,7 @@ import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.builder.ToStringBuilder
+import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -155,6 +156,11 @@ class ChunkRecorder internal constructor(
             return packet.radius == this.getViewDistance()
         }
         return super.canRecordPacket(packet)
+    }
+
+    @Deprecated("Be extremely careful when using the dummy chunk player")
+    fun getDummy(): ServerPlayer {
+        return this.dummy
     }
 
     @Internal

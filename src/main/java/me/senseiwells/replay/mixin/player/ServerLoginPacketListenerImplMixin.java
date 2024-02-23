@@ -34,8 +34,8 @@ public class ServerLoginPacketListenerImplMixin {
 		CallbackInfo ci
 	) {
 		GameProfile profile = this.authenticatedProfile;
-		if (profile != null && ServerReplay.config.getEnabled()) {
-			if (ServerReplay.config.shouldRecordPlayer(new ReplayPlayerContext(this.server, profile))) {
+		if (profile != null && ServerReplay.getConfig().getEnabled()) {
+			if (ServerReplay.getConfig().shouldRecordPlayer(new ReplayPlayerContext(this.server, profile))) {
 				ReplayRecorder recorder = PlayerRecorders.create(this.server, profile);
 				recorder.logStart();
 				recorder.afterLogin();

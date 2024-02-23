@@ -1,5 +1,6 @@
 package me.senseiwells.replay.compat.voicechat
 
+import de.maxhenkel.voicechat.Voicechat
 import de.maxhenkel.voicechat.api.VoicechatApi
 import de.maxhenkel.voicechat.api.VoicechatConnection
 import de.maxhenkel.voicechat.api.VoicechatPlugin
@@ -7,11 +8,21 @@ import de.maxhenkel.voicechat.api.audio.AudioConverter
 import de.maxhenkel.voicechat.api.events.*
 import de.maxhenkel.voicechat.api.opus.OpusDecoder
 import de.maxhenkel.voicechat.api.packets.SoundPacket
+import de.maxhenkel.voicechat.net.AddCategoryPacket
+import de.maxhenkel.voicechat.net.AddGroupPacket
+import de.maxhenkel.voicechat.net.PlayerStatesPacket
+import de.maxhenkel.voicechat.net.SecretPacket
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.RejoinedPacketSender
+import me.senseiwells.replay.api.ReplaySenders
+import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
+import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.player.PlayerRecorders
+import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+import net.minecraft.Util
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientCommonPacketListener
@@ -21,7 +32,13 @@ import java.util.UUID
 import java.util.WeakHashMap
 
 @Suppress("unused")
-object ReplayVoicechatPlugin: VoicechatPlugin {
+object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
+    // TODO:
+    //  - Fix distorted audio issue?
+    //    Not sure quite what is causing this, it seems to be okay
+    //    when with a rejoined replay (using the command) but has
+    //    issues when players join (and record with the predicate)??
+
     /**
      * Mod id of the replay voicechat mod, see [here](https://github.com/henkelmax/replay-voice-chat/blob/master/src/main/java/de/maxhenkel/replayvoicechat/ReplayVoicechat.java).
      */
@@ -58,6 +75,13 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
         registration.registerEvent(EntitySoundPacketEvent::class.java, this::onEntitySoundPacket)
         registration.registerEvent(StaticSoundPacketEvent::class.java, this::onStaticSoundPacket)
         registration.registerEvent(MicrophonePacketEvent::class.java, this::onMicrophonePacketEvent)
+
+        // TODO: register events for chunk recorders
+        //   - VolumeCategories
+        //   - PlayerStates
+        //   - Groups
+
+        ReplaySenders.addSender(this)
     }
 
     private fun onLocationalSoundPacket(event: LocationalSoundPacketEvent) {
@@ -171,5 +195,49 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
 
     private fun VoicechatConnection.getServerPlayer(): ServerPlayer? {
         return this.player.player as? ServerPlayer
+    }
+
+    override fun recordAdditionalPlayerPackets(recorder: PlayerRecorder) {
+        this.recordAdditionalPackets(recorder)
+        val server = Voicechat.SERVER.server
+        val player = recorder.getPlayerOrThrow()
+        if (server != null && server.hasSecret(player.uuid)) {
+            // I mean, do we really need to specify the secret? Might as well...
+            val secret = server.getSecret(player.uuid)
+            val packet = SecretPacket(player, secret, server.port, Voicechat.SERVER_CONFIG)
+            recorder.record(packet.toClientboundPacket())
+        }
+    }
+
+    override fun recordAdditionalChunkPackets(recorder: ChunkRecorder) {
+        this.recordAdditionalPackets(recorder)
+        val server = Voicechat.SERVER.server
+        if (server != null) {
+            @Suppress("DEPRECATION")
+            val player = recorder.getDummy()
+            // The chunks aren't sending any voice data so doesn't need a secret
+            val packet = SecretPacket(player, Util.NIL_UUID, server.port, Voicechat.SERVER_CONFIG)
+            recorder.record(packet.toClientboundPacket())
+        }
+    }
+
+    private fun recordAdditionalPackets(recorder: ReplayRecorder) {
+        val server = Voicechat.SERVER.server
+        if (server != null) {
+            val states = server.playerStateManager.states.associateBy { it.uuid }
+            recorder.record(PlayerStatesPacket(states).toClientboundPacket())
+            for (group in server.groupManager.groups.values) {
+                recorder.record(AddGroupPacket(group.toClientGroup()).toClientboundPacket())
+            }
+            for (category in server.categoryManager.categories) {
+                recorder.record(AddCategoryPacket(category).toClientboundPacket())
+            }
+        }
+    }
+
+    private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientCommonPacketListener> {
+        val buf = PacketByteBufs.create()
+        this.toBytes(buf)
+        return ServerPlayNetworking.createS2CPacket(this.identifier, buf)
     }
 }

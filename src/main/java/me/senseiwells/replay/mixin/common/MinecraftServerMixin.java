@@ -24,8 +24,8 @@ public class MinecraftServerMixin {
 		)
 	)
 	private void onServerLoaded(CallbackInfo ci) {
-		if (ServerReplay.config.getEnabled()) {
-			ServerReplay.config.startChunks((MinecraftServer) (Object) this);
+		if (ServerReplay.getConfig().getEnabled()) {
+			ServerReplay.getConfig().startChunks((MinecraftServer) (Object) this);
 		}
 	}
 
@@ -39,7 +39,7 @@ public class MinecraftServerMixin {
 		boolean forced,
 		CallbackInfoReturnable<Boolean> cir
 	) {
-		ReplayConfig.write(ServerReplay.config);
+		ReplayConfig.write(ServerReplay.getConfig());
 	}
 
 	@Inject(

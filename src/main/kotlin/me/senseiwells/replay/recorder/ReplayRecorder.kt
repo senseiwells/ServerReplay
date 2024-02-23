@@ -26,11 +26,10 @@ import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -57,7 +56,7 @@ abstract class ReplayRecorder(
     protected val profile: GameProfile,
     private val recordings: Path
 ) {
-    private val packets by lazy { Object2ObjectOpenHashMap<Class<*>, DebugPacketData>() }
+    private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
     private val executor: ExecutorService
 
     private val replay: SizedZipReplayFile
@@ -118,7 +117,11 @@ abstract class ReplayRecorder(
             outgoing.write(buf)
 
             if (ServerReplay.config.debug) {
-                val type = outgoing::class.java
+                val type = if (outgoing is ClientboundCustomPayloadPacket) {
+                    "CustomPayload(${outgoing.payload.id()})"
+                } else {
+                    outgoing::class.java.simpleName
+                }
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
 

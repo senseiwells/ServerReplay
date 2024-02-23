@@ -96,7 +96,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun isValidEntity(entity: Entity): Boolean {
-        return entity != this.player
+        return true
     }
 
     override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
@@ -111,7 +111,9 @@ class PlayerRecorder internal constructor(
     }
 
     override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
-        (tracking as TrackedEntityAccessor).serverEntity.addPairing(this.getPlayerOrThrow())
+        val list = ArrayList<Packet<ClientGamePacketListener>>()
+        (tracking as TrackedEntityAccessor).serverEntity.sendPairingData(this.getPlayerOrThrow(), list::add)
+        this.record(ClientboundBundlePacket(list))
     }
 
     private fun getPlayerServerEntity(): ServerEntity {

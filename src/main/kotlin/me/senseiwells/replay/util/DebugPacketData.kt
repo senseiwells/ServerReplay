@@ -1,7 +1,7 @@
 package me.senseiwells.replay.util
 
 data class DebugPacketData(
-    val type: Class<*>,
+    val type: String,
     var count: Int,
     var size: Long
 ) {
@@ -11,6 +11,6 @@ data class DebugPacketData(
     }
 
     fun format(): String {
-        return "Type: ${this.type.simpleName}, Size: ${FileUtils.formatSize(this.size)}, Count: ${this.count}"
+        return "Type: ${this.type}, Size: ${FileUtils.formatSize(this.size)}, Count: ${this.count}"
     }
 }

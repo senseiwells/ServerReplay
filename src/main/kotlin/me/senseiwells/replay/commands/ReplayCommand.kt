@@ -296,10 +296,10 @@ object ReplayCommand {
 
         CompletableFuture.runAsync {
             for (player in players) {
-                builder.append(player.join())
+                builder.append("${player.join()}\n")
             }
             for (chunk in chunks) {
-                builder.append(chunk.join())
+                builder.append("${chunk.join()}\n")
             }
 
             context.source.server.execute {

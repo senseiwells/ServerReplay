@@ -304,21 +304,9 @@ abstract class ReplayRecorder(
         return !this.canRecordPacket(packet)
     }
 
+    @Suppress("unused_parameter")
     private fun postPacket(packet: MinecraftPacket<*>) {
-        when (packet) {
-            is ClientboundRespawnPacket -> {
-                // this.spawnPlayer()
-            }
-            is ClientboundPlayerInfoUpdatePacket -> {
-                val uuid = this.recordingPlayerUUID
-                for (entry in packet.newEntries()) {
-                    if (uuid == entry.profileId) {
-                        this.spawnPlayer()
-                        break
-                    }
-                }
-            }
-        }
+
     }
 
     private fun checkFileSize() {

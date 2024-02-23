@@ -3,6 +3,7 @@ package me.senseiwells.replay.compat.voicechat
 import de.maxhenkel.voicechat.api.VoicechatApi
 import de.maxhenkel.voicechat.api.VoicechatConnection
 import de.maxhenkel.voicechat.api.VoicechatPlugin
+import de.maxhenkel.voicechat.api.audio.AudioConverter
 import de.maxhenkel.voicechat.api.events.*
 import de.maxhenkel.voicechat.api.opus.OpusDecoder
 import de.maxhenkel.voicechat.api.packets.SoundPacket
@@ -18,7 +19,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 import java.util.WeakHashMap
-import java.util.concurrent.CompletableFuture
 
 @Suppress("unused")
 object ReplayVoicechatPlugin: VoicechatPlugin {
@@ -37,7 +37,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
     private val STATIC_ID = ResourceLocation(MOD_ID, "static_sound")
 
     // We don't want to constantly decode sound packets, when broadcasted to multiple players
-    private val cache = WeakHashMap<SoundPacket, CompletableFuture<Packet<ClientCommonPacketListener>>>()
+    private val cache = WeakHashMap<SoundPacket, Packet<ClientCommonPacketListener>>()
 
     private lateinit var decoder: OpusDecoder
 
@@ -47,6 +47,10 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
 
     override fun initialize(api: VoicechatApi) {
         this.decoder = api.createDecoder()
+
+        if (!ServerReplay.config.recordVoiceChat) {
+            ServerReplay.logger.info("Not currently recording voice chat in replays, you must enabled this in the config")
+        }
     }
 
     override fun registerEvents(registration: EventRegistration) {
@@ -57,9 +61,13 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
     }
 
     private fun onLocationalSoundPacket(event: LocationalSoundPacketEvent) {
+        if (!ServerReplay.config.recordVoiceChat) {
+            return
+        }
+
         val packet = event.packet
         this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacketFuture(LOCATIONAL_ID, packet.sender, packet.opusEncodedData) {
+            this.createPacket(LOCATIONAL_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
                 writeDouble(packet.position.x)
                 writeDouble(packet.position.y)
                 writeDouble(packet.position.z)
@@ -69,9 +77,13 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
     }
 
     private fun onEntitySoundPacket(event: EntitySoundPacketEvent) {
+        if (!ServerReplay.config.recordVoiceChat) {
+            return
+        }
+
         val packet = event.packet
         this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacketFuture(ENTITY_ID, packet.sender, packet.opusEncodedData) {
+            this.createPacket(ENTITY_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
                 writeBoolean(packet.isWhispering)
                 writeFloat(packet.distance)
             }
@@ -79,19 +91,30 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
     }
 
     private fun onStaticSoundPacket(event: StaticSoundPacketEvent) {
+        if (!ServerReplay.config.recordVoiceChat) {
+            return
+        }
+
         val packet = event.packet
         this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacketFuture(STATIC_ID, packet.sender, packet.opusEncodedData)
+            this.createPacket(STATIC_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter)
         })
     }
 
     private fun onMicrophonePacketEvent(event: MicrophonePacketEvent) {
+        if (!ServerReplay.config.recordVoiceChat) {
+            return
+        }
+
         val connection = event.senderConnection ?: return
         val player = connection.getServerPlayer() ?: return
+        val converter = event.voicechat.audioConverter
         val inGroup = connection.isInGroup
+        val time = System.currentTimeMillis()
 
+        // We may need this for both the player and chunks
         val lazyEntityPacket = lazy {
-            this.createPacketFuture(ENTITY_ID, player.uuid, event.packet.opusEncodedData) {
+            this.createPacket(ENTITY_ID, player.uuid, event.packet.opusEncodedData, converter) {
                 writeBoolean(event.packet.isWhispering)
                 writeFloat(event.voicechat.voiceChatDistance.toFloat())
             }
@@ -99,65 +122,54 @@ object ReplayVoicechatPlugin: VoicechatPlugin {
 
         val playerRecorder = PlayerRecorders.get(player)
         if (playerRecorder != null) {
-            val future = if (!inGroup) {
-                this.createPacketFuture(STATIC_ID, player.uuid, event.packet.opusEncodedData)
+            val packet = if (!inGroup) {
+                this.createPacket(STATIC_ID, player.uuid, event.packet.opusEncodedData, converter)
             } else {
                 lazyEntityPacket.value
             }
-            future.thenApplyAsync(playerRecorder::record, player.server)
+            playerRecorder.record(packet, time)
         }
 
         if (!inGroup) {
             val dimension = player.level().dimension()
             val chunkPos = player.chunkPosition()
-            lazyEntityPacket.value.thenApplyAsync({
-                for (recorder in ChunkRecorders.containing(dimension, chunkPos)) {
-                    recorder.record(it)
-                }
-            }, player.server)
+            for (recorder in ChunkRecorders.containing(dimension, chunkPos)) {
+                recorder.record(lazyEntityPacket.value, time)
+            }
         }
     }
 
-    private fun createPacketFuture(
+    private fun createPacket(
         id: ResourceLocation,
         sender: UUID,
         encoded: ByteArray,
+        converter: AudioConverter,
         additional: FriendlyByteBuf.() -> Unit = { }
-    ): CompletableFuture<Packet<ClientCommonPacketListener>> {
-        return CompletableFuture.supplyAsync {
-            val buf = PacketByteBufs.create()
-            buf.writeShort(VERSION)
-            buf.writeUUID(sender)
-            buf.writeByteArray(shortsToBytes(this.decoder.decode(encoded)))
-            additional(buf)
-            ServerPlayNetworking.createS2CPacket(id, buf)
-        }
+    ): Packet<ClientCommonPacketListener> {
+        // I previously had this running async, I changed it
+        // to blocking as I thought it might be causing issues
+        // with the timing of the replay playing back packets.
+        // TODO: It doesn't seem to have fixed it, maybe re-implement?
+        val buf = PacketByteBufs.create()
+        buf.writeShort(VERSION)
+        buf.writeUUID(sender)
+        // We are forced to decode on the server-side since replay-voice-chat
+        // reads the raw packet data when it reads the replay.
+        buf.writeByteArray(converter.shortsToBytes(this.decoder.decode(encoded)))
+        additional(buf)
+        return ServerPlayNetworking.createS2CPacket(id, buf)
     }
 
     private fun <T: SoundPacket> recordForReceiver(
         event: PacketEvent<T>,
-        future: CompletableFuture<Packet<ClientCommonPacketListener>>
+        packet: Packet<ClientCommonPacketListener>
     ) {
         val player = event.receiverConnection?.getServerPlayer() ?: return
         val recorder = PlayerRecorders.get(player) ?: return
-        future.thenApplyAsync(recorder::record, player.server)
+        recorder.record(packet)
     }
 
     private fun VoicechatConnection.getServerPlayer(): ServerPlayer? {
         return this.player.player as? ServerPlayer
-    }
-
-    private fun shortsToBytes(shorts: ShortArray): ByteArray {
-        val data = ByteArray(shorts.size * 2)
-        for (i in shorts.indices) {
-            val split = shortToBytes(shorts[i])
-            data[i * 2] = split[0]
-            data[i * 2 + 1] = split[1]
-        }
-        return data
-    }
-
-    private fun shortToBytes(s: Short): ByteArray {
-        return byteArrayOf((s.toInt() and 0xFF).toByte(), ((s.toInt() shr 8) and 0xFF).toByte())
     }
 }

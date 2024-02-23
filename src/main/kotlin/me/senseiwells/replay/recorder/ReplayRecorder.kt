@@ -94,7 +94,8 @@ abstract class ReplayRecorder(
         this.saveMeta()
     }
 
-    fun record(outgoing: MinecraftPacket<*>) {
+    @JvmOverloads
+    fun record(outgoing: MinecraftPacket<*>, timestamp: Long = System.currentTimeMillis()) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
@@ -135,12 +136,13 @@ abstract class ReplayRecorder(
             buf.release()
         }
 
-        val timestamp = this.getTimestamp()
-        this.lastPacket = timestamp
+        val delta = System.currentTimeMillis() - timestamp
+        val time = this.getTimestamp() - delta
+        this.lastPacket = time
 
         this.executor.execute {
             try {
-                this.output.write(timestamp, saved)
+                this.output.write(time, saved)
             } catch (e: IOException) {
                 ServerReplay.logger.error("Failed to write packet", e)
             }

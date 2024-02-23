@@ -79,6 +79,9 @@ class ReplayConfig {
     @SerialName("optimize_entity_packets")
     var optimizeEntityPackets = false
 
+    @SerialName("record_voice_chat")
+    var recordVoiceChat = false
+
     @SerialName("player_predicate")
     private var playerPredicate: ReplayPlayerPredicate = NonePredicate
 

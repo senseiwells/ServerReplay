@@ -13,6 +13,7 @@ import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
@@ -195,7 +196,7 @@ class ChunkRecorder internal constructor(
     }
 
     private fun spawnPlayer() {
-        this.record(ClientboundAddEntityPacket(this.dummy))
+        this.record(ClientboundAddPlayerPacket(this.dummy))
         val tracked = this.dummy.entityData.nonDefaultValues
         if (tracked != null) {
             this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))

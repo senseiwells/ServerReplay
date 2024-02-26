@@ -6,6 +6,7 @@ import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.RecorderRecoverer;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,6 +25,8 @@ public class MinecraftServerMixin {
 		)
 	)
 	private void onServerLoaded(CallbackInfo ci) {
+		RecorderRecoverer.tryRecover((MinecraftServer) (Object) this);
+
 		if (ServerReplay.config.getEnabled()) {
 			ServerReplay.config.startChunks((MinecraftServer) (Object) this);
 		}
@@ -47,11 +50,11 @@ public class MinecraftServerMixin {
 		at = @At("TAIL")
 	)
 	private void onServerStopped(CallbackInfo ci) {
-		for (PlayerRecorder recorder : PlayerRecorders.all()) {
+		for (PlayerRecorder recorder : PlayerRecorders.recorders()) {
 			recorder.stop();
 		}
 
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			recorder.stop();
 		}
 	}

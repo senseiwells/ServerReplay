@@ -62,6 +62,7 @@ class ChunkRecorder internal constructor(
         this.dummy.isInvisible = true
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
+        this.spawnPlayer()
         this.sendChunksAndEntities()
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
@@ -89,15 +90,7 @@ class ChunkRecorder internal constructor(
             ServerReplay.logger.warn("Failed to unlink all chunk recordables")
         }
 
-        ChunkRecorders.close(this.server, this.chunks, future, this.getName())
-    }
-
-    override fun spawnPlayer() {
-        this.record(ClientboundAddEntityPacket(this.dummy))
-        val tracked = this.dummy.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
-        }
+        ChunkRecorders.close(this.server, this, future)
     }
 
     override fun getTimestamp(): Long {
@@ -139,7 +132,7 @@ class ChunkRecorder internal constructor(
     }
 
     override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
-        return this.chunks.contains(tracking.chunkPosition())
+        return this.chunks.contains(tracking.level().dimension(), tracking.chunkPosition())
     }
 
     override fun addTrackedEntity(tracking: TrackedEntity) {
@@ -198,6 +191,14 @@ class ChunkRecorder internal constructor(
         }
         if (this.loadedChunks == 0) {
             this.pause()
+        }
+    }
+
+    private fun spawnPlayer() {
+        this.record(ClientboundAddEntityPacket(this.dummy))
+        val tracked = this.dummy.entityData.nonDefaultValues
+        if (tracked != null) {
+            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
         }
     }
 

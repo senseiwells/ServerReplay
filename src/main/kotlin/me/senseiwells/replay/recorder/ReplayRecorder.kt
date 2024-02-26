@@ -114,7 +114,7 @@ abstract class ReplayRecorder(
 
             if (ServerReplay.config.debug) {
                 val type = if (outgoing is ClientboundCustomPayloadPacket) {
-                    "CustomPayload(${outgoing.payload.id()})"
+                    "CustomPayload(${outgoing.identifier})"
                 } else {
                     outgoing::class.java.simpleName
                 }

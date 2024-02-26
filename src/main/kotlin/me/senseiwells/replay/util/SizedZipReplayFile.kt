@@ -14,7 +14,11 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
-class SizedZipReplayFile(out: File): ZipReplayFile(ReplayStudio(), out) {
+class SizedZipReplayFile(
+    input: File? = null,
+    out: File,
+    cache: File = File(out.parentFile, out.name + ".cache")
+): ZipReplayFile(ReplayStudio(), input, out, cache) {
     private val entries = HashMap<String, MutableLong>()
 
     override fun write(entry: String): OutputStream {

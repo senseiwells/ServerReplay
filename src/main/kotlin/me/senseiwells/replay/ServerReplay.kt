@@ -8,10 +8,12 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 object ServerReplay: ModInitializer {
+    const val MOD_ID = "server-replay"
+
     @JvmField
     val logger: Logger = LoggerFactory.getLogger("ServerReplay")
 
-    val replay: ModContainer = FabricLoader.getInstance().getModContainer("server-replay").get()
+    val replay: ModContainer = FabricLoader.getInstance().getModContainer(MOD_ID).get()
     val version: String = replay.metadata.version.friendlyString
 
     @JvmStatic

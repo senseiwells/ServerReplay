@@ -1,9 +1,6 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
@@ -52,14 +49,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun closed(future: CompletableFuture<Long>) {
-        PlayerRecorders.close(this.server, this.recordingPlayerUUID, future)
-    }
-
-    override fun spawnPlayer() {
-        val player = this.getPlayerOrThrow()
-        if (!player.isRemoved) {
-            this.spawnPlayer(this.getPlayerServerEntity())
-        }
+        PlayerRecorders.close(this.server, this, future)
     }
 
     fun spawnPlayer(player: ServerEntity) {
@@ -72,11 +62,6 @@ class PlayerRecorder internal constructor(
 
     fun removePlayer(player: ServerPlayer) {
         this.record(ClientboundRemoveEntitiesPacket(player.id))
-    }
-
-    override fun addMetadata(map: MutableMap<String, JsonElement>) {
-        super.addMetadata(map)
-        map["player_name"] = JsonPrimitive(this.profile.name)
     }
 
     override fun canContinueRecording(): Boolean {
@@ -96,7 +81,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun isValidEntity(entity: Entity): Boolean {
-        return entity != this.player
+        return true
     }
 
     override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
@@ -111,14 +96,8 @@ class PlayerRecorder internal constructor(
     }
 
     override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
-        (tracking as TrackedEntityAccessor).serverEntity.addPairing(this.getPlayerOrThrow())
-    }
-
-    private fun getPlayerServerEntity(): ServerEntity {
-        val player = this.getPlayerOrThrow()
-        val chunks = player.serverLevel().chunkSource.chunkMap as ChunkMapAccessor
-        val tracking = chunks.entityMap.get(player.id)
-
-        return (tracking as TrackedEntityAccessor).serverEntity
+        val list = ArrayList<Packet<ClientGamePacketListener>>()
+        (tracking as TrackedEntityAccessor).serverEntity.sendPairingData(this.getPlayerOrThrow(), list::add)
+        this.record(ClientboundBundlePacket(list))
     }
 }

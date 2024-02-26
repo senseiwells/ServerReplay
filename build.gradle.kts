@@ -108,12 +108,10 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added some extra meta-data to replay files (to help with debugging)
-            - Fixed conflict with GeyserMC (some issues may persist, but it will not crash on launch now)
-            - Added extra configurations:
-                - `fixed_daylight_cycle` - allows you to set a fixed time of day for the recording 
-                - `ignore_chat_packets` - ignore all chat packets
-                - `ignore_scoreboard_packets` - ignore all scoreboard packets
+            - Added `recover_unsaved_replays` - tries to recover any unsaved replays if the server stopped or crashed
+            - Added `notify_admin_of_status` - notifies admins when replays start, stop, save, and any errors while saving
+            - Fixed a bug that would cause the server to be unresponsive if you stopped a large recording and restarted it before it finished saving
+            - Added the currently saving replays to the `/replay status` response
             """.trimIndent()
         )
         type = STABLE

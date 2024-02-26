@@ -21,6 +21,7 @@
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "player.ServerCommonPacketListenerImplMixin",
     "player.ServerConfigurationPacketListenerImplMixin",
+    "player.ServerEntityMixin",
     "player.ServerLoginPacketListenerImplMixin",
     "player.TrackedEntityMixin",
     "rejoin.ChunkMapAccessor",

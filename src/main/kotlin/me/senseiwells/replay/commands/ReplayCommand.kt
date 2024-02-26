@@ -23,6 +23,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 object ReplayCommand {
     @JvmStatic
@@ -88,8 +89,8 @@ object ReplayCommand {
                         ).executes { this.onStopPlayers(it, true) }
                     ).then(
                         Commands.literal("all").then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, PlayerRecorders.all()) }
-                        ).executes { this.onStopAll(it, PlayerRecorders.all(), true) }
+                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, PlayerRecorders.recorders()) }
+                        ).executes { this.onStopAll(it, PlayerRecorders.recorders(), true) }
                     )
                 ).then(
                     Commands.literal("chunks").then(
@@ -118,8 +119,8 @@ object ReplayCommand {
                         )
                     ).then(
                         Commands.literal("all").then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, ChunkRecorders.all()) }
-                        ).executes { this.onStopAll(it, ChunkRecorders.all(), true) }
+                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, ChunkRecorders.recorders()) }
+                        ).executes { this.onStopAll(it, ChunkRecorders.recorders(), true) }
                     )
                 )
             ).then(
@@ -150,10 +151,10 @@ object ReplayCommand {
             return 0
         }
         ServerReplay.config.enabled = false
-        for (recorders in PlayerRecorders.all()) {
+        for (recorders in PlayerRecorders.recorders()) {
             recorders.stop()
         }
-        for (recorders in ChunkRecorders.all()) {
+        for (recorders in ChunkRecorders.recorders()) {
             recorders.stop()
         }
         context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
@@ -291,15 +292,22 @@ object ReplayCommand {
             .append(if (ServerReplay.config.enabled) "enabled" else "disabled")
             .append("\n")
 
-        val players = this.getStatusFuture("Players", PlayerRecorders.all())
-        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.all())
+        val players = this.getStatusFuture("Players", PlayerRecorders.recorders())
+        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.recorders())
+        val closing = listOf(PlayerRecorders.closing(), ChunkRecorders.closing()).flatten()
 
         CompletableFuture.runAsync {
             for (player in players) {
-                builder.append(player.join())
+                builder.append("${player.join()}\n")
             }
             for (chunk in chunks) {
-                builder.append(chunk.join())
+                builder.append("${chunk.join()}\n")
+            }
+            if (closing.isNotEmpty()) {
+                builder.append("Currently Saving:\n")
+                for (saving in closing) {
+                    builder.append("${saving.getName()}\n")
+                }
             }
 
             context.source.server.execute {
@@ -312,7 +320,10 @@ object ReplayCommand {
 
         context.source.sendSuccess({
             var message = "Generating replay status..."
-            if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+            val accumulator = { time: Long, recorder: ReplayRecorder -> time + recorder.getTotalRecordingTime() }
+            var time = PlayerRecorders.recorders().fold(0L, accumulator)
+            time += ChunkRecorders.recorders().fold(0L, accumulator)
+            if (ServerReplay.config.includeCompressedReplaySizeInStatus && TimeUnit.MILLISECONDS.toMinutes(time) > 30) {
                 message += "\nCalculating compressed sizes of replays (this may take a while)"
             }
             Component.literal(message)
@@ -326,13 +337,13 @@ object ReplayCommand {
     ): List<CompletableFuture<String>> {
         if (recorders.isNotEmpty()) {
             val futures = ArrayList<CompletableFuture<String>>()
-            futures.add(CompletableFuture.completedFuture("Currently Recording $type:\n"))
+            futures.add(CompletableFuture.completedFuture("Currently Recording $type:"))
             for (recorder in recorders) {
                 futures.add(recorder.getStatusWithSize())
             }
             return futures
         }
-        return listOf(CompletableFuture.completedFuture("Not Currently Recording $type\n"))
+        return listOf(CompletableFuture.completedFuture("Not Currently Recording $type"))
     }
 
     private fun suggestChunkX(): SuggestionProvider<CommandSourceStack> {
@@ -351,31 +362,31 @@ object ReplayCommand {
 
     private fun suggestExistingFromChunkX(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { it.chunks.from.x.toString() }, b)
+            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.from.x.toString() }, b)
         }
     }
 
     private fun suggestExistingFromChunkZ(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { it.chunks.from.z.toString() }, b)
+            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.from.z.toString() }, b)
         }
     }
 
     private fun suggestExistingToChunkX(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { it.chunks.to.x.toString() }, b)
+            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.to.x.toString() }, b)
         }
     }
 
     private fun suggestExistingToChunkZ(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { it.chunks.to.z.toString() }, b)
+            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.to.z.toString() }, b)
         }
     }
 
     private fun suggestExistingName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.all().map { "\"${it.getName()}\"" }, b)
+            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { "\"${it.getName()}\"" }, b)
         }
     }
 }

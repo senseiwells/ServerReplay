@@ -20,14 +20,12 @@ import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.util.*
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
+import net.minecraft.Util
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket
-import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
-import net.minecraft.network.protocol.game.ClientboundRespawnPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -471,10 +469,10 @@ abstract class ReplayRecorder(
         }
         this.server.execute {
             val players = this.server.playerList.players
-            val component = Component.literal(message)
+            val component = TextComponent(message)
             for (player in players) {
                 if (this.server.playerList.isOp(player.gameProfile)) {
-                    player.sendSystemMessage(component)
+                    player.sendMessage(component, Util.NIL_UUID)
                 }
             }
         }

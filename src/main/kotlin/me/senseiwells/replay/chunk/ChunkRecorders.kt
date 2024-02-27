@@ -2,6 +2,7 @@ package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.recorder.RecorderRecoverer
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -13,7 +14,7 @@ import java.util.concurrent.CompletableFuture
 object ChunkRecorders {
     private val chunks = LinkedHashMap<ChunkArea, ChunkRecorder>()
     private val chunksByName = LinkedHashMap<String, ChunkRecorder>()
-    private val closing = HashMap<String, CompletableFuture<Long>>()
+    private val closing = HashMap<String, ChunkRecorder>()
 
     @JvmStatic
     fun create(level: ServerLevel, from: ChunkPos, to: ChunkPos, name: String): ReplayRecorder {
@@ -30,8 +31,6 @@ object ChunkRecorders {
             throw IllegalArgumentException("Recorder with name already exists")
         }
 
-        this.closing[name]?.join()
-
         val recorder = ChunkRecorder(
             area,
             name,
@@ -39,6 +38,7 @@ object ChunkRecorders {
         )
         this.chunks[area] = recorder
         this.chunksByName[name] = recorder
+        RecorderRecoverer.add(recorder)
         return recorder
     }
 
@@ -79,8 +79,13 @@ object ChunkRecorders {
     }
 
     @JvmStatic
-    fun all(): Collection<ChunkRecorder> {
+    fun recorders(): Collection<ChunkRecorder> {
         return ArrayList(this.chunks.values)
+    }
+
+    @JvmStatic
+    fun closing(): Collection<ChunkRecorder> {
+        return ArrayList(this.closing.values)
     }
 
     @JvmStatic
@@ -129,9 +134,16 @@ object ChunkRecorders {
         return "Chunks (${area.from.x}, ${area.from.z}) to (${area.to.x}, ${area.to.z})"
     }
 
-    internal fun close(server: MinecraftServer, area: ChunkArea, future: CompletableFuture<Long>, name: String) {
-        this.remove(area)
-        this.closing[name] = future
-        future.thenRunAsync({ this.closing.remove(name) }, server)
+    internal fun close(
+        server: MinecraftServer,
+        recorder: ChunkRecorder,
+        future: CompletableFuture<Long>
+    ) {
+        this.remove(recorder.chunks)
+        this.closing[recorder.recorderName] = recorder
+        future.thenRunAsync({
+            this.closing.remove(recorder.recorderName)
+            RecorderRecoverer.remove(recorder)
+        }, server)
     }
 }

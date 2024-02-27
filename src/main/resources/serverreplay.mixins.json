@@ -19,6 +19,7 @@
     "common.ServerLevelMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "player.PlayerListMixin",
+    "player.ServerEntityMixin",
     "player.ServerGamePacketListenerImplMixin",
     "player.TrackedEntityMixin",
     "rejoin.ChunkMapAccessor",

@@ -40,7 +40,7 @@ public class PlayerListMixin {
 		at = @At("HEAD")
 	)
 	private void onBroadcastAll(Packet<?> packet, CallbackInfo ci) {
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			recorder.record(packet);
 		}
 	}
@@ -50,7 +50,7 @@ public class PlayerListMixin {
 		at = @At("HEAD")
 	)
 	private void onBroadcastAll(Packet<?> packet, ResourceKey<Level> dimension, CallbackInfo ci) {
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			if (recorder.getLevel().dimension() == dimension) {
 				recorder.record(packet);
 			}
@@ -79,7 +79,7 @@ public class PlayerListMixin {
 		}
 
 		ChunkPos pos = new ChunkPos(BlockPos.containing(x, y, z));
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			if (recorder.getChunks().contains(dimension, pos)) {
 				recorder.record(packet);
 			}
@@ -96,7 +96,7 @@ public class PlayerListMixin {
 		boolean bypassHiddenChat,
 		CallbackInfo ci
 	) {
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			recorder.record(new ClientboundSystemChatPacket(serverMessage, bypassHiddenChat));
 		}
 	}
@@ -112,7 +112,7 @@ public class PlayerListMixin {
 		ChatType.Bound boundChatType,
 		CallbackInfo ci
 	) {
-		for (ChunkRecorder recorder : ChunkRecorders.all()) {
+		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			if (message.isSystem()) {
 				recorder.record(new ClientboundDisguisedChatPacket(
 					message.decoratedContent(),

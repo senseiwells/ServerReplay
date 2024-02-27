@@ -121,14 +121,8 @@ class PlayerRecorder internal constructor(
     }
 
     override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
-        (tracking as TrackedEntityAccessor).serverEntity.addPairing(this.getPlayerOrThrow())
-    }
-
-    private fun getPlayerServerEntity(): ServerEntity {
-        val player = this.getPlayerOrThrow()
-        val chunks = player.getLevel().chunkSource.chunkMap as ChunkMapAccessor
-        val tracking = chunks.entityMap.get(player.id)
-
-        return (tracking as TrackedEntityAccessor).serverEntity
+        val list = ArrayList<Packet<ClientGamePacketListener>>()
+        (tracking as TrackedEntityAccessor).serverEntity.sendPairingData(this.getPlayerOrThrow(), list::add)
+        this.record(ClientboundBundlePacket(list))
     }
 }

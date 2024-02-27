@@ -1,8 +1,8 @@
 package me.senseiwells.replay.chunk
 
+import com.mojang.authlib.GameProfile
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
@@ -12,7 +12,7 @@ import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ChunkMap.TrackedEntity
@@ -62,6 +62,7 @@ class ChunkRecorder internal constructor(
         this.dummy.isInvisible = true
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
+        this.spawnPlayer()
         this.sendChunksAndEntities()
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
@@ -89,15 +90,7 @@ class ChunkRecorder internal constructor(
             ServerReplay.logger.warn("Failed to unlink all chunk recordables")
         }
 
-        ChunkRecorders.close(this.server, this.chunks, future, this.getName())
-    }
-
-    override fun spawnPlayer() {
-        this.record(ClientboundAddEntityPacket(this.dummy))
-        val tracked = this.dummy.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
-        }
+        ChunkRecorders.close(this.server, this, future)
     }
 
     override fun getTimestamp(): Long {
@@ -139,7 +132,7 @@ class ChunkRecorder internal constructor(
     }
 
     override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
-        return this.chunks.contains(tracking.chunkPosition())
+        return this.chunks.contains(tracking.level().dimension(), tracking.chunkPosition())
     }
 
     override fun addTrackedEntity(tracking: TrackedEntity) {
@@ -198,6 +191,14 @@ class ChunkRecorder internal constructor(
         }
         if (this.loadedChunks == 0) {
             this.pause()
+        }
+    }
+
+    private fun spawnPlayer() {
+        this.record(ClientboundAddPlayerPacket(this.dummy))
+        val tracked = this.dummy.entityData.nonDefaultValues
+        if (tracked != null) {
+            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
         }
     }
 

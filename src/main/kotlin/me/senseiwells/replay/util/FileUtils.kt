@@ -1,10 +1,14 @@
 package me.senseiwells.replay.util
 
+import java.nio.file.Path
 import java.text.NumberFormat
 import java.text.ParseException
 import java.text.StringCharacterIterator
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.name
+import kotlin.io.path.notExists
 import kotlin.math.abs
 
 object FileUtils {
@@ -54,5 +58,22 @@ object FileUtils {
         }
         value *= java.lang.Long.signum(bytes).toLong()
         return String.format("%.1f %ciB", value / KB.toDouble(), ci.current())
+    }
+
+    fun findNextAvailable(
+        original: Path,
+        limit: Int = 100
+    ): Path {
+        if (original.notExists()) {
+            return original
+        }
+        val parent = original.parent
+        for (i in 1..limit) {
+            val next = parent.resolve("${original.name} (${i})")
+            if (next.notExists()) {
+                return next
+            }
+        }
+        throw IllegalStateException("Cannot find next available path for ${original.absolutePathString()}")
     }
 }

@@ -1,8 +1,8 @@
 package me.senseiwells.replay.chunk
 
+import com.mojang.authlib.GameProfile
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
@@ -12,7 +12,6 @@ import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundAddPlayerPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket

@@ -1,8 +1,6 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
@@ -63,11 +61,6 @@ class PlayerRecorder internal constructor(
         this.record(ClientboundRemoveEntitiesPacket(player.id))
     }
 
-    override fun addMetadata(map: MutableMap<String, JsonElement>) {
-        super.addMetadata(map)
-        map["player_name"] = JsonPrimitive(this.profile.name)
-    }
-
     override fun canContinueRecording(): Boolean {
         return this.player != null
     }
@@ -94,7 +87,7 @@ class PlayerRecorder internal constructor(
     }
 
     override fun isValidEntity(entity: Entity): Boolean {
-        return entity != this.player
+        return true
     }
 
     override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {

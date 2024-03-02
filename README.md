@@ -350,6 +350,20 @@ For example, if you wanted to record all non-operators that also don't have the 
 }
 ```
 
+If you are using carpet mod and have the ability to spawn fake players you may want to exclude them from being recorded.
+You can do this with the `is_fake` predicate:
+```json5
+{
+  // ...
+  "player_predicate": {
+    "type": "not",
+    "predicate": {
+      "type": "is_fake"
+    }
+  }
+}
+```
+
 ## Developers
 
 If you want more control over, when players are recorded, you can implement this into your own mod.

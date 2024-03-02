@@ -247,7 +247,7 @@ Most basic option is just to record all players in which case you can use:
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "all"
   }
 }
@@ -257,7 +257,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_name",
     "names": [
       "senseiwells",
@@ -270,7 +270,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_uuid",
     "uuids": [
       "41048400-886d-497d-9d97-9fe7c9b63afa",
@@ -287,7 +287,7 @@ If you only wanted to record operators:
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_op",
     "level": 4
   }
@@ -299,7 +299,7 @@ added and removed in-game, as you can just add players to a team and then have t
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "in_team",
     "teams": [
       "Red",
@@ -315,7 +315,7 @@ For example, if you wanted to record all non-operators that also don't have the 
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "and",
     "predicates": [
       {
@@ -371,7 +371,7 @@ dependencies {
 }
 ```
 
-Here's a basic example with what you can do:
+Here's a basic example of what you can do:
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {

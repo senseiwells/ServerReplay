@@ -50,9 +50,10 @@ class ReplayConfig {
     @SerialName("max_file_size")
     @Serializable(with = FileSizeSerializer::class)
     var maxFileSize = FileSize("0GB")
-
     @SerialName("restart_after_max_file_size")
     var restartAfterMaxFileSize = false
+    @SerialName("recover_unsaved_replays")
+    var recoverUnsavedReplays = true
 
     @SerialName("include_compressed_in_status")
     var includeCompressedReplaySizeInStatus = true
@@ -64,6 +65,8 @@ class ReplayConfig {
     var skipWhenChunksUnloaded = false
     @SerialName("pause_notify_players")
     var notifyPlayersLoadingChunks = true
+    @SerialName("notify_admins_of_status")
+    var notifyAdminsOfStatus = true
     @SerialName("fix_carpet_bot_view_distance")
     var fixCarpetBotViewDistance = false
     @SerialName("ignore_sound_packets")

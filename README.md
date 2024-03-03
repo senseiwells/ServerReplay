@@ -158,9 +158,11 @@ After you boot the server a new file will be generated in the path
   "max_file_size": "0GB",
   "restart_after_max_file_size": false,
   "include_compressed_in_status": true,
+  "recover_unsaved_replays": true,
   "fixed_daylight_cycle": -1,
   "pause_unloaded_chunks": false,
   "pause_notify_players": true,
+  "notify_admins_of_status": true,
   "fix_carpet_bot_view_distance": false,
   "ignore_sound_packets": false,
   "ignore_light_packets": true,
@@ -175,28 +177,30 @@ After you boot the server a new file will be generated in the path
 }
 ```
 
-| Config                           | Description                                                                                                                                                                                                                                                 |
-|----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `"enabled"`                      | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                     |
-| `"world_name"`                   | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                         |
-| `"server_name"`                  | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                        |
-| `"player_recording_path"`        | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                             |
-| `"chunk_recording_path"`         | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                              |
-| `"max_file_size"`                | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                          |
-| `"pause_unloaded_chunks"`        | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p> |
-| `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                     |
-| `"restart_after_max_file_size"`  | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                               |
-| `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                          |
-| `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>   |
-| `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                            |
-| `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                      |
-| `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                  |
-| `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                         |
-| `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                     |
-| `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                            |
-| `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                           |
-| `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                               |
-| `"chunks"`                       | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                        |
+| Config                           | Description                                                                                                                                                                                                                                                   |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `"enabled"`                      | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                       |
+| `"world_name"`                   | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                           |
+| `"server_name"`                  | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                          |
+| `"player_recording_path"`        | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                               |
+| `"chunk_recording_path"`         | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                |
+| `"max_file_size"`                | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. Set this to `0` to not have a limit. </p>                            |
+| `"pause_unloaded_chunks"`        | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p>   |
+| `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                       |
+| `"notify_admins_of_status"`      | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                           |
+| `"restart_after_max_file_size"`  | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                 |
+| `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                            |
+| `"recover_unsaved_replays"`      | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p> |
+| `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>     |
+| `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                              |
+| `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                        |
+| `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                    |
+| `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                           |
+| `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                       |
+| `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                              |
+| `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                             |
+| `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                 |
+| `"chunks"`                       | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                          |
 
 ### Chunks Config
 
@@ -243,7 +247,7 @@ Most basic option is just to record all players in which case you can use:
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "all"
   }
 }
@@ -253,7 +257,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_name",
     "names": [
       "senseiwells",
@@ -266,7 +270,7 @@ If you wanted to only record players with specific names or uuids you can do the
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_uuid",
     "uuids": [
       "41048400-886d-497d-9d97-9fe7c9b63afa",
@@ -283,7 +287,7 @@ If you only wanted to record operators:
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "has_op",
     "level": 4
   }
@@ -295,7 +299,7 @@ added and removed in-game, as you can just add players to a team and then have t
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "in_team",
     "teams": [
       "Red",
@@ -311,7 +315,7 @@ For example, if you wanted to record all non-operators that also don't have the 
 ```json5
 {
   // ...
-  "predicate": {
+  "player_predicate": {
     "type": "and",
     "predicates": [
       {
@@ -346,6 +350,20 @@ For example, if you wanted to record all non-operators that also don't have the 
 }
 ```
 
+If you are using carpet mod and have the ability to spawn fake players you may want to exclude them from being recorded.
+You can do this with the `is_fake` predicate:
+```json5
+{
+  // ...
+  "player_predicate": {
+    "type": "not",
+    "predicate": {
+      "type": "is_fake"
+    }
+  }
+}
+```
+
 ## Developers
 
 If you want more control over, when players are recorded, you can implement this into your own mod.
@@ -367,7 +385,7 @@ dependencies {
 }
 ```
 
-Here's a basic example with what you can do:
+Here's a basic example of what you can do:
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {

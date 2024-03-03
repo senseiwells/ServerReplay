@@ -101,7 +101,12 @@ abstract class ReplayRecorder(
         if (this.ignore || this.stopped) {
             return
         }
-        if (ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
+        val safe = this.server.isSameThread
+        if (ServerReplay.config.debug && !safe) {
+            ServerReplay.logger.warn("Trying to record packet off-thread ${outgoing.getDebugName()}")
+        }
+
+        if (safe && ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
             return
         }
 
@@ -117,11 +122,7 @@ abstract class ReplayRecorder(
             outgoing.write(buf)
 
             if (ServerReplay.config.debug) {
-                val type = if (outgoing is ClientboundCustomPayloadPacket) {
-                    "CustomPayload(${outgoing.payload.id()})"
-                } else {
-                    outgoing::class.java.simpleName
-                }
+                val type = outgoing.getDebugName()
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
 
@@ -498,5 +499,13 @@ abstract class ReplayRecorder(
 
     companion object {
         private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
+
+        private fun MinecraftPacket<*>.getDebugName(): String {
+            return if (this is ClientboundCustomPayloadPacket) {
+                "CustomPayload(${this.payload.id()})"
+            } else {
+                this::class.java.simpleName
+            }
+        }
     }
 }

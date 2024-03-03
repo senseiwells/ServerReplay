@@ -28,6 +28,12 @@ repositories {
     maven {
         url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
+    maven {
+        url = uri("https://api.modrinth.com/maven")
+    }
+    maven {
+        url = uri("https://maven.maxhenkel.de/repository/public")
+    }
     mavenCentral()
 }
 
@@ -44,6 +50,8 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
+    modImplementation("maven.modrinth:simple-voice-chat:fabric-${property("voicechat_version")}")
+    implementation("de.maxhenkel.voicechat:voicechat-api:${property("voicechat_api_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)
     // Simplest workaround that I've found is just to unzip the

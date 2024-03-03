@@ -170,6 +170,7 @@ After you boot the server a new file will be generated in the path
   "ignore_scoreboard_packets": false,
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
+  "record_voice_chat": false,
   "player_predicate": {
     "type": "none"
   },
@@ -199,6 +200,7 @@ After you boot the server a new file will be generated in the path
 | `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                       |
 | `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                              |
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                             |
+| `"record_voice_chat"`            | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed. </p>                                                                                                     |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                 |
 | `"chunks"`                       | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                          |
 

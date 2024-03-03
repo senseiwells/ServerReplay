@@ -10,8 +10,11 @@ import de.maxhenkel.voicechat.api.opus.OpusDecoder
 import de.maxhenkel.voicechat.api.packets.SoundPacket
 import de.maxhenkel.voicechat.net.AddCategoryPacket
 import de.maxhenkel.voicechat.net.AddGroupPacket
+import de.maxhenkel.voicechat.net.PlayerStatePacket
 import de.maxhenkel.voicechat.net.PlayerStatesPacket
+import de.maxhenkel.voicechat.net.RemoveCategoryPacket
 import de.maxhenkel.voicechat.net.SecretPacket
+import de.maxhenkel.voicechat.plugins.impl.VolumeCategoryImpl
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.RejoinedPacketSender
 import me.senseiwells.replay.api.ReplaySenders
@@ -68,12 +71,11 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         registration.registerEvent(LocationalSoundPacketEvent::class.java, this::onLocationalSoundPacket)
         registration.registerEvent(EntitySoundPacketEvent::class.java, this::onEntitySoundPacket)
         registration.registerEvent(StaticSoundPacketEvent::class.java, this::onStaticSoundPacket)
-        registration.registerEvent(MicrophonePacketEvent::class.java, this::onMicrophonePacketEvent)
+        registration.registerEvent(MicrophonePacketEvent::class.java, this::onMicrophonePacket)
 
-        // TODO: register events for chunk recorders
-        //   - VolumeCategories
-        //   - PlayerStates
-        //   - Groups
+        registration.registerEvent(RegisterVolumeCategoryEvent::class.java, this::onRegisterCategory)
+        registration.registerEvent(UnregisterVolumeCategoryEvent::class.java, this::onUnregisterCategory)
+        registration.registerEvent(PlayerStateChangedEvent::class.java, this::onPlayerStateChanged)
 
         ReplaySenders.addSender(this)
     }
@@ -125,7 +127,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
     }
 
-    private fun onMicrophonePacketEvent(event: MicrophonePacketEvent) {
+    private fun onMicrophonePacket(event: MicrophonePacketEvent) {
         if (!ServerReplay.config.recordVoiceChat) {
             return
         }
@@ -161,6 +163,41 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
                 for (recorder in ChunkRecorders.containing(dimension, chunkPos)) {
                     recorder.record(lazyEntityPacket.value)
                 }
+            }
+        }
+    }
+
+    private fun onRegisterCategory(event: RegisterVolumeCategoryEvent) {
+        val server = Voicechat.SERVER.server?.server ?: return
+        server.execute {
+            val category = event.volumeCategory
+            if (category is VolumeCategoryImpl) {
+                val packet = AddCategoryPacket(category).toClientboundPacket()
+                for (recorder in ChunkRecorders.recorders()) {
+                    recorder.record(packet)
+                }
+            }
+        }
+    }
+
+    private fun onUnregisterCategory(event: UnregisterVolumeCategoryEvent) {
+        val server = Voicechat.SERVER.server?.server ?: return
+        server.execute {
+            val packet = RemoveCategoryPacket(event.volumeCategory.id).toClientboundPacket()
+            for (recorder in ChunkRecorders.recorders()) {
+                recorder.record(packet)
+            }
+        }
+    }
+
+    private fun onPlayerStateChanged(event: PlayerStateChangedEvent) {
+        val voicechat = Voicechat.SERVER.server ?: return
+        val server = voicechat.server ?: return
+        server.execute {
+            val state = voicechat.playerStateManager.getState(event.playerUuid)
+            val packet = PlayerStatePacket(state).toClientboundPacket()
+            for (recorder in ChunkRecorders.recorders()) {
+                recorder.record(packet)
             }
         }
     }

@@ -94,15 +94,19 @@ abstract class ReplayRecorder(
         this.saveMeta()
     }
 
-    @JvmOverloads
-    fun record(outgoing: MinecraftPacket<*>, timestamp: Long = System.currentTimeMillis()) {
+    fun record(outgoing: MinecraftPacket<*>) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
         if (this.ignore || this.stopped) {
             return
         }
-        if (ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
+        val safe = this.server.isSameThread
+        if (ServerReplay.config.debug && !safe) {
+            ServerReplay.logger.warn("Trying to record packet off-thread ${outgoing.getDebugName()}")
+        }
+
+        if (safe && ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
             return
         }
 
@@ -118,11 +122,7 @@ abstract class ReplayRecorder(
             outgoing.write(buf)
 
             if (ServerReplay.config.debug) {
-                val type = if (outgoing is ClientboundCustomPayloadPacket) {
-                    "CustomPayload(${outgoing.payload.id()})"
-                } else {
-                    outgoing::class.java.simpleName
-                }
+                val type = outgoing.getDebugName()
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
 
@@ -136,13 +136,12 @@ abstract class ReplayRecorder(
             buf.release()
         }
 
-        val delta = System.currentTimeMillis() - timestamp
-        val time = this.getTimestamp() - delta
-        this.lastPacket = time
+        val timestamp = this.getTimestamp()
+        this.lastPacket = timestamp
 
         this.executor.execute {
             try {
-                this.output.write(time, saved)
+                this.output.write(timestamp, saved)
             } catch (e: IOException) {
                 ServerReplay.logger.error("Failed to write packet", e)
             }
@@ -473,5 +472,13 @@ abstract class ReplayRecorder(
 
     companion object {
         private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
+
+        private fun MinecraftPacket<*>.getDebugName(): String {
+            return if (this is ClientboundCustomPayloadPacket) {
+                "CustomPayload(${this.payload.id()})"
+            } else {
+                this::class.java.simpleName
+            }
+        }
     }
 }

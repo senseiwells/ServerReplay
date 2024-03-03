@@ -33,12 +33,6 @@ import java.util.WeakHashMap
 
 @Suppress("unused")
 object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
-    // TODO:
-    //  - Fix distorted audio issue?
-    //    Not sure quite what is causing this, it seems to be okay
-    //    when with a rejoined replay (using the command) but has
-    //    issues when players join (and record with the predicate)??
-
     /**
      * Mod id of the replay voicechat mod, see [here](https://github.com/henkelmax/replay-voice-chat/blob/master/src/main/java/de/maxhenkel/replayvoicechat/ReplayVoicechat.java).
      */
@@ -90,14 +84,16 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
 
         val packet = event.packet
-        this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacket(LOCATIONAL_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
-                writeDouble(packet.position.x)
-                writeDouble(packet.position.y)
-                writeDouble(packet.position.z)
-                writeFloat(packet.distance)
+        this.recordForReceiver(event) {
+            this.cache.getOrPut(packet) {
+                this.createPacket(LOCATIONAL_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
+                    writeDouble(packet.position.x)
+                    writeDouble(packet.position.y)
+                    writeDouble(packet.position.z)
+                    writeFloat(packet.distance)
+                }
             }
-        })
+        }
     }
 
     private fun onEntitySoundPacket(event: EntitySoundPacketEvent) {
@@ -106,12 +102,14 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
 
         val packet = event.packet
-        this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacket(ENTITY_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
-                writeBoolean(packet.isWhispering)
-                writeFloat(packet.distance)
+        this.recordForReceiver(event) {
+            this.cache.getOrPut(packet) {
+                this.createPacket(ENTITY_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
+                    writeBoolean(packet.isWhispering)
+                    writeFloat(packet.distance)
+                }
             }
-        })
+        }
     }
 
     private fun onStaticSoundPacket(event: StaticSoundPacketEvent) {
@@ -120,9 +118,11 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
 
         val packet = event.packet
-        this.recordForReceiver(event, this.cache.getOrPut(packet) {
-            this.createPacket(STATIC_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter)
-        })
+        this.recordForReceiver(event) {
+            this.cache.getOrPut(packet) {
+                this.createPacket(STATIC_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter)
+            }
+        }
     }
 
     private fun onMicrophonePacketEvent(event: MicrophonePacketEvent) {
@@ -132,9 +132,9 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
 
         val connection = event.senderConnection ?: return
         val player = connection.getServerPlayer() ?: return
+        val server = player.server
         val converter = event.voicechat.audioConverter
         val inGroup = connection.isInGroup
-        val time = System.currentTimeMillis()
 
         // We may need this for both the player and chunks
         val lazyEntityPacket = lazy {
@@ -144,21 +144,23 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
             }
         }
 
-        val playerRecorder = PlayerRecorders.get(player)
-        if (playerRecorder != null) {
-            val packet = if (!inGroup) {
-                this.createPacket(STATIC_ID, player.uuid, event.packet.opusEncodedData, converter)
-            } else {
-                lazyEntityPacket.value
+        server.execute {
+            val playerRecorder = PlayerRecorders.get(player)
+            if (playerRecorder != null) {
+                val packet = if (!inGroup) {
+                    this.createPacket(STATIC_ID, player.uuid, event.packet.opusEncodedData, converter)
+                } else {
+                    lazyEntityPacket.value
+                }
+                playerRecorder.record(packet)
             }
-            playerRecorder.record(packet, time)
-        }
 
-        if (!inGroup) {
-            val dimension = player.level().dimension()
-            val chunkPos = player.chunkPosition()
-            for (recorder in ChunkRecorders.containing(dimension, chunkPos)) {
-                recorder.record(lazyEntityPacket.value, time)
+            if (!inGroup) {
+                val dimension = player.level().dimension()
+                val chunkPos = player.chunkPosition()
+                for (recorder in ChunkRecorders.containing(dimension, chunkPos)) {
+                    recorder.record(lazyEntityPacket.value)
+                }
             }
         }
     }
@@ -170,10 +172,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         converter: AudioConverter,
         additional: FriendlyByteBuf.() -> Unit = { }
     ): Packet<ClientCommonPacketListener> {
-        // I previously had this running async, I changed it
-        // to blocking as I thought it might be causing issues
-        // with the timing of the replay playing back packets.
-        // TODO: It doesn't seem to have fixed it, maybe re-implement?
         val buf = PacketByteBufs.create()
         buf.writeShort(VERSION)
         buf.writeUUID(sender)
@@ -186,11 +184,13 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
 
     private fun <T: SoundPacket> recordForReceiver(
         event: PacketEvent<T>,
-        packet: Packet<ClientCommonPacketListener>
+        packet: () -> Packet<ClientCommonPacketListener>
     ) {
         val player = event.receiverConnection?.getServerPlayer() ?: return
-        val recorder = PlayerRecorders.get(player) ?: return
-        recorder.record(packet)
+        player.server.execute {
+            val recorder = PlayerRecorders.get(player)
+            recorder?.record(packet())
+        }
     }
 
     private fun VoicechatConnection.getServerPlayer(): ServerPlayer? {

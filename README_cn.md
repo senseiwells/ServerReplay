@@ -1,5 +1,7 @@
 # Server Replay
 
+[English](./README.md) | **中文**
+
 译 / tanh_Heng
 
 一个只在服务端生效的replay模组，它允许你在服务器上一次性同时录制多个在线玩家或某一片区块，然后产生一个可以被客户端replay模组使用的录制文件用来渲染。

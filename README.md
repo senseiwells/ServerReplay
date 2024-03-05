@@ -1,5 +1,7 @@
 # <img src="./src/main/resources/assets/serverreplay/icon.png" align="center" width="64px"/> Server Replay
 
+**English** | [中文](./README_cn.md)
+
 A completely server-side implementation of the replay mod, this mod allows you
 to record multiple players that are online, or chunk areas, on a server at a time. This will
 produce replay files which can then be used with the replay mod for rendering.

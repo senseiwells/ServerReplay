@@ -12,6 +12,7 @@ import me.senseiwells.replay.config.chunk.ChunkAreaConfig
 import me.senseiwells.replay.config.predicates.NonePredicate
 import me.senseiwells.replay.config.predicates.ReplayPlayerContext
 import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
+import me.senseiwells.replay.config.serialization.DurationSerializer
 import me.senseiwells.replay.config.serialization.FileSizeSerializer
 import me.senseiwells.replay.config.serialization.PathSerializer
 import me.senseiwells.replay.player.PlayerRecorders
@@ -25,6 +26,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
+import kotlin.time.Duration
 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
@@ -51,6 +53,13 @@ class ReplayConfig {
     var maxFileSize = FileSize("0GB")
     @SerialName("restart_after_max_file_size")
     var restartAfterMaxFileSize = false
+
+    @SerialName("max_duration")
+    @Serializable(with = DurationSerializer::class)
+    var maxDuration = Duration.ZERO
+    @SerialName("restart_after_max_duration")
+    var restartAfterMaxDuration = false
+
     @SerialName("recover_unsaved_replays")
     var recoverUnsavedReplays = true
 

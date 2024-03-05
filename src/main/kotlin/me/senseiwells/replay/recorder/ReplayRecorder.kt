@@ -159,6 +159,7 @@ abstract class ReplayRecorder(
 
         this.postPacket(outgoing)
         this.calculateAndCheckFileSize()
+        this.checkDuration()
     }
 
     fun tryStart(restart: Boolean = false): Boolean {
@@ -356,6 +357,23 @@ abstract class ReplayRecorder(
 
     }
 
+    private fun checkDuration() {
+        val maxDuration = ServerReplay.config.maxDuration
+        if (!maxDuration.isPositive()) {
+            return
+        }
+
+        if (this.getTimestamp().milliseconds > maxDuration) {
+            this.stop(true)
+            this.broadcastToOpsAndConsole(
+                "Stopped recording replay for ${this.getName()}, past duration limit ${maxDuration}!"
+            )
+            if (ServerReplay.config.restartAfterMaxDuration && this.canContinueRecording()) {
+                this.restart()
+            }
+        }
+    }
+
     private fun shouldRecalculateFileSize(): Boolean {
         val increase = this.getRawRecordingSize() / this.lastRawSize.toDouble()
         // We've recorded an extra 10% of our previous raw size
@@ -412,10 +430,10 @@ abstract class ReplayRecorder(
         }
 
         if (compressed > maxFileSize.bytes) {
+            this.stop(true)
             this.broadcastToOpsAndConsole(
                 "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
             )
-            this.stop(true)
             if (ServerReplay.config.restartAfterMaxFileSize && this.canContinueRecording()) {
                 this.restart()
             }

@@ -79,7 +79,7 @@ class ChunkRecorder internal constructor(
 
     override fun restart(): Boolean {
         val recorder = ChunkRecorders.create(this.chunks, this.recorderName)
-        return recorder.tryStart(false)
+        return recorder.tryStart(true)
     }
 
     override fun closed(future: CompletableFuture<Long>) {

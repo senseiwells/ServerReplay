@@ -48,7 +48,6 @@ class ReplayConfig {
     var playerRecordingPath: Path = recordings.resolve("players")
 
     @SerialName("max_file_size")
-    @Serializable(with = FileSizeSerializer::class)
     var maxFileSize = FileSize("0GB")
     @SerialName("restart_after_max_file_size")
     var restartAfterMaxFileSize = false

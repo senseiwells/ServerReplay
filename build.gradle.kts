@@ -50,7 +50,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
-    modImplementation("maven.modrinth:simple-voice-chat:fabric-${property("voicechat_version")}")
+    modCompileOnly("maven.modrinth:simple-voice-chat:fabric-${property("voicechat_version")}")
     implementation("de.maxhenkel.voicechat:voicechat-api:${property("voicechat_api_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)

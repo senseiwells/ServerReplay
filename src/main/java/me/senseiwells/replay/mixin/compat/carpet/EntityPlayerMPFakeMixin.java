@@ -17,7 +17,7 @@ public class EntityPlayerMPFakeMixin extends ServerPlayer {
 
 	@Override
 	public int requestedViewDistance() {
-		if (ServerReplay.config.getFixCarpetBotViewDistance()) {
+		if (ServerReplay.getConfig().getFixCarpetBotViewDistance()) {
 			return this.server.getPlayerList().getViewDistance();
 		}
 		return super.requestedViewDistance();

@@ -610,7 +610,7 @@ abstract class ReplayRecorder(
 
         private fun MinecraftPacket<*>.getDebugName(): String {
             return if (this is ClientboundCustomPayloadPacket) {
-                "CustomPayload(${this.payload.id()})"
+                "CustomPayload(${this.identifier})"
             } else {
                 this::class.java.simpleName
             }

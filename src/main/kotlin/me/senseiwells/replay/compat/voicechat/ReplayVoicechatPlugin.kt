@@ -28,7 +28,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.Util
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.common.ClientCommonPacketListener
+import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -51,7 +51,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
     private val STATIC_ID = ResourceLocation(MOD_ID, "static_sound")
 
     // We don't want to constantly decode sound packets, when broadcasted to multiple players
-    private val cache = WeakHashMap<SoundPacket, Packet<ClientCommonPacketListener>>()
+    private val cache = WeakHashMap<SoundPacket, Packet<ClientGamePacketListener>>()
 
     private lateinit var decoder: OpusDecoder
 
@@ -208,7 +208,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         encoded: ByteArray,
         converter: AudioConverter,
         additional: FriendlyByteBuf.() -> Unit = { }
-    ): Packet<ClientCommonPacketListener> {
+    ): Packet<ClientGamePacketListener> {
         val buf = PacketByteBufs.create()
         buf.writeShort(VERSION)
         buf.writeUUID(sender)
@@ -221,7 +221,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
 
     private fun <T: SoundPacket> recordForReceiver(
         event: PacketEvent<T>,
-        packet: () -> Packet<ClientCommonPacketListener>
+        packet: () -> Packet<ClientGamePacketListener>
     ) {
         val player = event.receiverConnection?.getServerPlayer() ?: return
         player.server.execute {
@@ -272,7 +272,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
     }
 
-    private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientCommonPacketListener> {
+    private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientGamePacketListener> {
         val buf = PacketByteBufs.create()
         this.toBytes(buf)
         return ServerPlayNetworking.createS2CPacket(this.identifier, buf)

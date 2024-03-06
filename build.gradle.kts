@@ -116,10 +116,11 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added `recover_unsaved_replays` - tries to recover any unsaved replays if the server stopped or crashed
-            - Added `notify_admin_of_status` - notifies admins when replays start, stop, save, and any errors while saving
-            - Fixed a bug that would cause the server to be unresponsive if you stopped a large recording and restarted it before it finished saving
-            - Added the currently saving replays to the `/replay status` response
+            - Added support for [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat)
+            - Added new player predicate `"type": "is_fake"` to check whether a player is not a real player (e.g. carpet bot)
+            - Added `max_duration` that lets you specify a maximum duration for your replay
+            - Added `restart_after_max_duration` that lets you automatically restart the replay if the max duration limit is met
+            - Fixed a bug that would cause gradual server lag if `max_file_size` was set
             """.trimIndent()
         )
         type = STABLE

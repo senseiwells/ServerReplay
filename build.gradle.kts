@@ -1,3 +1,6 @@
+import org.apache.commons.io.output.ByteArrayOutputStream
+import java.nio.charset.Charset
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.21"
@@ -168,8 +171,29 @@ tasks {
     compileKotlin {
         kotlinOptions.jvmTarget = "17"
     }
+
+    create("updateReadme") {
+        val readmes = listOf("./README.md")
+        val regex = Regex("""com.github.Senseiwells:ServerReplay:[a-z0-9]+""")
+        val replacement = "com.github.Senseiwells:ServerReplay:${getGitHash()}"
+        for (path in readmes) {
+            val readme = file(path)
+            readme.writeText(readme.readText().replace(regex, replacement))
+        }
+
+        println("Successfully updated all READMEs")
+    }
 }
 
 java {
     withSourcesJar()
+}
+
+fun getGitHash(): String {
+    val out = ByteArrayOutputStream()
+    exec {
+        commandLine("git", "rev-parse", "--short=10", "HEAD")
+        standardOutput = out
+    }
+    return out.toString(Charset.defaultCharset()).trim()
 }

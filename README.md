@@ -146,7 +146,7 @@ have the permission `replay.commands.replay` to access these commands.
 ### Configuring
 
 After you boot the server a new file will be generated in the path 
-``./config/ServerReplay/config.json``, by default it should look like:
+``./config/ServerReplay/config.json``, by default, it should look like:
 
 ```json
 {
@@ -385,9 +385,8 @@ repositories {
 }
 
 dependencies {
-    // For the most recent version use the latest commit hash
-    val version = "e444c355ad"
-    modImplementation("com.github.Senseiwells:ServerReplay:$version")
+    // For the most recent version, use the latest commit hash
+    modImplementation("com.github.Senseiwells:ServerReplay:foobar")
 }
 ```
 

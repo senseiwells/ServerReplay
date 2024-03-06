@@ -1,8 +1,6 @@
 package me.senseiwells.replay.config.predicates
 
 import com.mojang.authlib.GameProfile
-import net.fabricmc.fabric.api.entity.FakePlayer
-import net.fabricmc.fabric.api.util.TriState
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.scores.Team

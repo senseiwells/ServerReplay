@@ -216,7 +216,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         // reads the raw packet data when it reads the replay.
         buf.writeByteArray(converter.shortsToBytes(this.decoder.decode(encoded)))
         additional(buf)
-        return ServerPlayNetworking.createS2CPacket(id, buf)
+        return ServerPlayNetworking.createS2CPacket(id, buf) as Packet<ClientGamePacketListener>
     }
 
     private fun <T: SoundPacket> recordForReceiver(
@@ -275,6 +275,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
     private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientGamePacketListener> {
         val buf = PacketByteBufs.create()
         this.toBytes(buf)
-        return ServerPlayNetworking.createS2CPacket(this.identifier, buf)
+        return ServerPlayNetworking.createS2CPacket(this.identifier, buf) as Packet<ClientGamePacketListener>
     }
 }

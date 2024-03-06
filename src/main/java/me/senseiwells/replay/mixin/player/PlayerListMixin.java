@@ -23,9 +23,9 @@ public class PlayerListMixin {
 		ServerPlayer player,
 		CallbackInfo ci
 	) {
-		if (ServerReplay.config.getEnabled()) {
+		if (ServerReplay.getConfig().getEnabled()) {
 			ReplayPlayerContext context = ReplayPlayerContext.Companion.of(player);
-			if (ServerReplay.config.shouldRecordPlayer(context)) {
+			if (ServerReplay.getConfig().shouldRecordPlayer(context)) {
 				ReplayRecorder recorder = PlayerRecorders.create(player);
 				recorder.logStart();
 				recorder.afterLogin();

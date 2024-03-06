@@ -27,7 +27,7 @@ public class CommandsMixin {
 	) {
 		ReplayCommand.register(this.dispatcher);
 
-		if (ServerReplay.config.getDebug()) {
+		if (ServerReplay.getConfig().getDebug()) {
 			PackCommand.register(this.dispatcher);
 		}
 	}

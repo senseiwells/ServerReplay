@@ -3,16 +3,21 @@ package me.senseiwells.replay.util
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import com.replaymod.replaystudio.util.Utils
+import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.studio.ZipReplayFileAccessor
+import org.apache.commons.io.FileUtils as ApacheFileUtils
 import org.apache.commons.lang3.mutable.MutableLong
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.OutputStream
 import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import kotlin.collections.ArrayList
 
 class SizedZipReplayFile(
     input: File? = null,
@@ -31,10 +36,11 @@ class SizedZipReplayFile(
         return this.entries.values.fold(0L) { a, l -> a + l.value }
     }
 
-    fun getCompressedFileSize(): Long {
+    fun getCompressedFileSize(executor: Executor = Executor(Runnable::run)): Long {
         // We basically write and count the entire zipped output stream
         val bytes = MutableLong()
         ZipOutputStream(CounterOutputStream(OutputStream.nullOutputStream(), bytes)).use { out ->
+            // Our zip file is not being written to, so this is file to access async
             val zipFile = this.getZipFile()
             val changedEntries = this.getChangedEntries()
             val removedEntries = this.getRemovedEntries()
@@ -48,9 +54,37 @@ class SizedZipReplayFile(
                     }
                 }
             }
+
+            val futures = ArrayList<Pair<File, CompletableFuture<Void>>>(changedEntries.size)
             for ((key, value) in changedEntries) {
                 out.putNextEntry(ZipEntry(key))
-                Utils.copy(BufferedInputStream(FileInputStream(value)), out)
+                // Writing to our output stream is slow (since we are compressing)
+                // So, we want to copy the file into a temporary file (to be thread safe)
+                // then from there we can compress it...
+                val temp = value.parentFile.resolve(".tmp-compressing-${value.name}-copy")
+                // We don't want this file to stick around if JVM terminates abruptly
+                temp.deleteOnExit()
+
+                val future = CompletableFuture.runAsync({
+                    if (value.exists()) {
+                        ApacheFileUtils.copyFile(value, temp)
+                    }
+                }, executor)
+                futures.add(temp to future)
+            }
+
+            for ((temp, future) in futures) {
+                try {
+                    // Wait for copy on the main executor
+                    future.join()
+                    ApacheFileUtils.copyFile(temp, out)
+                } catch (e: Exception) {
+                    ServerReplay.logger.error("Failed to copy file for compression ${temp.absolutePath}", e)
+                } finally {
+                    if (temp.exists()) {
+                        temp.delete()
+                    }
+                }
             }
         }
         return bytes.value

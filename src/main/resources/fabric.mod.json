@@ -18,6 +18,12 @@
         "adapter": "kotlin",
         "value": "me.senseiwells.replay.ServerReplay"
       }
+    ],
+    "voicechat": [
+      {
+        "adapter": "kotlin",
+        "value": "me.senseiwells.replay.compat.voicechat.ReplayVoicechatPlugin"
+      }
     ]
   },
   "accessWidener": "serverreplay.accesswidener",

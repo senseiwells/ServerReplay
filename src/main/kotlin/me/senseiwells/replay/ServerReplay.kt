@@ -17,9 +17,9 @@ object ServerReplay: ModInitializer {
     val version: String = replay.metadata.version.friendlyString
 
     @JvmStatic
-    lateinit var config: ReplayConfig
+    var config: ReplayConfig = ReplayConfig.read()
 
     override fun onInitialize() {
-        this.config = ReplayConfig.read()
+
     }
 }

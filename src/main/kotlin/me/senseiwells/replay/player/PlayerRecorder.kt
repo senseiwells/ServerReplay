@@ -48,7 +48,7 @@ class PlayerRecorder internal constructor(
 
     override fun restart(): Boolean {
         val recorder = PlayerRecorders.create(this.server, this.profile)
-        return recorder.tryStart(false)
+        return recorder.tryStart(true)
     }
 
     override fun closed(future: CompletableFuture<Long>) {

@@ -1,5 +1,6 @@
 package me.senseiwells.replay.recorder
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
@@ -13,10 +14,13 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.config.serialization.PathSerializer
 import net.minecraft.server.MinecraftServer
+import net.minecraft.util.Mth
 import org.jetbrains.annotations.ApiStatus.Internal
+import java.io.EOFException
 import java.io.IOException
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import kotlin.io.path.*
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -49,14 +53,19 @@ object RecorderRecoverer {
 
         val recordings = if (recorders.size > 1) "recordings" else "recording"
         ServerReplay.logger.info("Detected unfinished replay $recordings that ended abruptly...")
+        val executor = Executors.newFixedThreadPool(
+            Mth.ceil(recorders.size / 2.0),
+            ThreadFactoryBuilder().setNameFormat("replay-recoverer-%d").build()
+        )
         for (recording in this.recordings) {
             ServerReplay.logger.info("Attempting to recover recording: $recording, please do not stop the server")
 
-            CompletableFuture.runAsync { this.recover(recording) }.thenRunAsync({
+            CompletableFuture.runAsync({ this.recover(recording) }, executor).thenRunAsync({
                 this.recordings.remove(recording)
                 this.write()
             }, server)
         }
+        executor.shutdown()
     }
 
     @OptIn(ExperimentalPathApi::class)
@@ -74,12 +83,19 @@ object RecorderRecoverer {
                 val data = replay.getPacketData(registry)
                 val first = data.readPacket()
                 if (first != null) {
+                    // We don't care about the contents, only the time
+                    first.release()
                     var packet = first
                     while (true) {
-                        val next = data.readPacket()
-                        if (next != null) {
-                            packet = next
-                        } else {
+                        try {
+                            val next = data.readPacket()
+                            if (next != null) {
+                                next.release()
+                                packet = next
+                            } else {
+                                break
+                            }
+                        } catch (e: EOFException) {
                             break
                         }
                     }

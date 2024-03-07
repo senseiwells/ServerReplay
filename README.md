@@ -388,7 +388,7 @@ repositories {
 
 dependencies {
     // For the most recent version, use the latest commit hash
-    modImplementation("com.github.Senseiwells:ServerReplay:53b0795bb4")
+    modImplementation("com.github.Senseiwells:ServerReplay:281e9e0ec0")
 }
 ```
 

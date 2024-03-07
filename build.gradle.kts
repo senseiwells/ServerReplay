@@ -1,3 +1,6 @@
+import org.apache.commons.io.output.ByteArrayOutputStream
+import java.nio.charset.Charset
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.21"
@@ -50,7 +53,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     modImplementation("com.github.gnembon:fabric-carpet:${property("carpet_version")}")
-    modImplementation("maven.modrinth:simple-voice-chat:fabric-${property("voicechat_version")}")
+    modCompileOnly("maven.modrinth:simple-voice-chat:fabric-${property("voicechat_version")}")
     implementation("de.maxhenkel.voicechat:voicechat-api:${property("voicechat_api_version")}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev)
@@ -116,10 +119,11 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added `recover_unsaved_replays` - tries to recover any unsaved replays if the server stopped or crashed
-            - Added `notify_admin_of_status` - notifies admins when replays start, stop, save, and any errors while saving
-            - Fixed a bug that would cause the server to be unresponsive if you stopped a large recording and restarted it before it finished saving
-            - Added the currently saving replays to the `/replay status` response
+            - Added support for [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat)
+            - Added new player predicate `"type": "is_fake"` to check whether a player is not a real player (e.g. carpet bot)
+            - Added `max_duration` that lets you specify a maximum duration for your replay
+            - Added `restart_after_max_duration` that lets you automatically restart the replay if the max duration limit is met
+            - Fixed a bug that would cause gradual server lag if `max_file_size` was set
             """.trimIndent()
         )
         type = STABLE
@@ -167,8 +171,29 @@ tasks {
     compileKotlin {
         kotlinOptions.jvmTarget = "17"
     }
+
+    create("updateReadme") {
+        val readmes = listOf("./README.md")
+        val regex = Regex("""com.github.Senseiwells:ServerReplay:[a-z0-9]+""")
+        val replacement = "com.github.Senseiwells:ServerReplay:${getGitHash()}"
+        for (path in readmes) {
+            val readme = file(path)
+            readme.writeText(readme.readText().replace(regex, replacement))
+        }
+
+        println("Successfully updated all READMEs")
+    }
 }
 
 java {
     withSourcesJar()
+}
+
+fun getGitHash(): String {
+    val out = ByteArrayOutputStream()
+    exec {
+        commandLine("git", "rev-parse", "--short=10", "HEAD")
+        standardOutput = out
+    }
+    return out.toString(Charset.defaultCharset()).trim()
 }

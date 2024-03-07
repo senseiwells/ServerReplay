@@ -44,6 +44,8 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.io.path.*
+import kotlin.math.max
+import kotlin.time.Duration.Companion.milliseconds
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 
@@ -64,7 +66,15 @@ abstract class ReplayRecorder(
 
     private var protocol = ConnectionProtocol.LOGIN
     private var lastPacket = 0L
-    private var lastSizeCheck = System.currentTimeMillis()
+
+    private var lastCompressedSize = 0L
+    private var lastRawSize = 0L
+    private var startTimeOfLastSize = System.currentTimeMillis() - 1
+    private var endTimeOfLastSize = System.currentTimeMillis()
+    private var currentSizeFuture: CompletableFuture<Long>? = null
+    private var isCheckingSize = false
+
+    private var nextFileCheckTime = System.currentTimeMillis() + DEFAULT_FILE_CHECK_TIME_MS
 
     private var packId = 0
 
@@ -148,24 +158,24 @@ abstract class ReplayRecorder(
         }
 
         this.postPacket(outgoing)
-        this.checkFileSize()
+        this.calculateAndCheckFileSize()
+        this.checkDuration()
     }
 
-    fun tryStart(log: Boolean = true): Boolean {
+    fun tryStart(restart: Boolean = false): Boolean {
         if (this.started) {
             throw IllegalStateException("Cannot start recording after already started!")
         }
         if (this.start()) {
-            if (log) {
-                this.logStart()
-            }
+            this.logStart(restart)
             return true
         }
         return false
     }
 
-    fun logStart() {
-        this.broadcastToOpsAndConsole("Started replay for ${this.getName()}")
+    @JvmOverloads
+    fun logStart(restart: Boolean = false) {
+        this.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
     }
 
     @JvmOverloads
@@ -192,8 +202,34 @@ abstract class ReplayRecorder(
         return this.replay.getRawFileSize()
     }
 
-    fun getCompressedRecordingSize(): CompletableFuture<Long> {
-        return CompletableFuture.supplyAsync({ this.replay.getCompressedFileSize() }, this.executor)
+    fun getCompressedRecordingSize(force: Boolean = false): CompletableFuture<Long> {
+        val current = this.currentSizeFuture
+        if (current != null) {
+            return current
+        }
+
+        if (!force && !this.shouldRecalculateFileSize()) {
+            return CompletableFuture.completedFuture(this.lastCompressedSize)
+        }
+
+        // This will block the executor thread from recording packets
+        // until it has duplicated all of its files (so we can access them async)
+        val future = CompletableFuture.supplyAsync {
+            val recordingTime = this.getTotalRecordingTime()
+            this.startTimeOfLastSize = System.currentTimeMillis()
+            val compressed = this.replay.getCompressedFileSize(this.executor)
+            // Update our check if this is called elsewhere
+            this.server.execute {
+                this.checkFileSize(compressed, this.lastCompressedSize, this.endTimeOfLastSize, recordingTime)
+            }
+            this.lastRawSize = this.getRawRecordingSize()
+            this.lastCompressedSize = compressed
+            this.endTimeOfLastSize = System.currentTimeMillis()
+            this.currentSizeFuture = null
+            compressed
+        }
+        this.currentSizeFuture = future
+        return future
     }
 
     fun getStatusWithSize(): CompletableFuture<String> {
@@ -216,7 +252,7 @@ abstract class ReplayRecorder(
         builder.append("raw_size", FileUtils.formatSize(this.getRawRecordingSize()))
         if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
             val compressed = this.getCompressedRecordingSize()
-            return compressed.thenApplyAsync {
+            return compressed.thenApply {
                 "${builder.append("compressed_size", FileUtils.formatSize(it))}"
             }
         }
@@ -261,13 +297,23 @@ abstract class ReplayRecorder(
     }
 
     protected open fun appendToStatus(builder: ToStringBuilder) {
-
+        val duration = this.nextFileCheckTime - System.currentTimeMillis()
+        if (duration > 0) {
+            builder.append("next_size_check", duration.milliseconds.toString())
+        }
     }
 
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
         map["settings"] = ReplayConfig.toJson(ServerReplay.config)
         map["location"] = JsonPrimitive(this.location.pathString)
+        map["time"] = JsonPrimitive(System.currentTimeMillis())
+
+        map["start_of_last_file_check"] = JsonPrimitive(this.startTimeOfLastSize)
+        map["end_of_last_file_check"] = JsonPrimitive(this.endTimeOfLastSize)
+        map["last_raw_size"] = JsonPrimitive(this.lastRawSize)
+        map["last_compressed_size"] = JsonPrimitive(this.lastCompressedSize)
+        map["next_file_check"] = JsonPrimitive(this.nextFileCheckTime)
     }
 
     abstract fun getName(): String
@@ -311,31 +357,105 @@ abstract class ReplayRecorder(
 
     }
 
-    private fun checkFileSize() {
+    private fun checkDuration() {
+        val maxDuration = ServerReplay.config.maxDuration
+        if (!maxDuration.isPositive()) {
+            return
+        }
+
+        if (this.getTimestamp().milliseconds > maxDuration) {
+            this.stop(true)
+            this.broadcastToOpsAndConsole(
+                "Stopped recording replay for ${this.getName()}, past duration limit ${maxDuration}!"
+            )
+            if (ServerReplay.config.restartAfterMaxDuration && this.canContinueRecording()) {
+                this.restart()
+            }
+        }
+    }
+
+    private fun shouldRecalculateFileSize(): Boolean {
+        val increase = this.getRawRecordingSize() / this.lastRawSize.toDouble()
+        // We've recorded an extra 10% of our previous raw size
+        if (increase > 1.1) {
+            if (ServerReplay.config.debug) {
+                ServerReplay.logger.info("Recalculating file size, file ratio: $increase")
+            }
+            return true
+        }
+
+        val now = System.currentTimeMillis()
+        val lastTimeTaken = this.endTimeOfLastSize - this.startTimeOfLastSize
+        if (this.endTimeOfLastSize + lastTimeTaken * 0.75 > now) {
+            // It's been a while since we last recalculated
+            if (ServerReplay.config.debug) {
+                ServerReplay.logger.info("Recalculating file size, last check was at ${this.endTimeOfLastSize}ms")
+            }
+            return true
+        }
+        return false
+    }
+
+    private fun calculateAndCheckFileSize() {
+        val maxFileSize = ServerReplay.config.maxFileSize
+        if (maxFileSize.bytes <= 0 || this.isCheckingSize) {
+            return
+        }
+
+        if (System.currentTimeMillis() < this.nextFileCheckTime) {
+            val increase = this.getRawRecordingSize() / this.lastRawSize.toDouble()
+            // If there's a very significant raw increase, then we should probably check
+            if (increase < 1.4 || this.getTotalRecordingTime() < DEFAULT_FILE_CHECK_TIME_MS) {
+                return
+            }
+        }
+
+        // We don't want to do multiple concurrent checks, one is enough
+        this.isCheckingSize = true
+        this.getCompressedRecordingSize(true).thenRunAsync({
+            this.isCheckingSize = false
+            // We implicitly call #checkFileSize by compressing the file
+        }, this.server)
+    }
+
+    private fun checkFileSize(
+        compressed: Long,
+        previousCompressed: Long,
+        previousEndTime: Long,
+        totalRecordingTime: Long
+    ) {
         val maxFileSize = ServerReplay.config.maxFileSize
         if (maxFileSize.bytes <= 0) {
             return
         }
-        val time = System.currentTimeMillis()
-        if (time - this.lastSizeCheck < 30_000) {
-            return
-        }
-        this.lastSizeCheck = time
-        this.getCompressedRecordingSize().thenAcceptAsync({ compressed ->
-            if (compressed > maxFileSize.bytes) {
-                this.broadcastToOpsAndConsole(
-                    "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
-                )
-                this.stop(true)
-                if (ServerReplay.config.restartAfterMaxFileSize && this.canContinueRecording()) {
-                    if (this.restart()) {
-                        this.broadcastToOpsAndConsole("Restarted recording for ${this.getName()}")
-                    } else {
-                        this.broadcastToOpsAndConsole("Failed to restart recording for ${this.getName()}")
-                    }
-                }
+
+        if (compressed > maxFileSize.bytes) {
+            this.stop(true)
+            this.broadcastToOpsAndConsole(
+                "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
+            )
+            if (ServerReplay.config.restartAfterMaxFileSize && this.canContinueRecording()) {
+                this.restart()
             }
-        }, this.server)
+        } else {
+            // The bytes per ms for the entire recording duration
+            val lDelta = compressed / totalRecordingTime.toDouble()
+            // The bytes per ms since the previous compression time
+            val sDelta = (compressed - previousCompressed) / (this.startTimeOfLastSize - previousEndTime).toDouble()
+            val remaining = maxFileSize.bytes - compressed
+
+            // We average out the deltas and multiply by 1.5 to account for fluctuations
+            val estimatedDelta = (lDelta + sDelta) * 0.75
+
+            val estimatedTime = max((remaining / estimatedDelta).toLong(), DEFAULT_FILE_CHECK_TIME_MS)
+            this.nextFileCheckTime = this.startTimeOfLastSize + estimatedTime
+            if (ServerReplay.config.debug) {
+                val timeUntilNextCheck = (this.nextFileCheckTime - System.currentTimeMillis()).milliseconds.toString()
+                ServerReplay.logger.info(
+                    "Checked compress filesize to be ${FileUtils.formatSize(compressed)}, checking next file size in $timeUntilNextCheck"
+                )
+            }
+        }
     }
 
     private fun close(save: Boolean): CompletableFuture<Long> {
@@ -499,6 +619,7 @@ abstract class ReplayRecorder(
 
     companion object {
         private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
+        private const val DEFAULT_FILE_CHECK_TIME_MS = 30_000L
 
         private fun MinecraftPacket<*>.getDebugName(): String {
             return if (this is ClientboundCustomPayloadPacket) {

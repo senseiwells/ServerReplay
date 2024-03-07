@@ -118,7 +118,7 @@
 
 注意：对于所有的指令，玩家必须要有等级4的op权限，或如果你有一个权限模组（例如[LuckPerms](https://luckperms.net/)），玩家可以在拥有权限节点 `replay.commands.replay` 时使用这些指令。
 
-- `/replay enable` 允许模组按照给定的规则（详见 [Predicates](#predicates-config) 部分）自动记录玩家。
+- `/replay enable` 允许模组按照给定的规则（详见 [匹配规则](#predicates-config) 部分）自动记录玩家。
 
 - `/replay disable` 禁止模组自动录制玩家，这将会同时停止当前的所有的玩家录制和区块录制。
 
@@ -310,7 +310,7 @@
 ```
 
 你还可以使用否定规则，用 `not` 然后用 `or` 和 `and` 连接。
-例如，如果你想要记录非管理员且玩家名不为 `senseiwells` 的玩家或在红队中的玩家：
+例如，如果你想要记录非管理员且玩家名不为 `senseiwells` 的玩家，或在红队中的玩家：
 ```json5
 {
   // ...

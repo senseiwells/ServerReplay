@@ -2,7 +2,7 @@
 
 [English](./README.md) | **中文**
 
-译 / tanh_Heng
+*译 / tanh_Heng*
 
 一个只在服务端生效的replay模组，它允许你在服务器上一次性同时录制多个在线玩家或某一片区块，然后产生一个可以被客户端replay模组使用的录制文件用来渲染。
 
@@ -18,9 +18,9 @@
 
         - 区块不会在卸载与加载的过程中闪烁
 
-        - 这些区块也不会被recorder录制器加载（不像PCRC一样会手动加载区块）
+        - 这些区块也不会被录制器加载（不像PCRC一样会手动加载区块）
 
-        - recorder录制器会跳过区块被卸载的时间
+        - 录制器可以跳过区块被卸载的时间
 
         - *这里指的是录制器不会手动加载那些本应被卸载的区块（只有当区块被加载时才会进行记录），并且区块的加载与卸载不会对记录产生影响。————译者注*
 
@@ -80,7 +80,7 @@
 
 此文件然后可以被放在客户端的`./replay_recordings`文件夹下，并用客户端replay模组打开。
 
-**重要提示：** 如果你要记录carpet的假人，你大概率需要在设置中打开`"fix_carpet_bot_view_distance"`，否则只有假人周围的2个区块会被记录。
+**重要提示：** 如果你要记录carpet的假人，你大概率需要在设置中打开`"fix_carpet_bot_view_distance"`，否则只有假人周围的2个区块的距离内会被记录。
 
 #### 区块
 
@@ -188,28 +188,27 @@
 | `"chunk_recording_path"`         | <p> 区块录制的保存路径。 </p>                                                                                                                                                                                                |
 | `"max_file_size"`                | <p> 回放文件允许录制的最大文件大小，这应当是一个数字+单位，例如 `5.2mb`。 </p> <p> 如果录制达到了这个限制，录制器将会停止。若要不对其进行限制，将此选项设置为 `0` 。 </p>                            |
 | `"pause_unloaded_chunks"`        | <p> 如果某一范围内的区块正在被录制，而该区域又被卸载了，当此选项设置为`true`时，录制将会被暂停，直到区块被重新加载时继续录制。 </p> <p> 如果此选项设置为`false`，区块将会仍然被录制，就像他们被加载了一样。*（指区块将继续以他们卸载时的状态呈现在回放中，而不是直接将区块卸载的时间跳过。————译者注）*  </p>   |
-| `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                       |
-| `"notify_admins_of_status"`      | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                           |
-| `"restart_after_max_file_size"`  | <p> If a max file size is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                 |
-| `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                            |
-| `"recover_unsaved_replays"`      | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p> |
-| `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>     |
-| `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                              |
-| `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                        |
-| `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                    |
-| `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                           |
-| `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                       |
-| `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                              |
-| `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                             |
-| `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                 |
+| `"pause_notify_players"`         | <p> 如果 `pause_unload_chunks` 被启用，且此选项也被启用，那么将会在录制的区块区域被暂停或恢复时提醒所有的在线玩家。 </p>                                                                                       |
+| `"notify_admins_of_status"`      | <p> 当启用时，这将会通知管理员录制的开始、结束和保存成功的时间，以及发生的任何错误。 </p>                                                                                           |
+| `"restart_after_max_file_size"`  | <p> 如果录制达到了被设置的最大文件大小，那么该录制将会自动地重新开始创建一个新的录制文件. </p>                                                                                                                 |
+| `"include_compressed_in_status"` | <p> 在`/replay status`中包含压缩的录制文件大小，对于较长的录制而言，这可能导致显示状态信息所需的时间增加，所以你可以禁用此选项。 </p>                                                            |
+| `"recover_unsaved_replays"`      | <p> 尝试恢复未保存的录制，例如你的服务端崩溃了、在某个录制停止或保存成功之前停止了。这不能保证录制一定不被损坏，但会尝试挽救仍可用的信息。 </p> |
+| `"fixed_daylight_cycle"`         | <p> 如果你不想要长时间恒定的昼夜周期，这将修复录制中的日光周期。此选项应当设置为以tick为单位的一天的时间，例如 `6000` （半天）。要禁用这一修复，将选项值设为 `-1`。</p>     |
+| `"fix_carpet_bot_view_distance"` | <p> 如果你要录制carpet假人，你需要启用此选项以将假人视距设置为服务端视距。否则只有假人周围两个区块的距离内会被记录。</p>                                                              |
+| `"ignore_sound_packets"`         | <p> 忽略声音包。如果你正在为一大片区域录制延时摄影，你大概不会想要记录任何声音，因为这将会占用掉极其巨大的存储空间。 </p>                                                                                                        |
+| `"ignore_light_packets"`         | <p> 忽略光照包。光照是同时在客户端和服务端上计算的，所以光照包大多是多余的。</p>                                                                                                                                                    |
+| `"ignore_chat_packets"`          | <p> 如果聊天内容在你的录制中并不必要的话，停止对聊天包（来自服务端的和来自其他玩家）的记录。</p>                                                                                                                           |
+| `"ignore_scoreboard_packets"`    | <p> 停止对计分板包的录制（例如，如果你有一个显示挖掘的计分板，那么这个计分板以及玩家的分数都不会被录制）。</p>                                                                       |
+| `"optimize_explosion_packets"`   | <p> 这通过不向客户端发送爆炸数据包，而只发送爆炸粒子和声音来大幅减小文件大小。</p>                                                                                                              |
+| `"optimize_entity_packets"`      | <p> 这通过让客户端计算一些实体逻辑来减小文件大小，例如弹射物和tnt。这可能会导致一些不一致，但这大概可以被忽略不计。 </p>                                                             |
+| `"player_predicate"`             | <p> 玩家自动录制的规则，详见 [匹配规则](#predicates-config) 部分. </p>                                                                                                                                 |
 | `"chunks"`                       | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                          |
 
-### Chunks Config
+### 区块设置
 
-You can define chunk areas to be recorded automatically when the server starts or when
-you enable ServerReplay.
+你可以定义当服务端启动或你启用了ServerReplay时，要被自动录制的区块区域。
 
-Each chunk definition must include: `"name"`, `"dimension"`, `"from_x"`, `"to_x"`, `"from_z"`, and `"to_z"`. For example:
+每一个区块的定义必须包含：`"name"`, `"dimension"`, `"from_x"`, `"to_x"`, `"from_z"`, and `"to_z"`。例如：
 ```json5
 {
   // ...
@@ -235,17 +234,16 @@ Each chunk definition must include: `"name"`, `"dimension"`, `"from_x"`, `"to_x"
 }
 ```
 
-### Predicates Config
+### 匹配规则设置
 
-You can define a predicate, which determines which players on your server
-will be recorded automatically. 
-You can do this by specifying whether players have a specific uuid, 
-name, are on a specific team, or whether they are an operator.
+*其实这个东西应该叫“断言”。————译者注*
 
-After defining a predicate you must run `/replay reload` in game then players must 
-re-log if they want to be recorded (and meet the predicate criteria). 
+你可以定义一个匹配规则，它将决定服务端上要被自动录制的玩家。
+你可以通过指定某个玩家是否有特定的uuid，名字，在某个特定的队伍里，或是否是一个管理员，来设置此规则。
 
-Most basic option is just to record all players in which case you can use:
+在定义规则后，你必须在游戏中运行 `/replay reload`，同时玩家要想被自动录制，他们必须重新登录服务器（且满足匹配规则）。
+
+最基本的选项是记录所有玩家，在这种情况下，您可以使用：
 ```json5
 {
   // ...
@@ -255,7 +253,7 @@ Most basic option is just to record all players in which case you can use:
 }
 ```
 
-If you wanted to only record players with specific names or uuids you can do the following:
+如果你想要只记录带有特定名字或uuid的玩家，你可以使用：
 ```json5
 {
   // ...
@@ -285,7 +283,7 @@ If you wanted to only record players with specific names or uuids you can do the
 }
 ```
 
-If you only wanted to record operators:
+如果你只想要记录管理员：
 ```json5
 {
   // ...
@@ -296,8 +294,7 @@ If you only wanted to record operators:
 }
 ```
 
-If you only want to record players on specific teams, this is useful for allowing players to be
-added and removed in-game, as you can just add players to a team and then have them re-log:
+如果你只想要记录在特定队伍中的玩家，这一选项可以支持玩家在游戏中被加入或移除队伍，因此你可以只玩家加入队伍，然后让他们重新登录（*来自动记录该玩家 ————译者注*）。
 ```json5
 {
   // ...
@@ -312,8 +309,8 @@ added and removed in-game, as you can just add players to a team and then have t
 }
 ```
 
-You are also able to negate predicates, using 'not' and combine them using 'or' and 'and'.
-For example, if you wanted to record all non-operators that also don't have the name 'senseiwells' or is on the red team:
+你还可以使用否定规则，用 `not` 然后用 `or` 和 `and` 连接。
+例如，如果你想要记录非管理员且玩家名不为 `senseiwells` 的玩家或在红队中的玩家：
 ```json5
 {
   // ...
@@ -352,8 +349,8 @@ For example, if you wanted to record all non-operators that also don't have the 
 }
 ```
 
-If you are using carpet mod and have the ability to spawn fake players you may want to exclude them from being recorded.
-You can do this with the `is_fake` predicate:
+如果你正在使用carpet模组且能够召唤假人，你可能会想让假人不被自动记录。
+你可以使用 `is_fake` 条件来实现：
 ```json5
 {
   // ...
@@ -366,12 +363,11 @@ You can do this with the `is_fake` predicate:
 }
 ```
 
-## Developers
+## 开发者
 
-If you want more control over, when players are recorded, you can implement this into your own mod.
+如果你想要玩家被记录时的更多的控制权，你可以在你的模组中接入此方法。
 
-To implement the API into your project, you can add the
-following to your `build.gradle.kts`
+要在你的项目中接入API，你可以下面内容加入你的 `build.gradle.kts` 中：
 
 ```kts
 repositories {
@@ -387,7 +383,7 @@ dependencies {
 }
 ```
 
-Here's a basic example of what you can do:
+这里有一个最基本的例子：
 ```kt
 class ExampleMod: ModInitializer {
     override fun onInitialize() {

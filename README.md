@@ -1,5 +1,7 @@
 # <img src="./src/main/resources/assets/serverreplay/icon.png" align="center" width="64px"/> Server Replay
 
+**English** | [中文](./README_cn.md)
+
 A completely server-side implementation of the replay mod, this mod allows you
 to record multiple players that are online, or chunk areas, on a server at a time. This will
 produce replay files which can then be used with the replay mod for rendering.
@@ -206,7 +208,7 @@ After you boot the server a new file will be generated in the path
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `"record_voice_chat"`            | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, when watching back the replay you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                                                                                                                                                |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `"chunks"`                       | <p> The list of chunks to automatically record when the server stars, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `"chunks"`                       | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Chunks Config
 
@@ -386,7 +388,7 @@ repositories {
 
 dependencies {
     // For the most recent version, use the latest commit hash
-    modImplementation("com.github.Senseiwells:ServerReplay:53b0795bb4")
+    modImplementation("com.github.Senseiwells:ServerReplay:281e9e0ec0")
 }
 ```
 

@@ -12,6 +12,23 @@ import me.senseiwells.replay.player.PlayerRecorder
  * would normally be recorded however if a replay is started with the
  * `/replay` command the recorder does not know this, and so they need
  * to be manually resent.
+ *
+ * You should add an entrypoint in your `fabric.mod.json` under
+ * `server_replay` instead. For example:
+ * ```json
+ * {
+ *   // ...
+ *   "entrypoints": {
+ *     "main": [
+ *       // ...
+ *     ],
+ *     "server_replay": [
+ *       "com.example.MyServerReplayPlugin"
+ *     ]
+ *   }
+ *   // ...
+ * }
+ * ```
  */
 interface ServerReplayPlugin {
     /**

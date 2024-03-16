@@ -386,7 +386,7 @@ repositories {
 
 dependencies {
     // For the most recent version use the latest commit hash
-    modImplementation("com.github.Senseiwells:ServerReplay:281e9e0ec0")
+    modImplementation("com.github.senseiwells:ServerReplay:281e9e0ec0")
 }
 ```
 
@@ -399,7 +399,7 @@ class ExampleMod: ModInitializer {
             if (!PlayerRecorders.has(player)) {
                 if (player.level().dimension() == Level.END) {
                     val recorder = PlayerRecorders.create(player)
-                    recorder.tryStart(log = true)
+                    recorder.start(log = true)
                 }
             } else {
                 val existing = PlayerRecorders.get(player)!!
@@ -417,7 +417,7 @@ class ExampleMod: ModInitializer {
                 ChunkPos(5, 5),
                 "Named"
             )
-            recorder.tryStart(log = false)
+            recorder.start(log = false)
         }
     }
 }

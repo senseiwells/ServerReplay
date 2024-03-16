@@ -390,7 +390,7 @@ repositories {
 
 dependencies {
     // For the most recent version, use the latest commit hash
-    modImplementation("com.github.Senseiwells:ServerReplay:da3b0e55ce")
+    modImplementation("com.github.senseiwells:ServerReplay:da3b0e55ce")
 }
 ```
 
@@ -403,7 +403,7 @@ class ExampleMod: ModInitializer {
             if (!PlayerRecorders.has(player)) {
                 if (player.level().dimension() == Level.END) {
                     val recorder = PlayerRecorders.create(player)
-                    recorder.tryStart(log = true)
+                    recorder.start(log = true)
                 }
             } else {
                 val existing = PlayerRecorders.get(player)!!
@@ -421,8 +421,37 @@ class ExampleMod: ModInitializer {
                 ChunkPos(5, 5),
                 "Named"
             )
-            recorder.tryStart(log = false)
+            recorder.start(log = false)
         }
     }
+}
+```
+
+If you want to add support to your mod for ServerReplay you can create a plugin:
+```kotlin
+class MyServerReplayPlugin: ServerReplayPlugin {
+    override fun onPlayerReplayStart(recorder: PlayerRecorder) {
+        // Send any additional packets for players here
+    }
+
+  
+    override fun onChunkReplayStart(recorder: ChunkRecorder) {
+        // Send any additional packets for chunks here
+    }
+}
+```
+Then you simply register this in your `fabric.mod.json`:
+```json5
+{
+  // ...
+  "entrypoints": {
+    "main": [
+      // ...
+    ],
+    "server_replay": [
+      "com.example.MyServerReplayPlugin"
+    ]
+  }
+  // ...
 }
 ```

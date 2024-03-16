@@ -8,16 +8,10 @@ import de.maxhenkel.voicechat.api.audio.AudioConverter
 import de.maxhenkel.voicechat.api.events.*
 import de.maxhenkel.voicechat.api.opus.OpusDecoder
 import de.maxhenkel.voicechat.api.packets.SoundPacket
-import de.maxhenkel.voicechat.net.AddCategoryPacket
-import de.maxhenkel.voicechat.net.AddGroupPacket
-import de.maxhenkel.voicechat.net.PlayerStatePacket
-import de.maxhenkel.voicechat.net.PlayerStatesPacket
-import de.maxhenkel.voicechat.net.RemoveCategoryPacket
-import de.maxhenkel.voicechat.net.SecretPacket
+import de.maxhenkel.voicechat.net.*
 import de.maxhenkel.voicechat.plugins.impl.VolumeCategoryImpl
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.api.RejoinedPacketSender
-import me.senseiwells.replay.api.ReplaySenders
+import me.senseiwells.replay.api.ServerReplayPlugin
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.player.PlayerRecorder
@@ -31,11 +25,10 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import java.util.UUID
-import java.util.WeakHashMap
+import java.util.*
 
 @Suppress("unused")
-object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
+object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     /**
      * Mod id of the replay voicechat mod, see [here](https://github.com/henkelmax/replay-voice-chat/blob/master/src/main/java/de/maxhenkel/replayvoicechat/ReplayVoicechat.java).
      */
@@ -76,8 +69,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         registration.registerEvent(RegisterVolumeCategoryEvent::class.java, this::onRegisterCategory)
         registration.registerEvent(UnregisterVolumeCategoryEvent::class.java, this::onUnregisterCategory)
         registration.registerEvent(PlayerStateChangedEvent::class.java, this::onPlayerStateChanged)
-
-        ReplaySenders.addSender(this)
     }
 
     private fun onLocationalSoundPacket(event: LocationalSoundPacketEvent) {
@@ -234,7 +225,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         return this.player.player as? ServerPlayer
     }
 
-    override fun recordAdditionalPlayerPackets(recorder: PlayerRecorder) {
+    override fun onPlayerReplayStart(recorder: PlayerRecorder) {
         this.recordAdditionalPackets(recorder)
         val server = Voicechat.SERVER.server
         val player = recorder.getPlayerOrThrow()
@@ -246,11 +237,10 @@ object ReplayVoicechatPlugin: VoicechatPlugin, RejoinedPacketSender {
         }
     }
 
-    override fun recordAdditionalChunkPackets(recorder: ChunkRecorder) {
+    override fun onChunkReplayStart(recorder: ChunkRecorder) {
         this.recordAdditionalPackets(recorder)
         val server = Voicechat.SERVER.server
         if (server != null) {
-            @Suppress("DEPRECATION")
             val player = recorder.getDummy()
             // The chunks aren't sending any voice data so doesn't need a secret
             val packet = SecretPacket(player, Util.NIL_UUID, server.port, Voicechat.SERVER_CONFIG)

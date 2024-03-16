@@ -165,7 +165,7 @@ object ReplayCommand {
         val players = EntityArgument.getPlayers(context, "players")
         var i = 0
         for (player in players) {
-            if (!PlayerRecorders.has(player) && PlayerRecorders.create(player).tryStart()) {
+            if (!PlayerRecorders.has(player) && PlayerRecorders.create(player).start()) {
                 i++
             }
         }
@@ -211,7 +211,7 @@ object ReplayCommand {
             return 0
         }
         val recorder = ChunkRecorders.create(area, id)
-        recorder.tryStart()
+        recorder.start()
         context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.getName()}") }, true)
         return 1
     }

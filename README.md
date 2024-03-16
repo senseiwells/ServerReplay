@@ -1,4 +1,4 @@
-# <img src="./src/main/resources/assets/serverreplay/icon.png" align="center" width="64px"/> Server Replay
+# <img src="./src/main/resources/assets/server-replay/icon.png" align="center" width="64px"/> Server Replay
 
 **English** | [中文](./README_cn.md)
 
@@ -390,7 +390,7 @@ repositories {
 
 dependencies {
     // For the most recent version, use the latest commit hash
-    modImplementation("com.github.Senseiwells:ServerReplay:a994bcbb56")
+    modImplementation("com.github.Senseiwells:ServerReplay:da3b0e55ce")
 }
 ```
 

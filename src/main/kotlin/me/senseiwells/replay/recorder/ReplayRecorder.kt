@@ -16,7 +16,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.*
 import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
@@ -49,8 +51,20 @@ import kotlin.time.Duration.Companion.milliseconds
 import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
 import net.minecraft.network.protocol.Packet as MinecraftPacket
 
+/**
+ * This is the abstract class representing a replay recorder.
+ *
+ * This class is responsible for starting, stopping, and saving
+ * the replay files as well as recording all the packets.
+ *
+ * @param server The [MinecraftServer] instance.
+ * @param profile The profile of the player being recorded.
+ * @param recordings The replay recordings directory.
+ * @see PlayerRecorder
+ * @see ChunkRecorder
+ */
 abstract class ReplayRecorder(
-    protected val server: MinecraftServer,
+    val server: MinecraftServer,
     protected val profile: GameProfile,
     private val recordings: Path
 ) {
@@ -82,13 +96,29 @@ abstract class ReplayRecorder(
 
     private var ignore = false
 
+    /**
+     * The directory at which all the temporary replay
+     * files will be stored.
+     * This also determines the final location of the replay file.
+     */
     val location: Path
 
+    /**
+     * Whether the replay recorder has stopped and
+     * is no longer recording any packets.
+     */
     val stopped: Boolean
         get() = this.executor.isShutdown
+
+    /**
+     * The [UUID] of the player the recording is of.
+     */
     val recordingPlayerUUID: UUID
         get() = this.profile.id
 
+    /**
+     * The level that the replay recording is currently in.
+     */
     abstract val level: ServerLevel
 
     init {
@@ -104,6 +134,20 @@ abstract class ReplayRecorder(
         this.saveMeta()
     }
 
+    /**
+     * This records an outgoing clientbound packet to the
+     * replay file.
+     *
+     * This method will throw an exception if the recorder
+     * has not started recording yet.
+     *
+     * This method **is** thread-safe; however, it should be noted
+     * that any packet optimizations cannot be done if called off
+     * the main thread, therefore only calling this method on
+     * the main thread is preferable.
+     *
+     * @param outgoing The outgoing [MinecraftPacket].
+     */
     fun record(outgoing: MinecraftPacket<*>) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
@@ -162,22 +206,42 @@ abstract class ReplayRecorder(
         this.checkDuration()
     }
 
-    fun tryStart(restart: Boolean = false): Boolean {
-        if (this.started) {
-            throw IllegalStateException("Cannot start recording after already started!")
-        }
-        if (this.start()) {
+    /**
+     * This tries to start this replay recorder and returns
+     * whether it was successful in doing so.
+     *
+     * @param restart Whether this is restarting a previous recording, `false` by default.
+     * @return `true` if the recording started successfully `false` otherwise.
+     */
+    fun start(restart: Boolean = false): Boolean {
+        if (!this.started && this.initialize()) {
             this.logStart(restart)
             return true
         }
+
         return false
     }
 
+    /**
+     * Logs that the replay has started/restarted to console and operators.
+     *
+     * @param restart Whether the log should state `"restarted"` or `"started"`.
+     */
     @JvmOverloads
     fun logStart(restart: Boolean = false) {
         this.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
     }
 
+    /**
+     * Stops the replay recorder and returns a future which will be completed
+     * when the file has completed saving or closing.
+     *
+     * A failed future will be returned if the replay is already stopped.
+     *
+     * @param save Whether the recorded replay should be saved to disk, `true` by default.
+     * @return A future which will be completed after the recording has finished saving or
+     *     closing, this completes with the file size of the final compressed replay in bytes.
+     */
     @JvmOverloads
     fun stop(save: Boolean = true): CompletableFuture<Long> {
         if (this.stopped) {
@@ -190,18 +254,51 @@ abstract class ReplayRecorder(
 
         // We only save if the player has actually logged in...
         val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
-        this.closed(future)
+        this.onClosing(future)
         return future
     }
 
+    /**
+     * This returns the total amount of time (in milliseconds) that
+     * has elapsed since the recording has started, this does not
+     * account for any pauses.
+     *
+     * @return The total amount of time (in milliseconds) that has
+     *     elapsed since the start of the recording.
+     */
     fun getTotalRecordingTime(): Long {
         return System.currentTimeMillis() - this.start
     }
 
+    /**
+     * This returns the raw (uncompressed) file size of the replay in bytes.
+     *
+     * @return The raw file size of the replay in bytes.
+     */
     fun getRawRecordingSize(): Long {
         return this.replay.getRawFileSize()
     }
 
+    /**
+     * This returns a future which will provide the compressed file
+     * size of the replay in bytes.
+     *
+     * Be careful when calling this function - to calculate the compressed
+     * file size, we must zip the entire raw replay which can be very
+     * expensive.
+     *
+     * This will not always be accurate since if you do not force compress,
+     * then it may return the last compressed size if it predicts that
+     * the current size is likely very similar to the last size it calculated.
+     * Further, these futures may take extremely long to complete (can be tens
+     * of minutes, depending on the raw file size), and by the time the compression
+     * is complete the replay size may have already changed significantly.
+     *
+     * @param force Whether to force compress (which yields a more up-to-date value), `false` by default.
+     * @return A future which will complete after the compression is complete, providing the
+     *     compressed file size in bytes.
+     * @see getRawRecordingSize
+     */
     fun getCompressedRecordingSize(force: Boolean = false): CompletableFuture<Long> {
         val current = this.currentSizeFuture
         if (current != null) {
@@ -232,6 +329,14 @@ abstract class ReplayRecorder(
         return future
     }
 
+    /**
+     * This creates a future which will provide the status of the
+     * replay recorder as a formatted string.
+     * The status may include the compressed file size which is
+     * this method provides a future, see [getCompressedRecordingSize].
+     *
+     * @return A future that will provide the status of the replay recorder.
+     */
     fun getStatusWithSize(): CompletableFuture<String> {
         val builder = ToStringBuilder(this, StandardToStringStyle().apply {
             fieldSeparator = ", "
@@ -259,43 +364,24 @@ abstract class ReplayRecorder(
         return CompletableFuture.completedFuture(builder.toString())
     }
 
-    @Internal
-    fun getDebugPacketData(): String {
-        return this.packets.values
-            .sortedByDescending { it.size }
-            .joinToString(separator = "\n", transform = DebugPacketData::format)
-    }
-
-    @Internal
-    fun afterLogin() {
-        this.started = true
-        this.start = System.currentTimeMillis()
-
-        // We will not have recorded this, so we need to do it manually.
-        this.record(ClientboundGameProfilePacket(this.profile))
-
-        this.protocol = ConnectionProtocol.CONFIGURATION
-    }
-
-    @Internal
-    fun afterConfigure() {
-        this.protocol = ConnectionProtocol.PLAY
-    }
-
-    protected fun ignore(block: () -> Unit) {
-        val previous = this.ignore
-        try {
-            this.ignore = true
-            block()
-        } finally {
-            this.ignore = previous
-        }
-    }
-
+    /**
+     * This gets the current timestamp (in milliseconds) of the replay recording.
+     *
+     * By default, this is the same as [getTotalRecordingTime] however this
+     * may be overridden to account for pauses in the replay.
+     *
+     * @return The timestamp of the recording (in milliseconds).
+     */
     open fun getTimestamp(): Long {
         return this.getTotalRecordingTime()
     }
 
+    /**
+     * This appends any additional data to the status.
+     *
+     * @param builder The [ToStringBuilder] which is used to build the status.
+     * @see getStatusWithSize
+     */
     protected open fun appendToStatus(builder: ToStringBuilder) {
         val duration = this.nextFileCheckTime - System.currentTimeMillis()
         if (duration > 0) {
@@ -303,6 +389,12 @@ abstract class ReplayRecorder(
         }
     }
 
+    /**
+     * This allows you to add any additional metadata which will be
+     * saved in the replay file.
+     *
+     * @param map The JSON metadata map which can be mutated.
+     */
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
         map["settings"] = ReplayConfig.toJson(ServerReplay.config)
@@ -316,18 +408,100 @@ abstract class ReplayRecorder(
         map["next_file_check"] = JsonPrimitive(this.nextFileCheckTime)
     }
 
+    /**
+     * This gets the name of the replay recording.
+     *
+     * @return The name of the replay recording.
+     */
     abstract fun getName(): String
 
-    protected abstract fun start(): Boolean
+    /**
+     * This starts the replay recording, note this is **not** called
+     * to start a replay if a player is being recorded from the login phase.
+     *
+     * This method should just simulate
+     */
+    protected abstract fun initialize(): Boolean
 
+    /**
+     * This method tries to restart the replay recorder by creating
+     * a new instance of itself.
+     *
+     * @return Whether it successfully restarted.
+     */
     protected abstract fun restart(): Boolean
 
-    protected abstract fun closed(future: CompletableFuture<Long>)
+    /**
+     * This gets called when the replay is closing.
+     *
+     * @param future The future that will complete once the replay has closed.
+     */
+    protected abstract fun onClosing(future: CompletableFuture<Long>)
 
-    protected abstract fun canContinueRecording(): Boolean
-
+    /**
+     * Determines whether a given packet is able to be recorded.
+     *
+     * @param packet The packet that is going to be recorded.
+     * @return Whether this recorded should record it.
+     */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
         return true
+    }
+
+    /**
+     * Calling this ignores any packets that would've been
+     * recorded by this recorder inside the [block] function.
+     *
+     * @param block The function to call while ignoring packets.
+     */
+    protected fun ignore(block: () -> Unit) {
+        val previous = this.ignore
+        try {
+            this.ignore = true
+            block()
+        } finally {
+            this.ignore = previous
+        }
+    }
+
+    /**
+     * This method formats all the debug packet data
+     * into a string.
+     *
+     * @return The formatted debug packet data.
+     */
+    @Internal
+    fun getDebugPacketData(): String {
+        return this.packets.values
+            .sortedByDescending { it.size }
+            .joinToString(separator = "\n", transform = DebugPacketData::format)
+    }
+
+    /**
+     * This method should be called after the player that is being
+     * recorded has logged in.
+     * This will mark the replay recorder as being started and will
+     * change the replay recording phase into `CONFIGURATION`.
+     */
+    @Internal
+    fun afterLogin() {
+        this.started = true
+        this.start = System.currentTimeMillis()
+
+        // We will not have recorded this, so we need to do it manually.
+        this.record(ClientboundGameProfilePacket(this.profile))
+
+        this.protocol = ConnectionProtocol.CONFIGURATION
+    }
+
+    /**
+     * This method should be called after the player has finished
+     * their configuration phase, and this will mark the player
+     * as playing the game - actually in the Minecraft world.
+     */
+    @Internal
+    fun afterConfigure() {
+        this.protocol = ConnectionProtocol.PLAY
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
@@ -368,7 +542,7 @@ abstract class ReplayRecorder(
             this.broadcastToOpsAndConsole(
                 "Stopped recording replay for ${this.getName()}, past duration limit ${maxDuration}!"
             )
-            if (ServerReplay.config.restartAfterMaxDuration && this.canContinueRecording()) {
+            if (ServerReplay.config.restartAfterMaxDuration) {
                 this.restart()
             }
         }
@@ -434,7 +608,7 @@ abstract class ReplayRecorder(
             this.broadcastToOpsAndConsole(
                 "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
             )
-            if (ServerReplay.config.restartAfterMaxFileSize && this.canContinueRecording()) {
+            if (ServerReplay.config.restartAfterMaxFileSize) {
                 this.restart()
             }
         } else {

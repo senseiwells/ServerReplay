@@ -1,6 +1,6 @@
 package me.senseiwells.replay.rejoin
 
-import me.senseiwells.replay.api.ReplaySenders
+import me.senseiwells.replay.api.ReplayPluginManager
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.player.PlayerRecorder
@@ -120,10 +120,10 @@ class RejoinedReplayPlayer private constructor(
             this.recorder.record(ClientboundUpdateMobEffectPacket(this.id, mobEffectInstance))
         }
 
-        for (sender in ReplaySenders.senders) {
+        for (plugin in ReplayPluginManager.plugins) {
             when (this.recorder) {
-                is PlayerRecorder -> sender.recordAdditionalPlayerPackets(this.recorder)
-                is ChunkRecorder -> sender.recordAdditionalChunkPackets(this.recorder)
+                is PlayerRecorder -> plugin.onPlayerReplayStart(this.recorder)
+                is ChunkRecorder -> plugin.onChunkReplayStart(this.recorder)
             }
         }
     }

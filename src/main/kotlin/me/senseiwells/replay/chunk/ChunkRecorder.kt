@@ -6,7 +6,9 @@ import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
+import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ChunkSender
+import me.senseiwells.replay.recorder.ChunkSender.WrappedTrackedEntity
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.core.UUIDUtil
@@ -15,7 +17,6 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
-import net.minecraft.server.level.ChunkMap.TrackedEntity
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -24,17 +25,27 @@ import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.builder.ToStringBuilder
-import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
+/**
+ * An implementation of [ReplayRecorder] for recording chunk areas.
+ *
+ * This can be created when running the `/replay` command.
+ *
+ * @param chunks The [ChunkArea] to record.
+ * @param recorderName The name of the [ChunkRecorder].
+ * @param recordings The chunks recordings directory.
+ * @see PlayerRecorder
+ * @see ChunkRecorder
+ */
 class ChunkRecorder internal constructor(
     val chunks: ChunkArea,
     val recorderName: String,
     recordings: Path
-): ReplayRecorder(chunks.level.server, PROFILE,recordings), ChunkSender {
+): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
     private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
 
     private val recordables = HashSet<ChunkRecordable>()
@@ -44,14 +55,28 @@ class ChunkRecorder internal constructor(
 
     private var loadedChunks = 0
 
+    /**
+     * The level that the chunk recording is currently in.
+     */
     override val level: ServerLevel
         get() = this.chunks.level
 
+    /**
+     * This gets the name of the replay recording.
+     *
+     * @return The name of the replay recording.
+     */
     override fun getName(): String {
         return this.recorderName
     }
 
-    override fun start(): Boolean {
+    /**
+     * This starts the replay recording, it sends all the chunk and
+     * entity packets as if a player were logging into the server.
+     *
+     * This method should just simulate
+     */
+    override fun initialize(): Boolean {
         val center = this.getCenterChunk()
         // Load the chunk
         this.level.getChunk(center.x, center.z)
@@ -78,12 +103,24 @@ class ChunkRecorder internal constructor(
         return true
     }
 
+    /**
+     * This method tries to restart the replay recorder by creating
+     * a new instance of itself.
+     *
+     * @return Whether it successfully restarted.
+     */
     override fun restart(): Boolean {
         val recorder = ChunkRecorders.create(this.chunks, this.recorderName)
-        return recorder.tryStart(true)
+        return recorder.start(true)
     }
 
-    override fun closed(future: CompletableFuture<Long>) {
+    /**
+     * This gets called when the replay is closing. It removes all [ChunkRecordable]s
+     * and updates the [ChunkRecorders] manager.
+     *
+     * @param future The future that will complete once the replay has closed.
+     */
+    override fun onClosing(future: CompletableFuture<Long>) {
         for (recordable in ArrayList(this.recordables)) {
             recordable.removeRecorder(this)
         }
@@ -95,16 +132,34 @@ class ChunkRecorder internal constructor(
         ChunkRecorders.close(this.server, this, future)
     }
 
+    /**
+     * This gets the current timestamp (in milliseconds) of the replay recording.
+     * This subtracts the amount of time paused from the total recording time.
+     *
+     * @return The timestamp of the recording (in milliseconds).
+     */
     override fun getTimestamp(): Long {
         return super.getTimestamp() - this.totalPausedTime - this.getCurrentPause()
     }
 
+    /**
+     * This appends any additional data to the status.
+     *
+     * @param builder The [ToStringBuilder] which is used to build the status.
+     * @see getStatusWithSize
+     */
     override fun appendToStatus(builder: ToStringBuilder) {
         builder.append("chunks_world", this.chunks.level.dimension().location())
         builder.append("chunks_from", this.chunks.from)
         builder.append("chunks_to", this.chunks.to)
     }
 
+    /**
+     * This allows you to add any additional metadata which will be
+     * saved in the replay file.
+     *
+     * @param map The JSON metadata map which can be mutated.
+     */
     override fun addMetadata(map: MutableMap<String, JsonElement>) {
         super.addMetadata(map)
         map["chunks_world"] = JsonPrimitive(this.chunks.level.dimension().location().toString())
@@ -113,46 +168,91 @@ class ChunkRecorder internal constructor(
         map["paused_time"] = JsonPrimitive(this.totalPausedTime)
     }
 
-    override fun canContinueRecording(): Boolean {
-        return true
-    }
-
+    /**
+     * This gets the center chunk position of the chunk recording.
+     *
+     * @return The center most chunk position.
+     */
     override fun getCenterChunk(): ChunkPos {
         return this.chunks.center
     }
 
+    /**
+     * This will iterate over every chunk position that is going
+     * to be sent, each chunk position will be accepted into the
+     * [consumer].
+     *
+     * @param consumer The consumer that will accept the given chunks positions.
+     */
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
         this.chunks.forEach(consumer)
     }
 
+    /**
+     * This determines whether a given [entity] should be tracked.
+     *
+     * @param entity The entity to check.
+     * @param range The entity's tracking range.
+     * @return Whether the entity should be tracked.
+     */
+    override fun shouldTrackEntity(entity: Entity, range: Double): Boolean {
+        return this.chunks.contains(entity.level().dimension(), entity.chunkPosition())
+    }
+
+    /**
+     * This records a packet.
+     *
+     * @param packet The packet to be recorded.
+     */
     override fun sendPacket(packet: Packet<*>) {
         this.record(packet)
     }
 
-    override fun isValidEntity(entity: Entity): Boolean {
-        return true
+    /**
+     * This is called when [shouldTrackEntity] returns `true`,
+     * this should be used to send any additional packets for this entity.
+     *
+     * @param tracked The [WrappedTrackedEntity].
+     */
+    override fun addTrackedEntity(tracked: WrappedTrackedEntity) {
+        (tracked.tracked as ChunkRecordable).addRecorder(this)
     }
 
-    override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
-        return this.chunks.contains(tracking.level().dimension(), tracking.chunkPosition())
-    }
-
-    override fun addTrackedEntity(tracking: TrackedEntity) {
-        (tracking as ChunkRecordable).addRecorder(this)
-    }
-
+    /**
+     * This gets the view distance of the chunk area.
+     *
+     * @return The view distance of the chunk area.
+     */
     override fun getViewDistance(): Int {
         return this.chunks.viewDistance
     }
 
+    /**
+     * Determines whether a given packet is able to be recorded.
+     *
+     * @param packet The packet that is going to be recorded.
+     * @return Whether this recorded should record it.
+     */
     override fun canRecordPacket(packet: Packet<*>): Boolean {
+        // If the server view-distance changes we do not want to update
+        // the client - this will cut the view distance in the replay
         if (packet is ClientboundSetChunkCacheRadiusPacket) {
             return packet.radius == this.getViewDistance()
         }
         return super.canRecordPacket(packet)
     }
 
-    @Deprecated("Be extremely careful when using the dummy chunk player")
+    /**
+     * This gets the dummy chunk recording player.
+     *
+     * **This is *not* a real player, and many operations on this instance
+     * may cause crashes, be very careful with how you use this.**
+     *
+     * This player has no [ServerPlayer.connection] and thus **cannot** be
+     * sent packets, any attempts will result in a [NullPointerException].
+     *
+     * @return The dummy chunk recording player.
+     */
     fun getDummy(): ServerPlayer {
         return this.dummy
     }

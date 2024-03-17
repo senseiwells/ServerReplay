@@ -163,9 +163,7 @@ class PlayerRecorder internal constructor(
      * @param tracked The tracked entity.
      */
     override fun addTrackedEntity(tracked: ChunkSender.WrappedTrackedEntity) {
-        val list = ArrayList<Packet<ClientGamePacketListener>>()
         tracked.getServerEntity().sendPairingData(this::record)
-        this.record(ClientboundBundlePacket(list))
     }
 
     /**

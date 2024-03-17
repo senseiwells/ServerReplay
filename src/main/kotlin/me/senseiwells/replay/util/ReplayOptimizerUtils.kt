@@ -15,6 +15,7 @@ import net.minecraft.world.entity.item.PrimedTnt
 import net.minecraft.world.entity.projectile.Projectile
 
 object ReplayOptimizerUtils {
+    // Set of packets that are ignored by replay mod
     private val IGNORED = setOf<Class<out Packet<*>>>(
         ClientboundBlockChangedAckPacket::class.java,
         ClientboundOpenBookPacket::class.java,
@@ -36,21 +37,25 @@ object ReplayOptimizerUtils {
         ClientboundCustomChatCompletionsPacket::class.java,
         ClientboundCommandsPacket::class.java
     )
+    // Set of all chat related packs
     private val CHAT = setOf<Class<out Packet<*>>>(
         ClientboundPlayerChatPacket::class.java,
         ClientboundDeleteChatPacket::class.java,
         ClientboundSystemChatPacket::class.java,
         ClientboundDisguisedChatPacket::class.java
     )
+    // Set of all scoreboard-related packets
     private val SCOREBOARD = setOf<Class<out Packet<*>>>(
         ClientboundSetScorePacket::class.java,
         ClientboundSetObjectivePacket::class.java,
         ClientboundSetDisplayObjectivePacket::class.java
     )
+    // Set of all sound related packets
     private val SOUNDS = setOf<Class<out Packet<*>>>(
         ClientboundSoundPacket::class.java,
         ClientboundSoundEntityPacket::class.java
     )
+    // Set of all packets related to entity movement
     private val ENTITY_MOVEMENT = setOf<Class<out Packet<*>>>(
         ClientboundMoveEntityPacket.Pos::class.java,
         ClientboundTeleportEntityPacket::class.java,
@@ -109,6 +114,7 @@ object ReplayOptimizerUtils {
         val mapper = ENTITY_MAPPERS[type] ?: return false
         val entity = mapper(packet, recorder.level) ?: return false
 
+        // The client can calculate TNT and projectile movement itself.
         if (entity is PrimedTnt) {
             return true
         }
@@ -118,6 +124,9 @@ object ReplayOptimizerUtils {
         return false
     }
 
+    // Explosion packets are huge...
+    // They contain way more data than they need to.
+    // We only really need to send the client the explosion sound and particles.
     private fun optimiseExplosions(recorder: ReplayRecorder, packet: ClientboundExplodePacket) {
         // Based on Explosion#finalizeExplosion
         val random = recorder.level.random

@@ -13,7 +13,6 @@ import me.senseiwells.replay.config.predicates.NonePredicate
 import me.senseiwells.replay.config.predicates.ReplayPlayerContext
 import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.config.serialization.DurationSerializer
-import me.senseiwells.replay.config.serialization.FileSizeSerializer
 import me.senseiwells.replay.config.serialization.PathSerializer
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.util.FileSize
@@ -107,7 +106,7 @@ class ReplayConfig {
     fun startPlayers(server: MinecraftServer, log: Boolean = true) {
         for (player in server.playerList.players) {
             if (!PlayerRecorders.has(player) && this.shouldRecordPlayer(ReplayPlayerContext.of(player))) {
-                PlayerRecorders.create(player).tryStart(log)
+                PlayerRecorders.create(player).start(log)
             }
         }
     }
@@ -122,7 +121,7 @@ class ReplayConfig {
             }
             if (ChunkRecorders.isAvailable(area, chunks.name)) {
                 val recorder = ChunkRecorders.create(area, chunks.name)
-                recorder.tryStart(log)
+                recorder.start(log)
             }
         }
     }

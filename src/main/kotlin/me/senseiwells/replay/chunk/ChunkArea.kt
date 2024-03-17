@@ -9,15 +9,36 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * This class represents an area of chunks in a given [level].
+ *
+ * @param level The level that the chunk area is in.
+ * @param from The first chunk corner.
+ * @param to The second chunk corner.
+ */
 class ChunkArea(
     val level: ServerLevel,
     from: ChunkPos,
     to: ChunkPos
 ): Iterable<ChunkPos> {
+    /**
+     * The north-west most chunk corner.
+     */
     val from: ChunkPos
+
+    /**
+     * The south-east most chunk corner.
+     */
     val to: ChunkPos
 
+    /**
+     * The center most chunk position.
+     */
     val center: ChunkPos
+
+    /**
+     * The largest distance from the center to the edge chunk.
+     */
     val viewDistance: Int
 
     init {
@@ -30,10 +51,26 @@ class ChunkArea(
         this.viewDistance = max(dx, dz)
     }
 
+    /**
+     * Checks whether this area is in a given [level] and whether it
+     * contains the given [pos].
+     *
+     * @param level The level to check.
+     * @param pos The position to check.
+     * @return Whether the location is inside this chunk area.
+     */
     fun contains(level: ResourceKey<Level>, pos: ChunkPos): Boolean {
         return this.level.dimension() == level && this.contains(pos)
     }
 
+    /**
+     * Checks whether this area is in a given [level] and whether
+     * it intersects the given [box].
+     *
+     * @param level The level to check.
+     * @param box The position to check.
+     * @return Whether the location intersects with this chunk area.
+     */
     fun intersects(level: ResourceKey<Level>, box: BoundingBox): Boolean {
         if (this.level.dimension() != level) {
             return false
@@ -49,6 +86,12 @@ class ChunkArea(
         return this.from.x <= pos.x && this.from.z <= pos.z && this.to.x >= pos.x && this.to.z >= pos.z
     }
 
+    /**
+     * Returns an iterator that iterates over every chunk position
+     * in this chunk area.
+     *
+     * @return The chunk position iterator.
+     */
     override fun iterator(): Iterator<ChunkPos> {
         val dx = this.to.x - this.from.x + 1
         val dz = this.to.z - this.from.z + 1

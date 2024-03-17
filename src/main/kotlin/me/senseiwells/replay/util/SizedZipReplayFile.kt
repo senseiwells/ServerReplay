@@ -5,11 +5,8 @@ import com.replaymod.replaystudio.studio.ReplayStudio
 import com.replaymod.replaystudio.util.Utils
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.studio.ZipReplayFileAccessor
-import org.apache.commons.io.FileUtils as ApacheFileUtils
 import org.apache.commons.lang3.mutable.MutableLong
-import java.io.BufferedInputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.OutputStream
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -17,7 +14,7 @@ import java.util.concurrent.Executor
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import kotlin.collections.ArrayList
+import org.apache.commons.io.FileUtils as ApacheFileUtils
 
 class SizedZipReplayFile(
     input: File? = null,

@@ -1,7 +1,6 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
-import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
@@ -14,10 +13,22 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
+import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
+/**
+ * An implementation of [ReplayRecorder] for recording players.
+ *
+ * This can either be created when running the `/replay` command
+ * or when a player logs in, and they meet the criteria to start recording.
+ *
+ * @param server The [MinecraftServer] instance.
+ * @param profile The profile of the player being recorded.
+ * @param recordings The player recordings directory.
+ * @see ReplayRecorder
+ */
 class PlayerRecorder internal constructor(
     server: MinecraftServer,
     profile: GameProfile,
@@ -26,49 +37,88 @@ class PlayerRecorder internal constructor(
     private val player: ServerPlayer?
         get() = this.server.playerList.getPlayer(this.recordingPlayerUUID)
 
+    /**
+     * The level that the player is currently in.
+     */
     override val level: ServerLevel
         get() = this.getPlayerOrThrow().getLevel()
 
+    /**
+     * Gets the player that's being recorded.
+     * If the player doesn't exist, an exception will be thrown.
+     *
+     * The exception will only be thrown *if* this method is called
+     * in the case a [PlayerRecorder] was started as a result of the
+     * player logging in and the player has not finished logging in yet.
+     *
+     * @return The player that is being recorded.
+     */
     fun getPlayerOrThrow(): ServerPlayer {
         return this.player ?: throw IllegalStateException("Tried to get player before player joined")
     }
 
+    /**
+     * This gets the name of the replay recording.
+     * In the case for [PlayerRecorder]s it's just the name of
+     * the player.
+     *
+     * @return The name of the replay recording.
+     */
     override fun getName(): String {
         return this.profile.name
     }
 
-    override fun start(): Boolean {
+    /**
+     * This starts the replay recording, note this is **not** called
+     * to start a replay if a player is being recorded from the login phase.
+     *
+     * This method should just simulate
+     */
+    override fun initialize(): Boolean {
         val player = this.player ?: return false
         RejoinedReplayPlayer.rejoin(player, this)
         this.sendChunksAndEntities()
         return true
     }
 
+    /**
+     * This method tries to restart the replay recorder by creating
+     * a new instance of itself.
+     *
+     * @return Whether it successfully restarted.
+     */
     override fun restart(): Boolean {
+        if (this.player == null) {
+            return false
+        }
         val recorder = PlayerRecorders.create(this.server, this.profile)
-        return recorder.tryStart(true)
+        return recorder.start(true)
     }
 
-    override fun closed(future: CompletableFuture<Long>) {
+    /**
+     * This updates the [PlayerRecorders] manager.
+     *
+     * @param future The future that will complete once the replay has closed.
+     */
+    override fun onClosing(future: CompletableFuture<Long>) {
         PlayerRecorders.close(this.server, this, future)
     }
 
-    fun spawnPlayer(player: ServerEntity) {
-        player.sendPairingData(this::record)
-    }
-
-    fun removePlayer(player: ServerPlayer) {
-        this.record(ClientboundRemoveEntitiesPacket(player.id))
-    }
-
-    override fun canContinueRecording(): Boolean {
-        return this.player != null
-    }
-
+    /**
+     * The player's chunk position.
+     *
+     * @return The player's chunk position.
+     */
     override fun getCenterChunk(): ChunkPos {
         return this.getPlayerOrThrow().chunkPosition()
     }
 
+    /**
+     * This method iterates over all the chunk positions in the player's
+     * view distance accepting a [consumer].
+     *
+     * @param consumer The consumer that will accept the given chunks positions.
+     */
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
         val centerChunkX = this.getCenterChunk().x
         val centerChunkZ = this.getCenterChunk().z
@@ -82,26 +132,59 @@ class PlayerRecorder internal constructor(
         }
     }
 
+    /**
+     * This records a packet.
+     *
+     * @param packet The packet to be recorded.
+     */
     override fun sendPacket(packet: Packet<*>) {
         this.record(packet)
     }
 
-    override fun isValidEntity(entity: Entity): Boolean {
-        return true
-    }
-
-    override fun shouldTrackEntity(tracking: Entity, range: Double): Boolean {
-        if (!super.shouldTrackEntity(tracking, range)) {
-            return false
-        }
+    /**
+     * This determines whether a given [entity] should be sent.
+     * Whether the entity is within the player's tracking range.
+     *
+     * @param entity The entity to check.
+     * @param range The entity's tracking range.
+     * @return Whether the entity should be tracked.
+     */
+    override fun shouldTrackEntity(entity: Entity, range: Double): Boolean {
         val player = this.getPlayerOrThrow()
-        val delta = player.position().subtract(tracking.position())
+        val delta = player.position().subtract(entity.position())
         val deltaSqr = delta.x * delta.x + delta.z * delta.z
         val rangeSqr = range * range
-        return deltaSqr <= rangeSqr && tracking.broadcastToPlayer(player)
+        return deltaSqr <= rangeSqr && entity.broadcastToPlayer(player)
     }
 
-    override fun addTrackedEntity(tracking: ChunkMap.TrackedEntity) {
-        (tracking as TrackedEntityAccessor).serverEntity.sendPairingData(this::record)
+    /**
+     * This pairs the data of the tracked entity with the replay recorder.
+     *
+     * @param tracked The tracked entity.
+     */
+    override fun addTrackedEntity(tracked: ChunkSender.WrappedTrackedEntity) {
+        val list = ArrayList<Packet<ClientGamePacketListener>>()
+        tracked.getServerEntity().sendPairingData(this::record)
+        this.record(ClientboundBundlePacket(list))
+    }
+
+    /**
+     * This records the recording player.
+     *
+     * @param player The recording player's [ServerEntity].
+     */
+    @Internal
+    fun spawnPlayer(player: ServerEntity) {
+        player.sendPairingData(this::record)
+    }
+
+    /**
+     * This removes the recording player.
+     *
+     * @param player The recording player.
+     */
+    @Internal
+    fun removePlayer(player: ServerPlayer) {
+        this.record(ClientboundRemoveEntitiesPacket(player.id))
     }
 }

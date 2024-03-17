@@ -20,7 +20,7 @@ object PackCommand {
         )
     }
     
-    private fun setPack(context: CommandContext<CommandSourceStack>, ): Int {
+    private fun setPack(context: CommandContext<CommandSourceStack>): Int {
         val url = StringArgumentType.getString(context, "url")
         val packet = ClientboundResourcePackPacket(url, "", false, null)
         for (player in context.source.server.playerList.players) {

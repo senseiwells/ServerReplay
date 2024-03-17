@@ -82,6 +82,10 @@ loom {
         getByName("server") {
             runDir = "run/${project.property("minecraft_version")}"
         }
+
+        getByName("client") {
+            runDir = "run/client"
+        }
     }
 }
 
@@ -109,7 +113,8 @@ tasks {
 
         from("LICENSE")
 
-        relocate("com.github.steveice10", "shadow.server_replay.com.github.steveice10")
+        relocate("com.github.steveice10.netty", "io.netty")
+        exclude("com/github/steveice10/netty/**")
         configurations = listOf(shade)
 
         archiveClassifier = "shaded"
@@ -172,7 +177,7 @@ tasks {
         kotlinOptions.jvmTarget = "17"
     }
 
-    create("updateReadme") {
+    register("updateReadme") {
         val readmes = listOf("./README.md")
         val regex = Regex("""com.github.Senseiwells:ServerReplay:[a-z0-9]+""")
         val replacement = "com.github.Senseiwells:ServerReplay:${getGitHash()}"

@@ -11,6 +11,7 @@ import de.maxhenkel.voicechat.api.packets.SoundPacket
 import de.maxhenkel.voicechat.net.*
 import de.maxhenkel.voicechat.plugins.impl.VolumeCategoryImpl
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.api.ServerReplayPlugin
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
@@ -58,6 +59,9 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         if (!ServerReplay.config.recordVoiceChat) {
             ServerReplay.logger.info("Not currently recording voice chat in replays, you must enabled this in the config")
         }
+
+        @Suppress("DEPRECATION")
+        ServerReplayPluginManager.registerPlugin(this)
     }
 
     override fun registerEvents(registration: EventRegistration) {

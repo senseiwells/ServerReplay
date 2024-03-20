@@ -1,6 +1,6 @@
 package me.senseiwells.replay
 
-import me.senseiwells.replay.api.ReplayPluginManager
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.config.ReplayConfig
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
@@ -21,6 +21,6 @@ object ServerReplay: ModInitializer {
     var config: ReplayConfig = ReplayConfig.read()
 
     override fun onInitialize() {
-        ReplayPluginManager.loadPlugins()
+        ServerReplayPluginManager.loadPlugins()
     }
 }

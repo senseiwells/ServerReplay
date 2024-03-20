@@ -1,7 +1,7 @@
 package me.senseiwells.replay.api
 
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.api.ReplayPluginManager.registerPlugin
+import me.senseiwells.replay.api.ServerReplayPluginManager.registerPlugin
 import net.fabricmc.loader.api.FabricLoader
 
 /**
@@ -10,7 +10,7 @@ import net.fabricmc.loader.api.FabricLoader
  * Your plugins should be specified in your fabric.mod.json,
  * see [registerPlugin] for more information.
  */
-object ReplayPluginManager {
+object ServerReplayPluginManager {
     internal val plugins = ArrayList<ServerReplayPlugin>()
 
     /**

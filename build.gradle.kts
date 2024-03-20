@@ -71,8 +71,6 @@ dependencies {
     include(modImplementation("me.lucko:fabric-permissions-api:${property("permissions_version")}")!!)
 
     // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
-
-    implementation(kotlin("stdlib-jdk8"))
 }
 
 loom {
@@ -159,17 +157,8 @@ tasks {
     publishing {
         publications {
             create<MavenPublication>("mavenJava") {
-                artifact(remapJar) {
-                    builtBy(remapJar)
-                }
-                artifact(kotlinSourcesJar) {
-                    builtBy(remapSourcesJar)
-                }
+                from(project.components.getByName("java"))
             }
-        }
-
-        repositories {
-
         }
     }
 

@@ -6,6 +6,9 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
+import com.replaymod.replaystudio.replay.ReplayFile
+import com.replaymod.replaystudio.replay.ZipReplayFile
+import com.replaymod.replaystudio.studio.ReplayStudio
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
@@ -14,6 +17,8 @@ import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.viewer.ReplayViewer
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -24,6 +29,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.exists
 
 object ReplayCommand {
     @JvmStatic
@@ -127,6 +133,10 @@ object ReplayCommand {
                 Commands.literal("reload").executes(this::onReload)
             ).then(
                 Commands.literal("status").executes(this::status)
+            ).then(
+                Commands.literal("view").then(
+                    Commands.argument("path", StringArgumentType.greedyString()).executes(this::viewReplay)
+                )
             )
         )
     }
@@ -328,6 +338,22 @@ object ReplayCommand {
             }
             Component.literal(message)
         }, true)
+        return 1
+    }
+
+    private fun viewReplay(context: CommandContext<CommandSourceStack>): Int {
+        val player = context.source.playerOrException
+        val path = StringArgumentType.getString(context, "path")
+        val location = FabricLoader.getInstance().gameDir.resolve(path)
+        if (location.exists()) {
+            val viewer = ReplayViewer(
+                ZipReplayFile(ReplayStudio(), location.toFile()),
+                player.connection
+            )
+            viewer.view()
+        } else {
+            // TODO!
+        }
         return 1
     }
 

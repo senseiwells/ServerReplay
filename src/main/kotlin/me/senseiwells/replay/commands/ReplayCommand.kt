@@ -6,7 +6,6 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
-import com.replaymod.replaystudio.replay.ReplayFile
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import me.lucko.fabric.api.permissions.v0.Permissions
@@ -18,6 +17,7 @@ import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.getReplayViewer
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -135,7 +135,11 @@ object ReplayCommand {
                 Commands.literal("status").executes(this::status)
             ).then(
                 Commands.literal("view").then(
-                    Commands.argument("path", StringArgumentType.greedyString()).executes(this::viewReplay)
+                    Commands.literal("start").then(
+                        Commands.argument("path", StringArgumentType.greedyString()).executes(this::viewReplay)
+                    )
+                ).then(
+                    Commands.literal("stop").executes(this::stopViewReplay)
                 )
             )
         )
@@ -350,10 +354,16 @@ object ReplayCommand {
                 ZipReplayFile(ReplayStudio(), location.toFile()),
                 player.connection
             )
-            viewer.view()
+            viewer.start()
         } else {
             // TODO!
         }
+        return 1
+    }
+
+    private fun stopViewReplay(context: CommandContext<CommandSourceStack>): Int {
+        val player = context.source.playerOrException
+        player.connection.getReplayViewer()?.stop()
         return 1
     }
 

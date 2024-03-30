@@ -33,6 +33,8 @@
     "rejoin.TrackedEntityAccessor",
     "studio.CustomViaPlatformMixin",
     "studio.ZipReplayFileAccessor",
+    "viewer.ClientboundPlayerInfoUpdatePacketAccessor",
+    "viewer.EntityInvoker",
     "viewer.ServerGamePacketListenerImplMixin"
   ],
   "injectors": {

@@ -122,11 +122,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added support for [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat)
-            - Added new player predicate `"type": "is_fake"` to check whether a player is not a real player (e.g. carpet bot)
-            - Added `max_duration` that lets you specify a maximum duration for your replay
-            - Added `restart_after_max_duration` that lets you automatically restart the replay if the max duration limit is met
-            - Fixed a bug that would cause gradual server lag if `max_file_size` was set
+            - Fixed a bug that would cause ServerReplay to crash in singleplayer
             """.trimIndent()
         )
         type = STABLE

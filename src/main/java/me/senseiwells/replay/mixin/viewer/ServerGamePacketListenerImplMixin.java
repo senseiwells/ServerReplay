@@ -8,6 +8,7 @@ import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.LastSeenMessages;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerGamePacketListener;
+import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.CommonListenerCookie;
@@ -58,6 +59,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 			"handleRecipeBookSeenRecipePacket",
 			"handleRecipeBookChangeSettingsPacket",
 			"handleSeenAdvancements",
+			"handleCustomCommandSuggestions",
 			"handleSetCommandBlock",
 			"handleSetCommandMinecart",
 			"handlePickItem",
@@ -85,6 +87,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	)
 	private void onServerboundPacket(@Coerce Packet<ServerGamePacketListener> packet, CallbackInfo ci) {
 		if (this.replay$viewer != null) {
+			this.replay$viewer.onServerboundPacket(packet);
 			ci.cancel();
 		}
 	}
@@ -95,8 +98,22 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 		cancellable = true
 	)
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-	private void onServerboundChatPacket(ServerboundChatPacket serverboundChatPacket, Optional<LastSeenMessages> optional, CallbackInfo ci) {
+	private void onServerboundChatPacket(ServerboundChatPacket packet, Optional<LastSeenMessages> optional, CallbackInfo ci) {
 		if (this.replay$viewer != null) {
+			this.replay$viewer.onServerboundPacket(packet);
+			ci.cancel();
+		}
+	}
+
+	@Inject(
+		method = "method_44356",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+	private void onServerboundChatCommandPacket(ServerboundChatCommandPacket packet, Optional<LastSeenMessages> optional, CallbackInfo ci) {
+		if (this.replay$viewer != null) {
+			this.replay$viewer.onServerboundPacket(packet);
 			ci.cancel();
 		}
 	}

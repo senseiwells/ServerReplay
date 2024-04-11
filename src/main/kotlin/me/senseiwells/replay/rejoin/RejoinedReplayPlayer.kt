@@ -60,7 +60,8 @@ class RejoinedReplayPlayer private constructor(
         fun place(
             player: ServerPlayer,
             listener: ServerGamePacketListenerImpl,
-            old: ServerPlayer = player
+            old: ServerPlayer = player,
+            afterLogin: () -> Unit = {}
         ) {
             val server = player.server
             val players = server.playerList
@@ -79,6 +80,8 @@ class RejoinedReplayPlayer private constructor(
                 rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
                 player.createCommonSpawnInfo(level)
             ))
+            afterLogin()
+
             listener.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
             listener.send(ClientboundPlayerAbilitiesPacket(player.abilities))
             listener.send(ClientboundSetCarriedItemPacket(player.inventory.selected))

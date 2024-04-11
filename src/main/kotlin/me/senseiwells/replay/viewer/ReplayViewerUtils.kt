@@ -7,6 +7,7 @@ import me.senseiwells.replay.mixin.viewer.ClientboundPlayerInfoUpdatePacketAcces
 import net.fabricmc.fabric.impl.networking.payload.RetainedPayload
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
@@ -20,23 +21,38 @@ import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 object ReplayViewerUtils {
     private val CLIENTBOUND_PLAY_CODEC = ConnectionProtocol.PLAY.codec(PacketFlow.CLIENTBOUND)
     private val CLIENTBOUND_PLAY_TYPES = ConnectionProtocol.PLAY.getPacketsByIds(PacketFlow.CLIENTBOUND)
+    private val CLIENTBOUND_CONFIG_CODEC = ConnectionProtocol.CONFIGURATION.codec(PacketFlow.CLIENTBOUND)
+    private val CLIENTBOUND_CONFIG_TYPES = ConnectionProtocol.CONFIGURATION.getPacketsByIds(PacketFlow.CLIENTBOUND)
 
-    fun ReplayPacket.getClientboundPlayPacketType(): Class<out Packet<*>> {
+    fun ReplayPacket.getClientboundPlayPacketType(): Class<out Packet<*>>? {
         return CLIENTBOUND_PLAY_TYPES.get(this.id)
+    }
+
+    fun ReplayPacket.getClientboundConfigurationPacketType(): Class<out Packet<*>>? {
+        return CLIENTBOUND_CONFIG_TYPES.get(this.id)
     }
 
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
         val decoded = CLIENTBOUND_PLAY_CODEC.createPacket(this.id, toFriendlyByteBuf(this.buf))
-            ?: throw IllegalStateException("Failed to create packet with id ${this.id}")
+            ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
+        return fixFabricCustomPayloadPacket(decoded)
+    }
 
-        if (decoded is ClientboundCustomPayloadPacket) {
-            val payload = decoded.payload
+    fun ReplayPacket.toClientboundConfigurationPacket(): Packet<*> {
+        val decoded = CLIENTBOUND_CONFIG_CODEC.createPacket(this.id, toFriendlyByteBuf(this.buf))
+            ?: throw IllegalStateException("Failed to create configuration packet with id ${this.id}")
+        return fixFabricCustomPayloadPacket(decoded)
+    }
+
+    private fun fixFabricCustomPayloadPacket(packet: Packet<*>): Packet<*> {
+        if (packet is ClientboundCustomPayloadPacket) {
+            val payload = packet.payload
             @Suppress("UnstableApiUsage")
             if (payload is RetainedPayload) {
                 return ClientboundCustomPayloadPacket(payload.resolve(null))
             }
         }
-        return decoded
+        return packet
     }
 
     private fun toFriendlyByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf): FriendlyByteBuf {

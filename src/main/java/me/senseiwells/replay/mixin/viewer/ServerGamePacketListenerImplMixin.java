@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 
@@ -31,6 +32,17 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 
 	public ServerGamePacketListenerImplMixin(MinecraftServer minecraftServer, Connection connection, CommonListenerCookie commonListenerCookie) {
 		super(minecraftServer, connection, commonListenerCookie);
+	}
+
+	@Inject(
+		method = "shouldHandleMessage",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void canAcceptPacket(Packet<?> packet, CallbackInfoReturnable<Boolean> cir) {
+		if (this.replay$viewer != null && !ReplayViewerPackets.serverboundBypass(packet)) {
+			cir.setReturnValue(false);
+		}
 	}
 
 	@Inject(
@@ -135,7 +147,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 
 	@Override
 	public void send(Packet<?> packet, @Nullable PacketSendListener packetSendListener) {
-		if (this.replay$viewer == null || ReplayViewerPackets.canBypass(packet)) {
+		if (this.replay$viewer == null || ReplayViewerPackets.clientboundBypass(packet)) {
 			super.send(packet, packetSendListener);
 		}
 	}

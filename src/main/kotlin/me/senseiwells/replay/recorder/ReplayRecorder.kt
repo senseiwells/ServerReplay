@@ -45,6 +45,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.HashMap
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -75,6 +76,8 @@ abstract class ReplayRecorder(
     private val output: ReplayOutputStream
     private val meta: ReplayMetaData
     private val date: String
+
+    private val packs = HashMap<Int, String>()
 
     private var start: Long = 0
 
@@ -675,6 +678,7 @@ abstract class ReplayRecorder(
         return future
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     private fun saveMeta() {
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
         val registry = PacketTypeRegistry.get(version, State.LOGIN)
@@ -685,8 +689,11 @@ abstract class ReplayRecorder(
             this.replay.write(ENTRY_SERVER_REPLAY_META).use {
                 val json = HashMap<String, JsonElement>()
                 this.addMetadata(json)
-                @OptIn(ExperimentalSerializationApi::class)
                 Json.encodeToStream(json, it)
+            }
+
+            this.replay.write(ENTRY_SERVER_REPLAY_PACKS).use {
+                Json.encodeToStream(this.packs, it)
             }
         }
     }
@@ -737,6 +744,7 @@ abstract class ReplayRecorder(
                 null
             }
         }
+        this.packs.put(requestId, packet.url)
         this.record(ClientboundResourcePackPushPacket(
             packet.id,
             "replay://${requestId}",
@@ -794,6 +802,7 @@ abstract class ReplayRecorder(
     companion object {
         private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
         private const val DEFAULT_FILE_CHECK_TIME_MS = 30_000L
+        const val ENTRY_SERVER_REPLAY_PACKS = "server_replay_packs.json"
 
         private fun MinecraftPacket<*>.getDebugName(): String {
             return if (this is ClientboundCustomPayloadPacket) {

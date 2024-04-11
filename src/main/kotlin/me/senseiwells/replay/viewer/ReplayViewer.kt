@@ -1,24 +1,40 @@
 package me.senseiwells.replay.viewer
 
 import com.replaymod.replaystudio.PacketData
+import com.replaymod.replaystudio.io.ReplayInputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayFile
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.coroutines.*
+import kotlinx.coroutines.future.await
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
+import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
+import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundConfigurationPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
+import me.senseiwells.replay.viewer.ReplayViewerUtils.getReplayViewer
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.setReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundConfigurationPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
+import me.senseiwells.replay.viewer.packhost.PackHost
+import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
 import net.minecraft.server.level.ServerPlayer
@@ -28,8 +44,14 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.scores.DisplaySlot
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.*
 import java.util.function.Supplier
+import kotlin.collections.ArrayList
 
 class ReplayViewer(
     val replay: ReplayFile,
@@ -39,12 +61,16 @@ class ReplayViewer(
     private var teleported = false
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default + Job())
+    private val packHost = PackHost(1)
+    private val packs = Int2ObjectOpenHashMap<String>()
 
     private var tickSpeed = 20.0F
     private var tickFrozen = false
     private val chunks = Collections.synchronizedCollection(LongOpenHashSet())
     private val entities = Collections.synchronizedCollection(IntOpenHashSet())
     private val players = Collections.synchronizedList(ArrayList<UUID>())
+
+    private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
 
     val player: ServerPlayer
         get() = this.connection.player
@@ -58,6 +84,11 @@ class ReplayViewer(
         if (this.started) {
             return
         }
+        if (this.connection.getReplayViewer() != null) {
+            ServerReplay.logger.error("Player ${this.player.scoreboardName} tried watching 2 replays at once?!")
+            return
+        }
+
         this.started = true
         this.setForReplayView()
 
@@ -78,12 +109,18 @@ class ReplayViewer(
         }
         this.removeReplayState()
         this.close()
+        this.teleported = false
         this.coroutineScope.launch {
+            if (!packHost.running) {
+                hostResourcePacks()
+            }
+
             streamReplay { this.isActive }
         }
     }
 
     fun close() {
+        this.packHost.shutdown()
         this.coroutineScope.coroutineContext.cancelChildren()
     }
 
@@ -101,8 +138,65 @@ class ReplayViewer(
     }
 
     fun onServerboundPacket(packet: Packet<*>) {
+        // To allow other packets, make sure you add them to the allowed packets in ReplayViewerPackets
         when (packet) {
             is ServerboundChatCommandPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    private suspend fun hostResourcePacks() = coroutineScope {
+        val existingIds = IntOpenHashSet()
+        replay.get(ReplayRecorder.ENTRY_SERVER_REPLAY_PACKS).orNull()?.use { stream ->
+            val decoded = Json.decodeFromStream<Map<Int, String>>(stream)
+            val requests = Int2ObjectOpenHashMap<Deferred<Boolean>>()
+            val client = HttpClient.newHttpClient()
+
+            for ((id, url) in decoded) {
+                requests[id] = async {
+                    try {
+                        val request = HttpRequest.newBuilder(URI.create(url))
+                            .timeout(Duration.ofSeconds(10))
+                            .GET()
+                            .build()
+                        val response = client.send(request, HttpResponse.BodyHandlers.discarding())
+                        response.statusCode() == 200
+                    } catch (e: Exception) {
+                        false
+                    }
+                }
+            }
+
+            for ((id, request) in requests) {
+                // The URL is still online, we don't have to host the pack ourselves
+                if (request.await()) {
+                    existingIds.add(id)
+                    packs[id] = decoded[id]
+                    continue
+                }
+            }
+        }
+
+        var startPackHost = false
+        for ((id, hash) in replay.resourcePackIndex) {
+            if (existingIds.contains(id)) {
+                continue
+            }
+            startPackHost = true
+
+            packHost.addPack(ReplayPack(hash, replay))
+        }
+
+        if (startPackHost) {
+            packHost.start(ServerReplay.config.replayViewerPackIp, ServerReplay.config.replayViewerPackPort).await()
+
+            for ((id, hash) in replay.resourcePackIndex) {
+                if (existingIds.contains(id)) {
+                    continue
+                }
+                val hosted = packHost.getHostedPack(hash) ?: continue
+                packs[id] = hosted.url
+            }
         }
     }
 
@@ -110,46 +204,73 @@ class ReplayViewer(
         active: Supplier<Boolean>
     ) {
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-        // TODO: Send any configuration data (e.g. resource packs, tags, etc. to the client)
+
+        this.replay.getPacketData(PacketTypeRegistry.get(version, State.CONFIGURATION)).use { stream ->
+            this.sendConfigurationPackets(stream, active)
+        }
         this.replay.getPacketData(PacketTypeRegistry.get(version, State.PLAY)).use { stream ->
-            var loggedIn = false
-            var lastTime = 0L
-            var data: PacketData? = stream.readPacket()
-            while (data != null && active.get()) {
-                // We don't care about all the packets before the player logs in.
-                if (!loggedIn) {
-                    val type = data.packet.getClientboundPlayPacketType()
-                    if (type != ClientboundLoginPacket::class.java) {
-                        data.release()
-                        data = stream.readPacket()
-                        continue
-                    }
-                    loggedIn = true
-                }
+            this.sendPlayPackets(stream, active)
+        }
+    }
 
-                delay(((data.time - lastTime) / this.speedMultiplier).toLong())
-
-                while (this.paused) {
-                    delay(50)
-                }
-
-                val packet = data.packet.toClientboundPlayPacket()
+    private fun sendConfigurationPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
+        var data: PacketData? = stream.readPacket()
+        while (data != null && active.get()) {
+            val type = data.packet.getClientboundConfigurationPacketType()
+            if (type == ClientboundResourcePackPushPacket::class.java) {
+                val packet = data.packet.toClientboundConfigurationPacket()
                 if (shouldSendPacket(packet)) {
                     val modified = modifyPacketForViewer(packet)
                     onSendPacket(modified)
-                    if (!active.get()) {
-                        break
-                    }
                     send(modified)
+                    afterSendPacket(modified)
                 }
-
-                lastTime = data.time
-                data.release()
-                data = stream.readPacket()
             }
-            // Release any remaining data
-            data?.release()
+
+            data.release()
+            data = stream.readPacket()
         }
+        data?.release()
+    }
+
+    private suspend fun sendPlayPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
+        var lastTime = -1L
+        var data: PacketData? = stream.readPacket()
+        while (data != null && active.get()) {
+            // We don't care about all the packets before the player logs in.
+            if (lastTime < 0) {
+                val type = data.packet.getClientboundPlayPacketType()
+                if (type != ClientboundLoginPacket::class.java) {
+                    data.release()
+                    data = stream.readPacket()
+                    continue
+                }
+                lastTime = data.time
+            }
+
+            delay(((data.time - lastTime) / this.speedMultiplier).toLong())
+
+            while (this.paused) {
+                delay(50)
+            }
+
+            val packet = data.packet.toClientboundPlayPacket()
+            if (shouldSendPacket(packet)) {
+                val modified = modifyPacketForViewer(packet)
+                onSendPacket(modified)
+                if (!active.get()) {
+                    break
+                }
+                send(modified)
+                afterSendPacket(modified)
+            }
+
+            lastTime = data.time
+            data.release()
+            data = stream.readPacket()
+        }
+        // Release any remaining data
+        data?.release()
     }
 
     private fun sendTickingState() {
@@ -191,9 +312,16 @@ class ReplayViewer(
         )
         playerList.players.add(player)
 
-        RejoinedReplayPlayer.place(player, this.connection)
+        RejoinedReplayPlayer.place(player, this.connection) {
+            this.synchronizeClientLevel()
+        }
+
         (player as EntityInvoker).removeRemovalReason()
         level.addNewPlayer(player)
+
+        for (pack in this.previousPacks) {
+            this.connection.send(pack)
+        }
     }
 
     private fun removeFromServer() {
@@ -222,6 +350,9 @@ class ReplayViewer(
                 this.send(ClientboundBossEventPacket.createRemovePacket(bossbar.id))
             }
         }
+
+        this.previousPacks.addAll((this.connection as `ServerReplay$PackTracker`).`replay$getPacks`())
+        this.send(ClientboundResourcePackPopPacket(Optional.empty()))
     }
 
     private fun removeReplayState() {
@@ -236,6 +367,7 @@ class ReplayViewer(
                 this.connection.send(ClientboundForgetLevelChunkPacket(ChunkPos(chunk)))
             }
         }
+        this.send(ClientboundResourcePackPopPacket(Optional.empty()))
     }
 
     private fun shouldSendPacket(packet: Packet<*>): Boolean {
@@ -265,6 +397,12 @@ class ReplayViewer(
                 }
             }
             is ClientboundPlayerInfoRemovePacket -> this.players.removeAll(packet.profileIds)
+        }
+    }
+
+    private fun afterSendPacket(packet: Packet<*>) {
+        when (packet) {
+            is ClientboundLoginPacket -> this.synchronizeClientLevel()
         }
     }
 
@@ -349,7 +487,27 @@ class ReplayViewer(
             this.tickFrozen = packet.isFrozen
             return this.getTickingStatePacket()
         }
+
+        if (packet is ClientboundResourcePackPushPacket && packet.url.startsWith("replay://")) {
+            val request = packet.url.removePrefix("replay://").toIntOrNull()
+                ?: throw IllegalStateException("Malformed replay packet url")
+            val url = this.packs[request]
+            if (url == null) {
+                ServerReplay.logger.warn("Tried viewing unknown request $request for player ${this.player.scoreboardName}")
+                return packet
+            }
+
+            return ClientboundResourcePackPushPacket(packet.id, url, "", packet.required, packet.prompt)
+        }
+
         return packet
+    }
+
+    private fun synchronizeClientLevel() {
+        this.send(ClientboundRespawnPacket(
+            player.createCommonSpawnInfo(player.serverLevel()),
+            ClientboundRespawnPacket.KEEP_ALL_DATA
+        ))
     }
 
     internal fun send(packet: Packet<*>) {

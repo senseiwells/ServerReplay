@@ -19,6 +19,7 @@
     "common.ServerLevelMixin",
     "compat.carpet.EntityPlayerMPFakeMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
+    "compat.vmp.TrackedEntityMixin",
     "player.ServerCommonPacketListenerImplMixin",
     "player.ServerConfigurationPacketListenerImplMixin",
     "player.ServerEntityMixin",

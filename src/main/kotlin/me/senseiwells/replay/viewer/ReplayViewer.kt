@@ -12,13 +12,9 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
-import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundConfigurationPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
@@ -44,14 +40,8 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.scores.DisplaySlot
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.time.Duration
 import java.util.*
 import java.util.function.Supplier
-import kotlin.collections.ArrayList
 
 class ReplayViewer(
     val replay: ReplayFile,
@@ -144,59 +134,21 @@ class ReplayViewer(
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    private suspend fun hostResourcePacks() = coroutineScope {
-        val existingIds = IntOpenHashSet()
-        replay.get(ReplayRecorder.ENTRY_SERVER_REPLAY_PACKS).orNull()?.use { stream ->
-            val decoded = Json.decodeFromStream<Map<Int, String>>(stream)
-            val requests = Int2ObjectOpenHashMap<Deferred<Boolean>>()
-            val client = HttpClient.newHttpClient()
-
-            for ((id, url) in decoded) {
-                requests[id] = async {
-                    try {
-                        val request = HttpRequest.newBuilder(URI.create(url))
-                            .timeout(Duration.ofSeconds(10))
-                            .GET()
-                            .build()
-                        val response = client.send(request, HttpResponse.BodyHandlers.discarding())
-                        response.statusCode() == 200
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-            }
-
-            for ((id, request) in requests) {
-                // The URL is still online, we don't have to host the pack ourselves
-                if (request.await()) {
-                    existingIds.add(id)
-                    packs[id] = decoded[id]
-                    continue
-                }
-            }
+    private suspend fun hostResourcePacks() {
+        val indices = this.replay.resourcePackIndex
+        if (indices.isEmpty()) {
+            return
         }
 
-        var startPackHost = false
-        for ((id, hash) in replay.resourcePackIndex) {
-            if (existingIds.contains(id)) {
-                continue
-            }
-            startPackHost = true
-
-            packHost.addPack(ReplayPack(hash, replay))
+        for (hash in indices.values) {
+            this.packHost.addPack(ReplayPack(hash, this.replay))
         }
 
-        if (startPackHost) {
-            packHost.start(ServerReplay.config.replayViewerPackIp, ServerReplay.config.replayViewerPackPort).await()
+        this.packHost.start(ServerReplay.config.replayViewerPackIp, ServerReplay.config.replayViewerPackPort).await()
 
-            for ((id, hash) in replay.resourcePackIndex) {
-                if (existingIds.contains(id)) {
-                    continue
-                }
-                val hosted = packHost.getHostedPack(hash) ?: continue
-                packs[id] = hosted.url
-            }
+        for ((id, hash) in indices) {
+            val hosted = this.packHost.getHostedPack(hash) ?: continue
+            this.packs[id] = hosted.url
         }
     }
 

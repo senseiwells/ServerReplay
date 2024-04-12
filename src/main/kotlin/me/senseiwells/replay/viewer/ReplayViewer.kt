@@ -87,7 +87,6 @@ class ReplayViewer(
 
     fun stop() {
         this.close()
-        this.connection.setReplayViewer(null)
 
         this.removeReplayState()
         this.addBackToServer()
@@ -98,13 +97,10 @@ class ReplayViewer(
             return
         }
         this.removeReplayState()
-        this.close()
+        this.coroutineScope.coroutineContext.cancelChildren()
         this.teleported = false
         this.coroutineScope.launch {
-            if (!packHost.running) {
-                hostResourcePacks()
-            }
-
+            hostResourcePacks()
             streamReplay { this.isActive }
         }
     }
@@ -112,6 +108,7 @@ class ReplayViewer(
     fun close() {
         this.packHost.shutdown()
         this.coroutineScope.coroutineContext.cancelChildren()
+        this.connection.setReplayViewer(null)
     }
 
     fun setSpeed(speed: Float) {
@@ -135,8 +132,12 @@ class ReplayViewer(
     }
 
     private suspend fun hostResourcePacks() {
+        if (this.packHost.running) {
+            return
+        }
+
         val indices = this.replay.resourcePackIndex
-        if (indices.isEmpty()) {
+        if (indices == null || indices.isEmpty()) {
             return
         }
 
@@ -249,7 +250,6 @@ class ReplayViewer(
         this.connection.setReplayViewer(this)
 
         this.removeServerState()
-        this.send(ClientboundGameEventPacket(CHANGE_GAME_MODE, GameType.SPECTATOR.id.toFloat()))
         ReplayViewerCommands.sendCommandPacket(this::send)
     }
 
@@ -354,7 +354,10 @@ class ReplayViewer(
 
     private fun afterSendPacket(packet: Packet<*>) {
         when (packet) {
-            is ClientboundLoginPacket -> this.synchronizeClientLevel()
+            is ClientboundLoginPacket -> {
+                this.synchronizeClientLevel()
+                this.send(ClientboundGameEventPacket(CHANGE_GAME_MODE, GameType.SPECTATOR.id.toFloat()))
+            }
         }
     }
 

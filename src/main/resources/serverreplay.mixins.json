@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "me.senseiwells.replay.mixin",
   "compatibilityLevel": "JAVA_17",
-  "plugin": "me.senseiwells.replay.util.ReplayMixinConfig",
+  "plugin": "me.senseiwells.replay.compat.ReplayMixinConfig",
   "mixins": [
     "CommandsMixin",
     "chunk.ChunkHolderMixin",

@@ -10,6 +10,7 @@ import java.io.File
 import java.io.OutputStream
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -21,7 +22,7 @@ class SizedZipReplayFile(
     out: File,
     cache: File = File(out.parentFile, out.name + ".cache")
 ): ZipReplayFile(ReplayStudio(), input, out, cache) {
-    private val entries = HashMap<String, MutableLong>()
+    private val entries = ConcurrentHashMap<String, MutableLong>()
 
     override fun write(entry: String): OutputStream {
         val mutable = MutableLong()

@@ -1,5 +1,8 @@
 package me.senseiwells.replay.chunk
 
+import it.unimi.dsi.fastutil.ints.IntArraySet
+import it.unimi.dsi.fastutil.ints.IntSet
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.ServerReplay
@@ -47,6 +50,9 @@ class ChunkRecorder internal constructor(
 ): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
     private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
 
+    private val sentChunks = LongOpenHashSet()
+    private var sentAllChunks = false
+
     private val recordables = HashSet<ChunkRecordable>()
 
     private var totalPausedTime: Long = 0
@@ -89,7 +95,13 @@ class ChunkRecorder internal constructor(
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.spawnPlayer()
-        this.sendChunksAndEntities()
+
+        if (ServerReplay.config.loadAllChunkRecorderChunks) {
+            this.sentAllChunks = true
+            this.sendChunksAndEntities()
+        } else {
+            this.sendChunkViewDistance()
+        }
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
         for (pos in this.chunks) {
@@ -283,13 +295,28 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
-    fun incrementChunksLoaded() {
+    fun onChunkLoaded(pos: ChunkPos) {
+        if (!this.chunks.contains(this.level.dimension(), pos)) {
+            ServerReplay.logger.error("Tried to load chunk out of bounds!")
+            return
+        }
+
         this.loadedChunks++
         this.resume()
+
+        if (!this.sentAllChunks && this.sentChunks.add(pos.toLong())) {
+            val chunk = this.level.getChunk(pos.x, pos.z)
+            this.sendChunk(this.level.chunkSource.chunkMap, chunk, IntArraySet())
+        }
     }
 
     @Internal
-    fun decrementChunksLoaded() {
+    fun onChunkUnloaded(pos: ChunkPos) {
+        if (!this.chunks.contains(this.level.dimension(), pos)) {
+            ServerReplay.logger.error("Tried to unload chunk out of bounds!")
+            return
+        }
+
         this.loadedChunks -= 1
         if (this.loadedChunks < 0) {
             ServerReplay.logger.error("Unloaded more chunks than was possible?")

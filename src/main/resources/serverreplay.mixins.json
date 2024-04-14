@@ -3,9 +3,8 @@
   "minVersion": "0.8",
   "package": "me.senseiwells.replay.mixin",
   "compatibilityLevel": "JAVA_17",
-  "plugin": "me.senseiwells.replay.util.ReplayMixinConfig",
+  "plugin": "me.senseiwells.replay.compat.ReplayMixinConfig",
   "mixins": [
-    "CommandsMixin",
     "chunk.ChunkHolderMixin",
     "chunk.ChunkMapMixin",
     "chunk.EndDragonFightMixin",
@@ -19,6 +18,7 @@
     "common.ServerLevelMixin",
     "compat.carpet.EntityPlayerMPFakeMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
+    "compat.vmp.TrackedEntityMixin",
     "player.ServerCommonPacketListenerImplMixin",
     "player.ServerConfigurationPacketListenerImplMixin",
     "player.ServerEntityMixin",

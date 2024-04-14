@@ -68,6 +68,8 @@ class ReplayConfig {
     @SerialName("fixed_daylight_cycle")
     var fixedDaylightCycle = -1L
 
+    @SerialName("load_all_chunk_recorder_chunks")
+    var loadAllChunkRecorderChunks = true
     @SerialName("pause_unloaded_chunks")
     var skipWhenChunksUnloaded = false
     @SerialName("pause_notify_players")

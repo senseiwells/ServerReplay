@@ -28,6 +28,8 @@ repositories {
 }
 
 val minecraftVersion: String by project
+// Different name for loom...
+val mcVersion = minecraftVersion
 val parchmentVersion: String by project
 val loaderVersion: String by project
 val fabricVersion: String by project
@@ -81,7 +83,7 @@ loom {
 
     runs {
         getByName("server") {
-            runDir = "run/${minecraftVersion}"
+            runDir = "run/$mcVersion"
         }
 
         getByName("client") {

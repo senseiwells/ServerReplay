@@ -37,7 +37,7 @@ class SizedZipReplayFile(
         // We basically write and count the entire zipped output stream
         val bytes = MutableLong()
         ZipOutputStream(CounterOutputStream(OutputStream.nullOutputStream(), bytes)).use { out ->
-            // Our zip file is not being written to, so this is file to access async
+            // Our zip file is not being written to, so this is fine to access async
             val zipFile = this.getZipFile()
             val changedEntries = this.getChangedEntries()
             val removedEntries = this.getRemovedEntries()

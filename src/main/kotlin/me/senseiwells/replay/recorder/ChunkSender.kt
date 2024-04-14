@@ -91,8 +91,20 @@ interface ChunkSender {
     @NonExtendable
     fun sendChunksAndEntities() {
         val seen = IntOpenHashSet()
+        this.sendChunkViewDistance()
         this.sendChunks(seen)
         this.sendChunkEntities(seen)
+    }
+
+    /**
+     * This sends all the chunk view distance and simulation distance packets.
+     */
+    @Internal
+    fun sendChunkViewDistance() {
+        val center = this.getCenterChunk()
+        this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
+        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
+        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
     }
 
     /**
@@ -102,12 +114,6 @@ interface ChunkSender {
      */
     @Internal
     fun sendChunks(seen: IntSet) {
-        val center = this.getCenterChunk()
-
-        this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
-        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
-        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
-
         val source = this.level.chunkSource
         val chunks = source.chunkMap
         this.forEachChunk { pos ->
@@ -139,7 +145,7 @@ interface ChunkSender {
         // We are only writing the packets to disk...
         this.sendPacket(ClientboundLevelChunkWithLightPacket(
             chunk,
-            chunks.lightEngine,
+            chunk.level.lightEngine,
             null,
             null
         ))

@@ -19,7 +19,6 @@ public class TrackedEntityMixin {
 	@Final
 	Entity entity;
 
-	@SuppressWarnings("ReferenceToMixin")
 	@Dynamic(mixin = MixinThreadedAnvilChunkStorageEntityTracker.class)
 	@ModifyExpressionValue(
 		method = "tryTick",

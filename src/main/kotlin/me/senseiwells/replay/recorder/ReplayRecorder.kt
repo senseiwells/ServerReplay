@@ -95,7 +95,8 @@ abstract class ReplayRecorder(
 
     private var packId = 0
 
-    private var started = false
+    internal var started = false
+        private set
 
     private var ignore = false
 

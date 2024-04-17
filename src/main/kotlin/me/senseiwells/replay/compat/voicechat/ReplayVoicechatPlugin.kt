@@ -245,7 +245,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         this.recordAdditionalPackets(recorder)
         val server = Voicechat.SERVER.server
         if (server != null) {
-            val player = recorder.getDummy()
+            val player = recorder.getDummyPlayer()
             // The chunks aren't sending any voice data so doesn't need a secret
             val packet = SecretPacket(player, Util.NIL_UUID, server.port, Voicechat.SERVER_CONFIG)
             recorder.record(packet.toClientboundPacket())

@@ -19,6 +19,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.ApiStatus.NonExtendable
+import org.jetbrains.annotations.ApiStatus.OverrideOnly
 import java.util.function.Consumer
 import kotlin.math.min
 
@@ -83,6 +84,16 @@ interface ChunkSender {
      */
     fun getViewDistance(): Int {
         return this.level.server.playerList.viewDistance
+    }
+
+    /**
+     * This is called when a chunk is successfully sent to the client.
+     *
+     * @param chunk The chunk that was sent.
+     */
+    @OverrideOnly
+    fun onChunkSent(chunk: LevelChunk) {
+
     }
 
     /**
@@ -180,6 +191,8 @@ interface ChunkSender {
         for (entity in ridden) {
             this.sendPacket(ClientboundSetPassengersPacket(entity))
         }
+
+        this.onChunkSent(chunk)
     }
 
     /**

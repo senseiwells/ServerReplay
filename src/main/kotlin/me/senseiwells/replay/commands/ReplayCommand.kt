@@ -24,12 +24,16 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
+import net.minecraft.commands.arguments.UuidArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import kotlin.io.path.exists
+import kotlin.io.path.*
 
 object ReplayCommand {
     @JvmStatic
@@ -135,11 +139,21 @@ object ReplayCommand {
                 Commands.literal("status").executes(this::status)
             ).then(
                 Commands.literal("view").then(
-                    Commands.literal("start").then(
-                        Commands.argument("path", StringArgumentType.greedyString()).executes(this::viewReplay)
+                    Commands.literal("players").then(
+                        Commands.argument("uuid", UuidArgument.uuid()).suggests(this.suggestSavedPlayerUUID()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
+                                this.viewReplay(it, true)
+                            }
+                        )
                     )
                 ).then(
-                    Commands.literal("stop").executes(this::stopViewReplay)
+                    Commands.literal("chunks").then(
+                        Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
+                                this.viewReplay(it, false)
+                            }
+                        )
+                    )
                 )
             )
         )
@@ -345,26 +359,30 @@ object ReplayCommand {
         return 1
     }
 
-    private fun viewReplay(context: CommandContext<CommandSourceStack>): Int {
+    private fun viewReplay(
+        context: CommandContext<CommandSourceStack>,
+        isPlayer: Boolean
+    ): Int {
         val player = context.source.playerOrException
-        val path = StringArgumentType.getString(context, "path")
-        val location = FabricLoader.getInstance().gameDir.resolve(path)
-        if (location.exists()) {
-            val viewer = ReplayViewer(
-                ZipReplayFile(ReplayStudio(), location.toFile()),
-                player.connection
-            )
-            viewer.start()
+        val path = if (isPlayer) {
+            val uuid = UuidArgument.getUuid(context, "uuid")
+            ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
         } else {
-            // TODO!
+            val area = StringArgumentType.getString(context, "area")
+            ServerReplay.config.chunkRecordingPath.resolve(area)
         }
-        return 1
-    }
 
-    private fun stopViewReplay(context: CommandContext<CommandSourceStack>): Int {
-        val player = context.source.playerOrException
-        player.connection.getReplayViewer()?.stop()
-        return 1
+        val replayName = StringArgumentType.getString(context, "replay")
+        val replayPath = path.resolve("${replayName}.mcpr")
+
+        if (replayPath.exists()) {
+            val viewer = ReplayViewer(replayPath, player.connection)
+            viewer.start()
+            return 1
+        }
+
+        context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
+        return 0
     }
 
     private fun getStatusFuture(
@@ -423,6 +441,46 @@ object ReplayCommand {
     private fun suggestExistingName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
             SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { "\"${it.getName()}\"" }, b)
+        }
+    }
+
+    private fun suggestSavedChunkArea(): SuggestionProvider<CommandSourceStack> {
+        return SuggestionProvider<CommandSourceStack> { _, b ->
+            val names = Files.list(ServerReplay.config.chunkRecordingPath)
+                .filter { it.isDirectory() }
+                .map { "\"${it.name}\"" }
+            SharedSuggestionProvider.suggest(names, b)
+        }
+    }
+
+    private fun suggestSavedPlayerUUID(): SuggestionProvider<CommandSourceStack> {
+        return SuggestionProvider<CommandSourceStack> { _, b ->
+            val names = Files.list(ServerReplay.config.playerRecordingPath)
+                .filter { it.isDirectory() && kotlin.runCatching { UUID.fromString(it.name) }.isSuccess }
+                .map { it.name }
+            SharedSuggestionProvider.suggest(names, b)
+        }
+    }
+
+    private fun suggestSavedPlayerReplayName(): SuggestionProvider<CommandSourceStack> {
+        return SuggestionProvider<CommandSourceStack> { c, b ->
+            val uuid = UuidArgument.getUuid(c, "uuid")
+            val playerPath = ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
+            val names = Files.list(playerPath)
+                .filter { !it.isDirectory() && it.extension == "mcpr" }
+                .map { "\"${it.nameWithoutExtension}\"" }
+            SharedSuggestionProvider.suggest(names, b)
+        }
+    }
+
+    private fun suggestSavedChunkReplayName(): SuggestionProvider<CommandSourceStack> {
+        return SuggestionProvider<CommandSourceStack> { c, b ->
+            val areaName = StringArgumentType.getString(c, "area")
+            val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
+            val names = Files.list(chunkPath)
+                .filter { !it.isDirectory() && it.extension == "mcpr" }
+                .map { "\"${it.nameWithoutExtension}\"" }
+            SharedSuggestionProvider.suggest(names, b)
         }
     }
 }

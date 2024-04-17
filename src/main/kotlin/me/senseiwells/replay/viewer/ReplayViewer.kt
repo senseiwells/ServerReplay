@@ -5,7 +5,8 @@ import com.replaymod.replaystudio.io.ReplayInputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
-import com.replaymod.replaystudio.replay.ReplayFile
+import com.replaymod.replaystudio.replay.ZipReplayFile
+import com.replaymod.replaystudio.studio.ReplayStudio
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
@@ -40,13 +41,20 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.scores.DisplaySlot
+import java.io.IOException
+import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.deleteRecursively
+import kotlin.io.path.name
 
 class ReplayViewer(
-    val replay: ReplayFile,
+    private val location: Path,
     val connection: ServerGamePacketListenerImpl
 ) {
+    private val replay = ZipReplayFile(ReplayStudio(), this.location.toFile())
+
     private var started = false
     private var teleported = false
 
@@ -109,6 +117,14 @@ class ReplayViewer(
         this.packHost.shutdown()
         this.coroutineScope.coroutineContext.cancelChildren()
         this.connection.setReplayViewer(null)
+
+        try {
+            val caches = this.location.parent.resolve(this.location.name + ".cache")
+            @OptIn(ExperimentalPathApi::class)
+            caches.deleteRecursively()
+        } catch (e: IOException) {
+            ServerReplay.logger.error("Failed to delete caches", e)
+        }
     }
 
     fun setSpeed(speed: Float) {
@@ -264,9 +280,9 @@ class ReplayViewer(
         )
         playerList.players.add(player)
 
-        RejoinedReplayPlayer.place(player, this.connection) {
+        RejoinedReplayPlayer.place(player, this.connection, afterLogin = {
             this.synchronizeClientLevel()
-        }
+        })
 
         (player as EntityInvoker).removeRemovalReason()
         level.addNewPlayer(player)
@@ -349,6 +365,7 @@ class ReplayViewer(
                 }
             }
             is ClientboundPlayerInfoRemovePacket -> this.players.removeAll(packet.profileIds)
+            is ClientboundRespawnPacket -> this.teleported = false
         }
     }
 
@@ -356,6 +373,9 @@ class ReplayViewer(
         when (packet) {
             is ClientboundLoginPacket -> {
                 this.synchronizeClientLevel()
+                this.send(ClientboundGameEventPacket(CHANGE_GAME_MODE, GameType.SPECTATOR.id.toFloat()))
+            }
+            is ClientboundRespawnPacket -> {
                 this.send(ClientboundGameEventPacket(CHANGE_GAME_MODE, GameType.SPECTATOR.id.toFloat()))
             }
         }

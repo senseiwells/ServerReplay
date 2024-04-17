@@ -5,14 +5,20 @@ import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.viewer.ReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.scores.DisplaySlot
 import net.minecraft.world.scores.Objective
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
@@ -47,7 +53,9 @@ class RejoinedReplayPlayer private constructor(
             recorder.afterConfigure()
 
             rejoined.load(player.saveWithoutId(CompoundTag()))
-            place(rejoined, RejoinGamePacketListener(rejoined, connection, cookies), player)
+            place(rejoined, RejoinGamePacketListener(rejoined, connection, cookies), player) {
+                recorder.shouldHidePlayerFromTabList(it)
+            }
 
             for (plugin in ServerReplayPluginManager.plugins) {
                 when (recorder) {
@@ -61,7 +69,8 @@ class RejoinedReplayPlayer private constructor(
             player: ServerPlayer,
             listener: ServerGamePacketListenerImpl,
             old: ServerPlayer = player,
-            afterLogin: () -> Unit = {}
+            afterLogin: () -> Unit = {},
+            shouldHidePlayer: (ServerPlayer) -> Boolean = { false }
         ) {
             val server = player.server
             val players = server.playerList
@@ -117,6 +126,28 @@ class RejoinedReplayPlayer private constructor(
             }
 
             listener.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(uniques))
+            val hidden = ArrayList<ClientboundPlayerInfoUpdatePacket.Entry>()
+            for (unique in uniques) {
+                val replaced = if (unique.uuid == old.uuid) old else unique
+                if (shouldHidePlayer(replaced)) {
+                    hidden.add(ClientboundPlayerInfoUpdatePacket.Entry(
+                        unique.uuid,
+                        unique.gameProfile,
+                        false,
+                        0,
+                        unique.gameMode.gameModeForPlayer,
+                        null,
+                        null
+                    ))
+                }
+            }
+            if (hidden.isNotEmpty()) {
+                listener.send(ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(
+                    EnumSet.of(Action.UPDATE_LISTED),
+                    hidden
+                ))
+            }
+
             players.sendLevelInfo(player, level)
 
             for (event in server.customBossEvents.events) {

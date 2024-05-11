@@ -11,25 +11,21 @@ plugins {
     java
 }
 
-val modVersion: String by project
-version = modVersion
-group = "me.senseiwells"
-
 val shade: Configuration by configurations.creating
 
 repositories {
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
+    maven("https://repo.viaversion.com")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://api.modrinth.com/maven")
     maven("https://maven.maxhenkel.de/repository/public")
     mavenCentral()
 }
 
-val minecraftVersion: String by project
-// Different name for loom...
-val mcVersion = minecraftVersion
+val modVersion: String by project
+val mcVersion: String by project
 val parchmentVersion: String by project
 val loaderVersion: String by project
 val fabricVersion: String by project
@@ -41,10 +37,12 @@ val voicechatApiVersion: String by project
 val vmpVersion: String by project
 val permissionsVersion: String by project
 
-val releaseVersion = "${modVersion}+mc${minecraftVersion}"
+val releaseVersion = "${modVersion}+mc${mcVersion}"
+version = releaseVersion
+group = "me.senseiwells"
 
 dependencies {
-    minecraft("com.mojang:minecraft:${minecraftVersion}")
+    minecraft("com.mojang:minecraft:${mcVersion}")
     @Suppress("UnstableApiUsage")
     mappings(loom.layered {
         officialMojangMappings()
@@ -61,7 +59,7 @@ dependencies {
 
     modCompileOnly("maven.modrinth:vmp-fabric:${vmpVersion}")
 
-    // I've had some issues with ReplayStudio and slf4j (in dev)
+    // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the
     // jar and yeet the org.slf4j packages then rezip the jar.
     shade(modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
@@ -74,8 +72,6 @@ dependencies {
         exclude(group = "com.google.code.gson", module = "gson")
     })
     include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}")!!)
-
-    // include(implementation(annotationProcessor("com.github.llamalad7.mixinextras:mixinextras-fabric:${property("mixin_extras_version")}")!!)!!)
 }
 
 loom {
@@ -93,6 +89,10 @@ loom {
 }
 
 tasks {
+    register("relocateResources") {
+
+    }
+
     processResources {
         inputs.property("version", modVersion)
         filesMatching("fabric.mod.json") {
@@ -101,13 +101,7 @@ tasks {
     }
 
     remapJar {
-        archiveVersion.set(releaseVersion)
-
         inputFile.set(shadowJar.get().archiveFile)
-    }
-
-    remapSourcesJar {
-        archiveVersion.set(releaseVersion)
     }
 
     shadowJar {
@@ -115,6 +109,9 @@ tasks {
         isZip64 = true
 
         from("LICENSE")
+
+        // For compatability with viaversion
+        relocate("assets/viaversion", "assets/replay-viaversion")
 
         relocate("com.github.steveice10.netty", "io.netty")
         exclude("com/github/steveice10/netty/**")
@@ -137,13 +134,13 @@ tasks {
         type = STABLE
         modLoaders.add("fabric")
 
-        displayName = "ServerReplay $modVersion for $minecraftVersion"
+        displayName = "ServerReplay $modVersion for $mcVersion"
         version = releaseVersion
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_API_KEY")
             projectId = "qCvSZ8ra"
-            minecraftVersions.add(minecraftVersion)
+            minecraftVersions.add(mcVersion)
 
             requires {
                 id = "P7dR8mSH"
@@ -163,10 +160,6 @@ tasks {
                 from(project.components.getByName("java"))
             }
         }
-    }
-
-    compileKotlin {
-        kotlinOptions.jvmTarget = "17"
     }
 
     register("updateReadme") {

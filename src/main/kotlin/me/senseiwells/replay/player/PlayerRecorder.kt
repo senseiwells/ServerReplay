@@ -19,6 +19,7 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * An implementation of [ReplayRecorder] for recording players.
@@ -104,6 +105,15 @@ class PlayerRecorder internal constructor(
      */
     override fun onClosing(future: CompletableFuture<Long>) {
         PlayerRecorders.close(this.server, this, future)
+    }
+
+    /**
+     * This gets the viewing command for this replay for after it's saved.
+     *
+     * @return The command to view this replay.
+     */
+    override fun getViewingCommand(): String {
+        return "/replay view players ${this.profile.id} \"${this.location.nameWithoutExtension}\""
     }
 
     /**

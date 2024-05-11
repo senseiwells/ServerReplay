@@ -782,7 +782,7 @@ abstract class ReplayRecorder(
                 null
             }
         }
-        this.packs.put(requestId, packet.url)
+        this.packs[requestId] = packet.url
         this.record(ClientboundResourcePackPacket(
             "replay://${requestId}",
             "",

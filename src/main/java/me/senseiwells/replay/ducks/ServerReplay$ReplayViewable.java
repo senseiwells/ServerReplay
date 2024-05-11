@@ -5,9 +5,11 @@ import net.minecraft.network.protocol.Packet;
 import org.jetbrains.annotations.Nullable;
 
 public interface ServerReplay$ReplayViewable {
-	void replay$setReplayViewer(@Nullable ReplayViewer viewer);
+	void replay$startViewingReplay(ReplayViewer viewer);
 
-	@Nullable ReplayViewer replay$getReplayViewer();
+	void replay$stopViewingReplay();
+
+	@Nullable ReplayViewer replay$getViewingReplay();
 
 	void replay$sendReplayViewerPacket(Packet<?> packet);
 }

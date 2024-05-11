@@ -3,10 +3,9 @@ package me.senseiwells.replay.viewer
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.FloatArgumentType
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.tree.RootCommandNode
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import net.minecraft.commands.CommandSource
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -88,7 +87,7 @@ object ReplayViewerCommands {
 
     private fun CommandSourceStack.getReplayViewer(): ReplayViewer {
         val player = this.playerOrException
-        return player.connection.getReplayViewer()
+        return player.connection.getViewingReplay()
             ?: throw IllegalStateException("Player not viewing replay managed to execute this command!?")
     }
 

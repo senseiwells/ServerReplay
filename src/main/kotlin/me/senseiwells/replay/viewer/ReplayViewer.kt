@@ -19,9 +19,10 @@ import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundConfigurationPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
-import me.senseiwells.replay.viewer.ReplayViewerUtils.setReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
+import me.senseiwells.replay.viewer.ReplayViewerUtils.stopViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundConfigurationPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
 import me.senseiwells.replay.viewer.packhost.PackHost
@@ -79,7 +80,7 @@ class ReplayViewer(
         if (this.started) {
             return
         }
-        if (this.connection.getReplayViewer() != null) {
+        if (this.connection.getViewingReplay() != null) {
             ServerReplay.logger.error("Player ${this.player.scoreboardName} tried watching 2 replays at once?!")
             return
         }
@@ -113,8 +114,13 @@ class ReplayViewer(
     fun close() {
         this.packHost.shutdown()
         this.coroutineScope.coroutineContext.cancelChildren()
-        this.connection.setReplayViewer(null)
+        this.connection.stopViewingReplay()
 
+        try {
+            this.replay.close()
+        } catch (e: IOException) {
+            ServerReplay.logger.error("Failed to close replay file being viewed at ${this.location}")
+        }
         try {
             val caches = this.location.parent.resolve(this.location.name + ".cache")
             @OptIn(ExperimentalPathApi::class)
@@ -255,7 +261,7 @@ class ReplayViewer(
 
     private fun setForReplayView() {
         this.removeFromServer()
-        this.connection.setReplayViewer(this)
+        this.connection.startViewingReplay(this)
 
         this.removeServerState()
         ReplayViewerCommands.sendCommandPacket(this::send)

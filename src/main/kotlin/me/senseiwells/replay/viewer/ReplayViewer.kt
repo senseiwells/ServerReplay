@@ -318,8 +318,9 @@ class ReplayViewer(
             }
         }
 
-        this.previousPack = (this.connection as `ServerReplay$PackTracker`).`replay$getPack`()
-        if (this.previousPack != null) {
+        val previous = (this.connection as `ServerReplay$PackTracker`).`replay$getPack`()
+        if (previous != null && previous !== EMPTY_PACK) {
+            this.previousPack = previous
             this.send(EMPTY_PACK)
         }
     }
@@ -490,8 +491,8 @@ class ReplayViewer(
         val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
 
         val EMPTY_PACK = ClientboundResourcePackPacket(
-            "https://download.mc-packs.net/pack/8694214da5d1b2adac38971828e07b20e33d3e24.zip",
-            "8694214da5d1b2adac38971828e07b20e33d3e24",
+            "https://download.mc-packs.net/pack/ea8cc3798ea1f47e8ce9e3d05d27a37d80641a5e.zip",
+            "ea8cc3798ea1f47e8ce9e3d05d27a37d80641a5e",
             false,
             null
         )

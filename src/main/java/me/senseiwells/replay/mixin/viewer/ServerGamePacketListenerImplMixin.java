@@ -114,7 +114,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;tryHandleChat(Lnet/minecraft/network/chat/LastSeenMessages$Update;)Ljava/util/Optional;"
+			target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;tryHandleChat(Ljava/lang/String;Ljava/time/Instant;Lnet/minecraft/network/chat/LastSeenMessages$Update;)Ljava/util/Optional;"
 		),
 		cancellable = true
 	)

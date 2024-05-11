@@ -786,7 +786,7 @@ abstract class ReplayRecorder(
         this.record(ClientboundResourcePackPacket(
             "replay://${requestId}",
             "",
-            packet.required,
+            packet.isRequired,
             packet.prompt
         ))
         return true

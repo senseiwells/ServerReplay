@@ -81,7 +81,6 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 			"handleSelectTrade",
 			"handleEditBook",
 			"handleEntityTagQuery",
-			"handleContainerSlotStateChanged",
 			"handleBlockEntityTagQuery",
 			"handleSetJigsawBlock",
 			"handleJigsawGenerate",

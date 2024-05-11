@@ -30,8 +30,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
-import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
+import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
 import net.minecraft.server.level.ServerPlayer
@@ -62,13 +61,11 @@ class ReplayViewer(
     private val packHost = PackHost(1)
     private val packs = Int2ObjectOpenHashMap<String>()
 
-    private var tickSpeed = 20.0F
-    private var tickFrozen = false
     private val chunks = Collections.synchronizedCollection(LongOpenHashSet())
     private val entities = Collections.synchronizedCollection(IntOpenHashSet())
     private val players = Collections.synchronizedList(ArrayList<UUID>())
 
-    private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
+    private var previousPack: ClientboundResourcePackPacket? = null
 
     val player: ServerPlayer
         get() = this.connection.player
@@ -186,7 +183,7 @@ class ReplayViewer(
         var data: PacketData? = stream.readPacket()
         while (data != null && active.get()) {
             val type = data.packet.getClientboundConfigurationPacketType()
-            if (type == ClientboundResourcePackPushPacket::class.java) {
+            if (type == ClientboundResourcePackPacket::class.java) {
                 val packet = data.packet.toClientboundConfigurationPacket()
                 if (this.shouldSendPacket(packet)) {
                     val modified = modifyPacketForViewer(packet)
@@ -243,12 +240,7 @@ class ReplayViewer(
     }
 
     private fun sendTickingState() {
-        this.send(this.getTickingStatePacket())
         this.sendAbilities()
-    }
-
-    private fun getTickingStatePacket(): ClientboundTickingStatePacket {
-        return ClientboundTickingStatePacket(this.tickSpeed * this.speedMultiplier, this.paused || this.tickFrozen)
     }
 
     private fun sendAbilities() {
@@ -287,8 +279,9 @@ class ReplayViewer(
         (player as EntityInvoker).removeRemovalReason()
         level.addNewPlayer(player)
 
-        for (pack in this.previousPacks) {
-            this.connection.send(pack)
+        val previous = this.previousPack
+        if (previous != null) {
+            this.connection.send(previous)
         }
     }
 
@@ -319,8 +312,10 @@ class ReplayViewer(
             }
         }
 
-        this.previousPacks.addAll((this.connection as `ServerReplay$PackTracker`).`replay$getPacks`())
-        this.send(ClientboundResourcePackPopPacket(Optional.empty()))
+        this.previousPack = (this.connection as `ServerReplay$PackTracker`).`replay$getPack`()
+        if (this.previousPack != null) {
+            this.send(EMPTY_PACK)
+        }
     }
 
     private fun removeReplayState() {
@@ -335,7 +330,7 @@ class ReplayViewer(
                 this.connection.send(ClientboundForgetLevelChunkPacket(ChunkPos(chunk)))
             }
         }
-        this.send(ClientboundResourcePackPopPacket(Optional.empty()))
+        this.send(EMPTY_PACK)
     }
 
     private fun shouldSendPacket(packet: Packet<*>): Boolean {
@@ -457,13 +452,8 @@ class ReplayViewer(
             }
             return ClientboundSystemChatPacket(decorated, false)
         }
-        if (packet is ClientboundTickingStatePacket) {
-            this.tickSpeed = packet.tickRate
-            this.tickFrozen = packet.isFrozen
-            return this.getTickingStatePacket()
-        }
 
-        if (packet is ClientboundResourcePackPushPacket && packet.url.startsWith("replay://")) {
+        if (packet is ClientboundResourcePackPacket && packet.url.startsWith("replay://")) {
             val request = packet.url.removePrefix("replay://").toIntOrNull()
                 ?: throw IllegalStateException("Malformed replay packet url")
             val url = this.packs[request]
@@ -472,7 +462,7 @@ class ReplayViewer(
                 return packet
             }
 
-            return ClientboundResourcePackPushPacket(packet.id, url, "", packet.required, packet.prompt)
+            return ClientboundResourcePackPacket(url, "", packet.isRequired, packet.prompt)
         }
 
         return packet
@@ -492,5 +482,12 @@ class ReplayViewer(
     private companion object {
         const val VIEWER_ID = Int.MAX_VALUE - 10
         val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
+
+        val EMPTY_PACK = ClientboundResourcePackPacket(
+            "https://download.mc-packs.net/pack/8694214da5d1b2adac38971828e07b20e33d3e24.zip",
+            "8694214da5d1b2adac38971828e07b20e33d3e24",
+            false,
+            null
+        )
     }
 }

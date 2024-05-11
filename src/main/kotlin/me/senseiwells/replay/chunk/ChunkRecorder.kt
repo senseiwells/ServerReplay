@@ -1,5 +1,7 @@
 package me.senseiwells.replay.chunk
 
+import it.unimi.dsi.fastutil.ints.IntArraySet
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import com.mojang.authlib.GameProfile
@@ -23,12 +25,14 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * An implementation of [ReplayRecorder] for recording chunk areas.
@@ -46,7 +50,11 @@ class ChunkRecorder internal constructor(
     val recorderName: String,
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
-    private val dummy = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+    private val dummy by lazy {
+        ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+    }
+
+    private val sentChunks = LongOpenHashSet()
 
     private val recordables = HashSet<ChunkRecordable>()
 
@@ -133,6 +141,15 @@ class ChunkRecorder internal constructor(
     }
 
     /**
+     * This gets the viewing command for this replay for after it's saved.
+     *
+     * @return The command to view this replay.
+     */
+    override fun getViewingCommand(): String {
+        return "/replay view chunks \"${this.recorderName}\" \"${this.location.nameWithoutExtension}\""
+    }
+
+    /**
      * This gets the current timestamp (in milliseconds) of the replay recording.
      * This subtracts the amount of time paused from the total recording time.
      *
@@ -140,6 +157,15 @@ class ChunkRecorder internal constructor(
      */
     override fun getTimestamp(): Long {
         return super.getTimestamp() - this.totalPausedTime - this.getCurrentPause()
+    }
+
+    /**
+     * Returns whether a given player should be hidden from the player tab list.
+     *
+     * @return Whether the player should be hidden
+     */
+    override fun shouldHidePlayerFromTabList(player: ServerPlayer): Boolean {
+        return this.dummy == player
     }
 
     /**
@@ -185,7 +211,15 @@ class ChunkRecorder internal constructor(
      * @param consumer The consumer that will accept the given chunks positions.
      */
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
-        this.chunks.forEach(consumer)
+        val radius = ServerReplay.config.chunkRecorderLoadRadius
+        if (radius < 0) {
+            this.chunks.forEach(consumer)
+            return
+        }
+
+        ChunkPos.rangeClosed(this.chunks.center, radius + 1).filter {
+            this.chunks.contains(this.level.dimension(), it)
+        }.forEach(consumer)
     }
 
     /**
@@ -227,6 +261,10 @@ class ChunkRecorder internal constructor(
         return this.chunks.viewDistance
     }
 
+    override fun onChunkSent(chunk: LevelChunk) {
+        this.sentChunks.add(chunk.pos.toLong())
+    }
+
     /**
      * Determines whether a given packet is able to be recorded.
      *
@@ -253,7 +291,7 @@ class ChunkRecorder internal constructor(
      *
      * @return The dummy chunk recording player.
      */
-    fun getDummy(): ServerPlayer {
+    fun getDummyPlayer(): ServerPlayer {
         return this.dummy
     }
 
@@ -284,13 +322,29 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
-    fun incrementChunksLoaded() {
+    fun onChunkLoaded(chunk: LevelChunk): Boolean {
+        if (!this.chunks.contains(chunk.level.dimension(), chunk.pos)) {
+            ServerReplay.logger.error("Tried to load chunk out of bounds!")
+            return false
+        }
+
         this.loadedChunks++
         this.resume()
+
+        if (!this.sentChunks.contains(chunk.pos.toLong())) {
+            this.sendChunk(this.level.chunkSource.chunkMap, chunk, IntArraySet())
+        }
+
+        return true
     }
 
     @Internal
-    fun decrementChunksLoaded() {
+    fun onChunkUnloaded(chunk: LevelChunk) {
+        if (!this.chunks.contains(chunk.level.dimension(), chunk.pos)) {
+            ServerReplay.logger.error("Tried to unload chunk out of bounds!")
+            return
+        }
+
         this.loadedChunks -= 1
         if (this.loadedChunks < 0) {
             ServerReplay.logger.error("Unloaded more chunks than was possible?")

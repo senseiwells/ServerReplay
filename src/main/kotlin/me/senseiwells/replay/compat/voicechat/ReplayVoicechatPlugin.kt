@@ -190,9 +190,11 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         val server = voicechat.server ?: return
         server.execute {
             val state = voicechat.playerStateManager.getState(event.playerUuid)
-            val packet = PlayerStatePacket(state).toClientboundPacket()
-            for (recorder in ChunkRecorders.recorders()) {
-                recorder.record(packet)
+            if (state != null) {
+                val packet = PlayerStatePacket(state).toClientboundPacket()
+                for (recorder in ChunkRecorders.recorders()) {
+                    recorder.record(packet)
+                }
             }
         }
     }

@@ -188,11 +188,11 @@ class ReplayViewer(
             val type = data.packet.getClientboundConfigurationPacketType()
             if (type == ClientboundResourcePackPushPacket::class.java) {
                 val packet = data.packet.toClientboundConfigurationPacket()
-                if (shouldSendPacket(packet)) {
+                if (this.shouldSendPacket(packet)) {
                     val modified = modifyPacketForViewer(packet)
-                    onSendPacket(modified)
-                    send(modified)
-                    afterSendPacket(modified)
+                    this.onSendPacket(modified)
+                    this.send(modified)
+                    this.afterSendPacket(modified)
                 }
             }
 
@@ -224,14 +224,14 @@ class ReplayViewer(
             }
 
             val packet = data.packet.toClientboundPlayPacket()
-            if (shouldSendPacket(packet)) {
+            if (this.shouldSendPacket(packet)) {
                 val modified = modifyPacketForViewer(packet)
-                onSendPacket(modified)
+                this.onSendPacket(modified)
                 if (!active.get()) {
                     break
                 }
-                send(modified)
-                afterSendPacket(modified)
+                this.send(modified)
+                this.afterSendPacket(modified)
             }
 
             lastTime = data.time

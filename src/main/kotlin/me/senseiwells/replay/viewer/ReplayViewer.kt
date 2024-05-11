@@ -120,6 +120,11 @@ class ReplayViewer(
         this.connection.stopViewingReplay()
 
         try {
+            this.replay.close()
+        } catch (e: IOException) {
+            ServerReplay.logger.error("Failed to close replay file being viewed at ${this.location}")
+        }
+        try {
             val caches = this.location.parent.resolve(this.location.name + ".cache")
             @OptIn(ExperimentalPathApi::class)
             caches.deleteRecursively()

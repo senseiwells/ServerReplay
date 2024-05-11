@@ -41,7 +41,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
 		}
 
 		if (this instanceof ServerReplay$ReplayViewable viewable) {
-			ReplayViewer viewer = viewable.replay$getReplayViewer();
+			ReplayViewer viewer = viewable.replay$getViewingReplay();
 			if (viewer != null) {
 				viewer.close();
 			}

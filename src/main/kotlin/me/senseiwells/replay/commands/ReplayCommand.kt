@@ -6,8 +6,6 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
-import com.replaymod.replaystudio.replay.ZipReplayFile
-import com.replaymod.replaystudio.studio.ReplayStudio
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
@@ -17,8 +15,6 @@ import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewer
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getReplayViewer
-import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -29,8 +25,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import java.nio.file.Files
-import java.nio.file.Path
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.*

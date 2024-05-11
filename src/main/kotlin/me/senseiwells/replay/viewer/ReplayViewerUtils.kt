@@ -7,7 +7,6 @@ import me.senseiwells.replay.mixin.viewer.ClientboundPlayerInfoUpdatePacketAcces
 import net.fabricmc.fabric.impl.networking.payload.RetainedPayload
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.PacketListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
@@ -72,12 +71,16 @@ object ReplayViewerUtils {
         (this as `ServerReplay$ReplayViewable`).`replay$sendReplayViewerPacket`(packet)
     }
 
-    fun ServerGamePacketListenerImpl.setReplayViewer(viewer: ReplayViewer?) {
-        (this as `ServerReplay$ReplayViewable`).`replay$setReplayViewer`(viewer)
+    fun ServerGamePacketListenerImpl.startViewingReplay(viewer: ReplayViewer) {
+        (this as `ServerReplay$ReplayViewable`).`replay$startViewingReplay`(viewer)
     }
 
-    fun ServerGamePacketListenerImpl.getReplayViewer(): ReplayViewer? {
-        return (this as `ServerReplay$ReplayViewable`).`replay$getReplayViewer`()
+    fun ServerGamePacketListenerImpl.stopViewingReplay() {
+        (this as `ServerReplay$ReplayViewable`).`replay$stopViewingReplay`()
+    }
+
+    fun ServerGamePacketListenerImpl.getViewingReplay(): ReplayViewer? {
+        return (this as `ServerReplay$ReplayViewable`).`replay$getViewingReplay`()
     }
 
     fun createClientboundPlayerInfoUpdatePacket(

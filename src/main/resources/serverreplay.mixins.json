@@ -33,7 +33,10 @@
     "rejoin.ServerPlayerMixin",
     "rejoin.TrackedEntityAccessor",
     "studio.CustomViaPlatformMixin",
-    "studio.ZipReplayFileAccessor"
+    "studio.ZipReplayFileAccessor",
+    "viewer.ClientboundPlayerInfoUpdatePacketAccessor",
+    "viewer.EntityInvoker",
+    "viewer.ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

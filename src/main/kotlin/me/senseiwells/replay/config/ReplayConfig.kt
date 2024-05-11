@@ -94,6 +94,11 @@ class ReplayConfig {
     @SerialName("record_voice_chat")
     var recordVoiceChat = false
 
+    @SerialName("replay_viewer_pack_ip")
+    var replayViewerPackIp: String? = null
+    @SerialName("replay_viewer_pack_port")
+    var replayViewerPackPort = 24464
+
     @SerialName("player_predicate")
     private var playerPredicate: ReplayPlayerPredicate = NonePredicate
 

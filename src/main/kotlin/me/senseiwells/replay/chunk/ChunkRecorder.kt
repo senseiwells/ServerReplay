@@ -31,6 +31,7 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * An implementation of [ReplayRecorder] for recording chunk areas.
@@ -139,6 +140,15 @@ class ChunkRecorder internal constructor(
     }
 
     /**
+     * This gets the viewing command for this replay for after it's saved.
+     *
+     * @return The command to view this replay.
+     */
+    override fun getViewingCommand(): String {
+        return "/replay view chunks \"${this.recorderName}\" \"${this.location.nameWithoutExtension}\""
+    }
+
+    /**
      * This gets the current timestamp (in milliseconds) of the replay recording.
      * This subtracts the amount of time paused from the total recording time.
      *
@@ -146,6 +156,15 @@ class ChunkRecorder internal constructor(
      */
     override fun getTimestamp(): Long {
         return super.getTimestamp() - this.totalPausedTime - this.getCurrentPause()
+    }
+
+    /**
+     * Returns whether a given player should be hidden from the player tab list.
+     *
+     * @return Whether the player should be hidden
+     */
+    override fun shouldHidePlayerFromTabList(player: ServerPlayer): Boolean {
+        return this.dummy == player
     }
 
     /**

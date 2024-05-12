@@ -7,6 +7,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
+import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
@@ -17,21 +18,20 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundConfigurationPacketType
+import me.senseiwells.replay.util.MathUtils
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.stopViewingReplay
-import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundConfigurationPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
 import me.senseiwells.replay.viewer.packhost.PackHost
 import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
 import net.minecraft.server.level.ServerPlayer
@@ -39,8 +39,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
-import net.minecraft.world.phys.Vec3
-import net.minecraft.world.scores.DisplaySlot
+import net.minecraft.world.level.biome.BiomeManager
 import java.io.IOException
 import java.nio.file.Path
 import java.util.*
@@ -177,32 +176,9 @@ class ReplayViewer(
     ) {
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
 
-        this.replay.getPacketData(PacketTypeRegistry.get(version, State.CONFIGURATION)).use { stream ->
-            this.sendConfigurationPackets(stream, active)
-        }
         this.replay.getPacketData(PacketTypeRegistry.get(version, State.PLAY)).use { stream ->
             this.sendPlayPackets(stream, active)
         }
-    }
-
-    private fun sendConfigurationPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
-        var data: PacketData? = stream.readPacket()
-        while (data != null && active.get()) {
-            val type = data.packet.getClientboundConfigurationPacketType()
-            if (type == ClientboundResourcePackPacket::class.java) {
-                val packet = data.packet.toClientboundConfigurationPacket()
-                if (this.shouldSendPacket(packet)) {
-                    val modified = modifyPacketForViewer(packet)
-                    this.onSendPacket(modified)
-                    this.send(modified)
-                    this.afterSendPacket(modified)
-                }
-            }
-
-            data.release()
-            data = stream.readPacket()
-        }
-        data?.release()
     }
 
     private suspend fun sendPlayPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
@@ -303,11 +279,11 @@ class ReplayViewer(
         val player = this.player
         val server = player.server
         this.send(ClientboundPlayerInfoRemovePacket(server.playerList.players.map { it.uuid }))
-        player.chunkTrackingView.forEach {
-            this.send(ClientboundForgetLevelChunkPacket(it))
+        MathUtils.forEachChunkAround(player.chunkPosition(), server.playerList.viewDistance) {
+            this.send(ClientboundForgetLevelChunkPacket(it.x, it.z))
         }
-        for (slot in DisplaySlot.entries) {
-            this.send(ClientboundSetDisplayObjectivePacket(slot, null))
+        for (i in 0..18) {
+            this.send(ClientboundSetDisplayObjectivePacket(i, null))
         }
         for (objective in server.scoreboard.objectives) {
             this.send(ClientboundSetObjectivePacket(objective, ClientboundSetObjectivePacket.METHOD_REMOVE))
@@ -334,7 +310,7 @@ class ReplayViewer(
         }
         synchronized(this.chunks) {
             for (chunk in this.chunks.iterator()) {
-                this.connection.send(ClientboundForgetLevelChunkPacket(ChunkPos(chunk)))
+                this.connection.send(ClientboundForgetLevelChunkPacket(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)))
             }
         }
         this.send(EMPTY_PACK)
@@ -358,7 +334,7 @@ class ReplayViewer(
         // We keep track of some state to revert later
         when (packet) {
             is ClientboundLevelChunkWithLightPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
-            is ClientboundForgetLevelChunkPacket -> this.chunks.remove(packet.pos.toLong())
+            is ClientboundForgetLevelChunkPacket -> this.chunks.remove(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
             is ClientboundRemoveEntitiesPacket -> this.entities.removeAll(packet.entityIds)
             is ClientboundPlayerInfoUpdatePacket -> {
@@ -390,14 +366,22 @@ class ReplayViewer(
             return ClientboundLoginPacket(
                 VIEWER_ID,
                 packet.hardcore,
+                packet.gameType,
+                packet.previousGameType,
                 packet.levels,
+                packet.registryHolder,
+                packet.dimensionType,
+                packet.dimension,
+                packet.seed,
                 packet.maxPlayers,
                 packet.chunkRadius,
                 packet.simulationDistance,
                 packet.reducedDebugInfo,
                 packet.showDeathScreen,
-                packet.doLimitedCrafting,
-                packet.commonPlayerSpawnInfo
+                packet.isDebug,
+                packet.isFlat,
+                packet.lastDeathLocation,
+                packet.portalCooldown
             )
         }
         if (packet is ClientboundPlayerInfoUpdatePacket) {
@@ -433,20 +417,18 @@ class ReplayViewer(
             }
             return ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(packet.actions(), copy)
         }
-        if (packet is ClientboundAddEntityPacket && packet.uuid == this.player.uuid) {
-            return ClientboundAddEntityPacket(
-                packet.id,
-                VIEWER_UUID,
-                packet.x,
-                packet.y,
-                packet.z,
-                packet.yRot,
-                packet.xRot,
-                packet.type,
-                packet.data,
-                Vec3(packet.xa, packet.ya, packet.za),
-                packet.yHeadRot.toDouble()
-            )
+        if (packet is ClientboundAddPlayerPacket && packet.playerId == this.player.uuid) {
+            val buf = FriendlyByteBuf(Unpooled.buffer())
+            buf.writeVarInt(packet.entityId)
+            buf.writeUUID(VIEWER_UUID)
+            buf.writeDouble(packet.x)
+            buf.writeDouble(packet.y)
+            buf.writeDouble(packet.z)
+            buf.writeByte(packet.getyRot().toInt())
+            buf.writeByte(packet.getxRot().toInt())
+            val playerPacket = ClientboundAddPlayerPacket(buf)
+            buf.release()
+            return playerPacket
         }
         if (packet is ClientboundPlayerChatPacket) {
             // We don't want to deal with chat validation...
@@ -476,9 +458,18 @@ class ReplayViewer(
     }
 
     private fun synchronizeClientLevel() {
+        val level = this.player.serverLevel()
         this.send(ClientboundRespawnPacket(
-            player.createCommonSpawnInfo(player.serverLevel()),
-            ClientboundRespawnPacket.KEEP_ALL_DATA
+            level.dimensionTypeId(),
+            level.dimension(),
+            BiomeManager.obfuscateSeed(level.seed),
+            this.player.gameMode.gameModeForPlayer,
+            this.player.gameMode.previousGameModeForPlayer,
+            level.isDebug,
+            level.isFlat,
+            ClientboundRespawnPacket.KEEP_ALL_DATA,
+            this.player.lastDeathLocation,
+            this.player.portalCooldown
         ))
     }
 

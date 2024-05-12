@@ -3,15 +3,12 @@ package me.senseiwells.replay.mixin.viewer;
 import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import me.senseiwells.replay.viewer.ReplayViewerPackets;
-import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.LastSeenMessagesValidator;
 import net.minecraft.network.chat.RemoteChatSession;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerGamePacketListener;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.CommonListenerCookie;
-import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
@@ -19,10 +16,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPacketListenerImpl implements ServerReplay$ReplayViewable {
+public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$ReplayViewable {
+	@Unique
+	private static final PacketSendListener BYPASS = new PacketSendListener() {};
+
 	@Mutable
 	@Shadow
 	@Final
@@ -30,24 +29,15 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	@Shadow
 	@Nullable
 	private RemoteChatSession chatSession;
+	@Shadow
+	@Final
+	private MinecraftServer server;
 
 	@Unique
 	private ReplayViewer replay$viewer = null;
 
-	public ServerGamePacketListenerImplMixin(MinecraftServer minecraftServer, Connection connection, CommonListenerCookie commonListenerCookie) {
-		super(minecraftServer, connection, commonListenerCookie);
-	}
-
-	@Inject(
-		method = "shouldHandleMessage",
-		at = @At("HEAD"),
-		cancellable = true
-	)
-	private void canAcceptPacket(Packet<?> packet, CallbackInfoReturnable<Boolean> cir) {
-		if (this.replay$viewer != null && !ReplayViewerPackets.serverboundBypass(packet)) {
-			cir.setReturnValue(false);
-		}
-	}
+	@Shadow
+	public abstract void send(Packet<?> packet, @Nullable PacketSendListener listener);
 
 	@Inject(
 		method = {
@@ -90,8 +80,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 			"handleJigsawGenerate",
 			"handleChangeDifficulty",
 			"handleLockDifficulty",
-			"handleChatSessionUpdate",
-			"handleChunkBatchReceived"
+			"handleChatSessionUpdate"
 		},
 		at = @At(
 			value = "INVOKE",
@@ -125,6 +114,17 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 		}
 	}
 
+	@Inject(
+		method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void onSendPacket(Packet<?> packet, @Nullable PacketSendListener listener, CallbackInfo ci) {
+		if (listener != BYPASS && this.replay$viewer != null && !ReplayViewerPackets.clientboundBypass(packet)) {
+			ci.cancel();
+		}
+	}
+
 	@Override
 	public void replay$startViewingReplay(ReplayViewer viewer) {
 		this.replay$viewer = viewer;
@@ -142,18 +142,11 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 
 	@Override
 	public void replay$sendReplayViewerPacket(Packet<?> packet) {
-		super.send(packet, null);
+		this.send(packet, BYPASS);
 	}
 
 	@Override
 	public ReplayViewer replay$getViewingReplay() {
 		return this.replay$viewer;
-	}
-
-	@Override
-	public void send(Packet<?> packet, @Nullable PacketSendListener packetSendListener) {
-		if (this.replay$viewer == null || ReplayViewerPackets.clientboundBypass(packet)) {
-			super.send(packet, packetSendListener);
-		}
 	}
 }

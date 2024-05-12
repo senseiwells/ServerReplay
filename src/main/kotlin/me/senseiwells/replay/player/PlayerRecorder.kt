@@ -4,12 +4,12 @@ import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.util.MathUtils
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ChunkMap
 import net.minecraft.server.level.ServerEntity
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -19,6 +19,7 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * An implementation of [ReplayRecorder] for recording players.
@@ -107,6 +108,15 @@ class PlayerRecorder internal constructor(
     }
 
     /**
+     * This gets the viewing command for this replay for after it's saved.
+     *
+     * @return The command to view this replay.
+     */
+    override fun getViewingCommand(): String {
+        return "/replay view players ${this.profile.id} \"${this.location.nameWithoutExtension}\""
+    }
+
+    /**
      * The player's chunk position.
      *
      * @return The player's chunk position.
@@ -122,16 +132,7 @@ class PlayerRecorder internal constructor(
      * @param consumer The consumer that will accept the given chunks positions.
      */
     override fun forEachChunk(consumer: Consumer<ChunkPos>) {
-        val centerChunkX = this.getCenterChunk().x
-        val centerChunkZ = this.getCenterChunk().z
-        val viewDistance = this.server.playerList.viewDistance
-        for (chunkX in centerChunkX - viewDistance - 1..centerChunkX + viewDistance + 1) {
-            for (chunkZ in centerChunkZ - viewDistance - 1..centerChunkZ + viewDistance + 1) {
-                if (ChunkMap.isChunkInRange(chunkX, chunkZ, centerChunkX, centerChunkZ, viewDistance)) {
-                    consumer.accept(ChunkPos(chunkX, chunkZ))
-                }
-            }
-        }
+        MathUtils.forEachChunkAround(this.getCenterChunk(), this.server.playerList.viewDistance, consumer)
     }
 
     /**

@@ -26,18 +26,6 @@ class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: ReplayRecorder
 ): ServerPlayer(original.server, original.getLevel(), original.gameProfile) {
-    companion object {
-        fun rejoin(player: ServerPlayer, recorder: ReplayRecorder) {
-            recorder.afterLogin()
-
-            val rejoined = RejoinedReplayPlayer(player, recorder)
-            val connection = RejoinConnection()
-
-            rejoined.load(player.saveWithoutId(CompoundTag()))
-            rejoined.place(connection)
-        }
-    }
-
     init {
         this.id = this.original.id
     }
@@ -88,23 +76,23 @@ class RejoinedReplayPlayer private constructor(
             val levelData = level.levelData
             val rules = level.gameRules
             listener.send(ClientboundLoginPacket(
-                    player.id,
-                    levelData.isHardcore,
-                    old.gameMode.gameModeForPlayer,
-                    old.gameMode.previousGameModeForPlayer,
-                    server.levelKeys(),
-                    (players as PlayerListAccessor).frozenRegistries,
-                    level.dimensionTypeId(),
-                    level.dimension(),
-                    BiomeManager.obfuscateSeed(level.seed),
-                    players.maxPlayers,
-                    players.viewDistance,
-                    players.simulationDistance,
-                    rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
-                    !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
-                    level.isDebug,
-                    level.isFlat,
-                    old.lastDeathLocation
+                player.id,
+                levelData.isHardcore,
+                old.gameMode.gameModeForPlayer,
+                old.gameMode.previousGameModeForPlayer,
+                server.levelKeys(),
+                (players as PlayerListAccessor).frozenRegistries,
+                level.dimensionTypeId(),
+                level.dimension(),
+                BiomeManager.obfuscateSeed(level.seed),
+                players.maxPlayers,
+                players.viewDistance,
+                players.simulationDistance,
+                rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
+                !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
+                level.isDebug,
+                level.isFlat,
+                old.lastDeathLocation
             ))
             afterLogin()
 
@@ -150,26 +138,22 @@ class RejoinedReplayPlayer private constructor(
             for (unique in uniques) {
                 val replaced = if (unique.uuid == old.uuid) old else unique
                 if (shouldHidePlayer(replaced)) {
-                    hidden.add(
-                        ClientboundPlayerInfoUpdatePacket.Entry(
-                            unique.uuid,
-                            unique.gameProfile,
-                            false,
-                            0,
-                            unique.gameMode.gameModeForPlayer,
-                            null,
-                            null
-                        )
-                    )
+                    hidden.add(ClientboundPlayerInfoUpdatePacket.Entry(
+                        unique.uuid,
+                        unique.gameProfile,
+                        false,
+                        0,
+                        unique.gameMode.gameModeForPlayer,
+                        null,
+                        null
+                    ))
                 }
             }
             if (hidden.isNotEmpty()) {
-                listener.send(
-                    ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(
-                        EnumSet.of(Action.UPDATE_LISTED),
-                        hidden
-                    )
-                )
+                listener.send(ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(
+                    EnumSet.of(Action.UPDATE_LISTED),
+                    hidden
+                ))
             }
 
             players.sendLevelInfo(player, level)

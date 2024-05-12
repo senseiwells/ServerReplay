@@ -247,7 +247,7 @@ class ReplayViewer(
         val player = this.player
         val server = player.server
         val playerList = server.playerList
-        val level = player.serverLevel()
+        val level = player.getLevel()
 
         playerList.broadcastAll(
             ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(player))
@@ -271,7 +271,7 @@ class ReplayViewer(
         val player = this.player
         val playerList = player.server.playerList
         playerList.broadcastAll(ClientboundPlayerInfoRemovePacket(listOf(player.uuid)))
-        player.serverLevel().removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
+        player.getLevel().removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
         playerList.players.remove(player)
     }
 
@@ -380,8 +380,7 @@ class ReplayViewer(
                 packet.showDeathScreen,
                 packet.isDebug,
                 packet.isFlat,
-                packet.lastDeathLocation,
-                packet.portalCooldown
+                packet.lastDeathLocation
             )
         }
         if (packet is ClientboundPlayerInfoUpdatePacket) {
@@ -458,7 +457,7 @@ class ReplayViewer(
     }
 
     private fun synchronizeClientLevel() {
-        val level = this.player.serverLevel()
+        val level = this.player.getLevel()
         this.send(ClientboundRespawnPacket(
             level.dimensionTypeId(),
             level.dimension(),
@@ -468,8 +467,7 @@ class ReplayViewer(
             level.isDebug,
             level.isFlat,
             ClientboundRespawnPacket.KEEP_ALL_DATA,
-            this.player.lastDeathLocation,
-            this.player.portalCooldown
+            this.player.lastDeathLocation
         ))
     }
 

@@ -1,11 +1,10 @@
 package me.senseiwells.replay.mixin.viewer;
 
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import me.senseiwells.replay.viewer.ReplayViewerPackets;
-import net.minecraft.network.PacketSendListener;
-import net.minecraft.network.chat.LastSeenMessagesValidator;
-import net.minecraft.network.chat.RemoteChatSession;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerGamePacketListener;
 import net.minecraft.server.MinecraftServer;
@@ -20,25 +19,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$ReplayViewable {
 	@Unique
-	private static final PacketSendListener BYPASS = new PacketSendListener() {};
+	private static final GenericFutureListener<? extends Future<? super Void>> BYPASS = future -> { };
 
-	@Mutable
-	@Shadow
-	@Final
-	private LastSeenMessagesValidator lastSeenMessages;
-	@Shadow
-	@Nullable
-	private RemoteChatSession chatSession;
 	@Shadow
 	@Final
 	private MinecraftServer server;
 
+	@Shadow public abstract void send(Packet<?> packet, @Nullable GenericFutureListener<? extends Future<? super Void>> futureListeners);
+
 	@Unique
 	private ReplayViewer replay$viewer = null;
 
-	@Shadow
-	public abstract void send(Packet<?> packet, @Nullable PacketSendListener listener);
-
+	// TODO:
 	@Inject(
 		method = {
 			"handleAnimate",
@@ -80,7 +72,6 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$
 			"handleJigsawGenerate",
 			"handleChangeDifficulty",
 			"handleLockDifficulty",
-			"handleChatSessionUpdate"
 		},
 		at = @At(
 			value = "INVOKE",
@@ -97,13 +88,10 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$
 	}
 
 	@Inject(
-		method = {
-			"handleChat",
-			"handleChatCommand"
-		},
+		method = "handleChat(Lnet/minecraft/network/protocol/game/ServerboundChatPacket;)V",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;tryHandleChat(Ljava/lang/String;Ljava/time/Instant;Lnet/minecraft/network/chat/LastSeenMessages$Update;)Ljava/util/Optional;"
+			target = "Ljava/lang/String;startsWith(Ljava/lang/String;)Z"
 		),
 		cancellable = true
 	)
@@ -115,11 +103,11 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$
 	}
 
 	@Inject(
-		method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+		method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/util/concurrent/GenericFutureListener;)V",
 		at = @At("HEAD"),
 		cancellable = true
 	)
-	private void onSendPacket(Packet<?> packet, @Nullable PacketSendListener listener, CallbackInfo ci) {
+	private void onSendPacket(Packet<?> packet, @Nullable GenericFutureListener<?> listener, CallbackInfo ci) {
 		if (listener != BYPASS && this.replay$viewer != null && !ReplayViewerPackets.clientboundBypass(packet)) {
 			ci.cancel();
 		}
@@ -133,10 +121,7 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$
 	@Override
 	public void replay$stopViewingReplay() {
 		if (this.replay$viewer != null) {
-			this.lastSeenMessages = new LastSeenMessagesValidator(20);
 			this.replay$viewer = null;
-			// Reset chat session
-			this.chatSession = null;
 		}
 	}
 

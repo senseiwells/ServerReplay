@@ -34,8 +34,14 @@ class RejoinedReplayPlayer private constructor(
             val packet = connection.`replay$getPack`() ?: return
             this.recorder.record(packet)
         } else {
-            this.server.serverResourcePack.ifPresent { packet ->
-                this.sendTexturePack(packet.url, packet.hash, packet.isRequired, packet.prompt)
+            val server = this.server
+            if (server.resourcePack.isNotEmpty()) {
+                this.sendTexturePack(
+                    server.resourcePack,
+                    server.resourcePackHash,
+                    server.isResourcePackRequired,
+                    server.resourcePackPrompt
+                )
             }
         }
     }
@@ -97,7 +103,7 @@ class RejoinedReplayPlayer private constructor(
             listener.send(ClientboundPlayerAbilitiesPacket(player.abilities))
             listener.send(ClientboundSetCarriedItemPacket(player.inventory.selected))
             listener.send(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
-            listener.send(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(server.registries())))
+            listener.send(ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(server.registryAccess())))
             players.sendPlayerPermissionLevel(player)
 
             player.recipeBook.sendInitialRecipeBook(player)
@@ -127,27 +133,17 @@ class RejoinedReplayPlayer private constructor(
                 uniques.add(player)
             }
 
-            listener.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(uniques))
-            val hidden = ArrayList<ClientboundPlayerInfoUpdatePacket.Entry>()
+
+            listener.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, uniques))
+            val hidden = ArrayList<ServerPlayer>()
             for (unique in uniques) {
                 val replaced = if (unique.uuid == old.uuid) old else unique
                 if (shouldHidePlayer(replaced)) {
-                    hidden.add(ClientboundPlayerInfoUpdatePacket.Entry(
-                        unique.uuid,
-                        unique.gameProfile,
-                        false,
-                        0,
-                        unique.gameMode.gameModeForPlayer,
-                        null,
-                        null
-                    ))
+                    hidden.add(replaced)
                 }
             }
             if (hidden.isNotEmpty()) {
-                listener.send(ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(
-                    EnumSet.of(Action.UPDATE_LISTED),
-                    hidden
-                ))
+                listener.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, hidden))
             }
 
             players.sendLevelInfo(player, level)

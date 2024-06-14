@@ -28,15 +28,14 @@ import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
 import me.senseiwells.replay.viewer.packhost.PackHost
 import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.SharedConstants
-import net.minecraft.core.UUIDUtil
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.level.biome.BiomeManager
@@ -145,7 +144,11 @@ class ReplayViewer(
     fun onServerboundPacket(packet: Packet<*>) {
         // To allow other packets, make sure you add them to the allowed packets in ReplayViewerPackets
         when (packet) {
-            is ServerboundChatCommandPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
+            is ServerboundChatPacket -> {
+                if (packet.message.startsWith("/")) {
+                    ReplayViewerCommands.handleCommand(packet.message, this)
+                }
+            }
         }
     }
 
@@ -250,7 +253,7 @@ class ReplayViewer(
         val level = player.getLevel()
 
         playerList.broadcastAll(
-            ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(player))
+            ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, listOf(player))
         )
         playerList.players.add(player)
 
@@ -270,7 +273,9 @@ class ReplayViewer(
     private fun removeFromServer() {
         val player = this.player
         val playerList = player.server.playerList
-        playerList.broadcastAll(ClientboundPlayerInfoRemovePacket(listOf(player.uuid)))
+        playerList.broadcastAll(
+            ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, listOf(player))
+        )
         player.getLevel().removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
         playerList.players.remove(player)
     }
@@ -278,7 +283,7 @@ class ReplayViewer(
     private fun removeServerState() {
         val player = this.player
         val server = player.server
-        this.send(ClientboundPlayerInfoRemovePacket(server.playerList.players.map { it.uuid }))
+        this.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, server.playerList.players))
         MathUtils.forEachChunkAround(player.chunkPosition(), server.playerList.viewDistance) {
             this.send(ClientboundForgetLevelChunkPacket(it.x, it.z))
         }
@@ -303,7 +308,8 @@ class ReplayViewer(
 
     private fun removeReplayState() {
         synchronized(this.players) {
-            this.send(ClientboundPlayerInfoRemovePacket(this.players))
+            val packet = ReplayViewerUtils.createClientboundPlayerInfoRemovePacket(this.players)
+            this.send(packet)
         }
         synchronized(this.entities) {
             this.send(ClientboundRemoveEntitiesPacket(IntArrayList(this.entities)))
@@ -335,14 +341,16 @@ class ReplayViewer(
         when (packet) {
             is ClientboundLevelChunkWithLightPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundForgetLevelChunkPacket -> this.chunks.remove(ChunkPos.asLong(packet.x, packet.z))
+            // TODO: ClientboundAddPlayer
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
             is ClientboundRemoveEntitiesPacket -> this.entities.removeAll(packet.entityIds)
-            is ClientboundPlayerInfoUpdatePacket -> {
-                for (entry in packet.newEntries()) {
-                    this.players.add(entry.profileId)
+            is ClientboundPlayerInfoPacket -> {
+                if (packet.action == ClientboundPlayerInfoPacket.Action.ADD_PLAYER) {
+                    this.players.addAll(packet.entries.map { it.profile.id })
+                } else if (packet.action == ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER) {
+                    this.players.removeAll(packet.entries.map { it.profile.id })
                 }
             }
-            is ClientboundPlayerInfoRemovePacket -> this.players.removeAll(packet.profileIds)
             is ClientboundRespawnPacket -> this.teleported = false
         }
     }
@@ -379,43 +387,24 @@ class ReplayViewer(
                 packet.reducedDebugInfo,
                 packet.showDeathScreen,
                 packet.isDebug,
-                packet.isFlat,
-                packet.lastDeathLocation
+                packet.isFlat
             )
         }
-        if (packet is ClientboundPlayerInfoUpdatePacket) {
-            val copy = ArrayList(packet.entries())
-            if (packet.actions().contains(ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT)) {
-                val iter = copy.listIterator()
-                while (iter.hasNext()) {
-                    val entry = iter.next()
-                    iter.set(ClientboundPlayerInfoUpdatePacket.Entry(
-                        entry.profileId,
-                        entry.profile,
-                        entry.listed,
-                        entry.latency,
-                        entry.gameMode,
-                        entry.displayName,
-                        null
-                    ))
-                }
-            }
-
-            val index = packet.entries().indexOfFirst { it.profileId == this.player.uuid }
-            if (index >= 0) {
-                val previous = copy[index]
-                copy[index] = ClientboundPlayerInfoUpdatePacket.Entry(
-                    VIEWER_UUID,
-                    previous.profile,
-                    previous.listed,
-                    previous.latency,
-                    previous.gameMode,
-                    previous.displayName,
-                    null
-                )
-            }
-            return ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(packet.actions(), copy)
-        }
+//        if (packet is ClientboundPlayerInfoPacket) {
+//            val copy = ArrayList(packet.entries)
+//
+//            val index = packet.entries.indexOfFirst { it.profile.id == this.player.uuid }
+//            if (index >= 0) {
+//                val previous = copy[index]
+//                copy[index] = ClientboundPlayerInfoPacket.PlayerUpdate(
+//                    previous.profile,
+//                    previous.latency,
+//                    previous.gameMode,
+//                    previous.displayName
+//                )
+//            }
+//            return ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(packet.action, copy)
+//        }
         if (packet is ClientboundAddPlayerPacket && packet.playerId == this.player.uuid) {
             val buf = FriendlyByteBuf(Unpooled.buffer())
             buf.writeVarInt(packet.entityId)
@@ -428,17 +417,6 @@ class ReplayViewer(
             val playerPacket = ClientboundAddPlayerPacket(buf)
             buf.release()
             return playerPacket
-        }
-        if (packet is ClientboundPlayerChatPacket) {
-            // We don't want to deal with chat validation...
-            val message = packet.unsignedContent ?: Component.literal(packet.body.content)
-            val type = packet.chatType.resolve(this.player.server.registryAccess())
-            val decorated = if (type.isPresent) {
-                type.get().decorate(message)
-            } else {
-                Component.literal("<").append(packet.chatType.name).append("> ").append(message)
-            }
-            return ClientboundSystemChatPacket(decorated, false)
         }
 
         if (packet is ClientboundResourcePackPacket && packet.url.startsWith("replay://")) {
@@ -459,15 +437,14 @@ class ReplayViewer(
     private fun synchronizeClientLevel() {
         val level = this.player.getLevel()
         this.send(ClientboundRespawnPacket(
-            level.dimensionTypeId(),
+            level.dimensionTypeRegistration(),
             level.dimension(),
             BiomeManager.obfuscateSeed(level.seed),
             this.player.gameMode.gameModeForPlayer,
             this.player.gameMode.previousGameModeForPlayer,
             level.isDebug,
             level.isFlat,
-            ClientboundRespawnPacket.KEEP_ALL_DATA,
-            this.player.lastDeathLocation
+            true
         ))
     }
 
@@ -477,7 +454,7 @@ class ReplayViewer(
 
     private companion object {
         const val VIEWER_ID = Int.MAX_VALUE - 10
-        val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
+        val VIEWER_UUID: UUID = Player.createPlayerUUID("-ViewingProfile-")
 
         val EMPTY_PACK = ClientboundResourcePackPacket(
             "https://download.mc-packs.net/pack/ea8cc3798ea1f47e8ce9e3d05d27a37d80641a5e.zip",

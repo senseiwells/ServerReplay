@@ -375,7 +375,7 @@ object ReplayCommand {
             return 1
         }
 
-        context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
+        context.source.sendFailure(TextComponent("Failed to view replay, file $replayName doesn't exist!"))
         return 0
     }
 

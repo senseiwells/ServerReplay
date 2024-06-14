@@ -10,11 +10,14 @@ import net.minecraft.commands.CommandSource
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
+import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundChatPacket
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
+import java.util.*
 import java.util.function.Consumer
 
 object ReplayViewerCommands {
@@ -37,8 +40,8 @@ object ReplayViewerCommands {
     fun handleCommand(command: String, viewer: ReplayViewer) {
         val player = viewer.player
         val source = player.createCommandSourceStack().withSource(ReplayViewerCommandSource(viewer))
-        val result = this.dispatcher.parse(command, source)
-        player.server.commands.performCommand(result, command)
+        // TODO: Exception handling
+        this.dispatcher.execute(command, source)
     }
 
     private fun registerReplayViewCommand() {
@@ -92,8 +95,8 @@ object ReplayViewerCommands {
     }
 
     private class ReplayViewerCommandSource(private val viewer: ReplayViewer): CommandSource {
-        override fun sendSystemMessage(component: Component) {
-            this.viewer.send(ClientboundSystemChatPacket(component, false))
+        override fun sendMessage(component: Component, senderUUID: UUID) {
+            this.viewer.send(ClientboundChatPacket(component, ChatType.SYSTEM, senderUUID))
         }
 
         override fun acceptsSuccess(): Boolean {

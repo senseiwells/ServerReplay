@@ -653,20 +653,20 @@ abstract class ReplayRecorder(
                 val path = this.recording()
                 this.output.close()
 
-                val additional = Component.empty()
+                val additional = TextComponent("")
                 if (save) {
                     this.broadcastToOpsAndConsole("Starting to save replay ${this.getName()}, please do not stop the server!")
 
                     this.replay.saveTo(path.toFile())
                     size = path.fileSize()
                     additional.append(" and saved to ")
-                        .append(Component.literal(path.toString()).withStyle {
+                        .append(TextComponent(path.toString()).withStyle {
                             it.withClickEvent(ClickEvent(
                                 ClickEvent.Action.SUGGEST_COMMAND,
                                 this.getViewingCommand()
                             )).withHoverEvent(HoverEvent(
                                 HoverEvent.Action.SHOW_TEXT,
-                                Component.literal("Click to view replay")
+                                TextComponent("Click to view replay")
                             )).withColor(ChatFormatting.GREEN)
                         })
                         .append(", compressed to ${FileUtils.formatSize(size)}")
@@ -682,14 +682,14 @@ abstract class ReplayRecorder(
 
                 this.replay.close()
                 this.broadcastToOpsAndConsole(
-                    Component.literal("Successfully closed replay ${this.getName()}").append(additional)
+                    TextComponent("Successfully closed replay ${this.getName()}").append(additional)
                 )
             } catch (exception: Exception) {
                 val message = "Failed to write replay ${this.getName()}"
-                this.broadcastToOps(Component.literal(message).withStyle {
+                this.broadcastToOps(TextComponent(message).withStyle {
                     it.withHoverEvent(HoverEvent(
                         HoverEvent.Action.SHOW_TEXT,
-                        Component.literal(exception.stackTraceToString())
+                        TextComponent(exception.stackTraceToString())
                     ))
                 })
                 ServerReplay.logger.error(message, exception)

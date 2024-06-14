@@ -1,5 +1,6 @@
 package me.senseiwells.replay.viewer
 
+import com.mojang.authlib.GameProfile
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ducks.`ServerReplay$ReplayViewable`
@@ -8,11 +9,10 @@ import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import java.util.EnumSet
+import java.util.UUID
 import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 
 object ReplayViewerUtils {
@@ -57,12 +57,21 @@ object ReplayViewerUtils {
     }
 
     fun createClientboundPlayerInfoUpdatePacket(
-        actions: EnumSet<Action>,
-        entries: List<Entry>
-    ): ClientboundPlayerInfoUpdatePacket {
-        val packet = ClientboundPlayerInfoUpdatePacket(actions, listOf())
+        action: ClientboundPlayerInfoPacket.Action,
+        entries: List<ClientboundPlayerInfoPacket.PlayerUpdate>
+    ): ClientboundPlayerInfoPacket {
+        val packet = ClientboundPlayerInfoPacket(action, listOf())
         @Suppress("KotlinConstantConditions")
         (packet as ClientboundPlayerInfoUpdatePacketAccessor).setEntries(entries)
         return packet
+    }
+
+    fun createClientboundPlayerInfoRemovePacket(uuids: Collection<UUID>): ClientboundPlayerInfoPacket {
+        return createClientboundPlayerInfoUpdatePacket(
+            ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER,
+            uuids.map {
+                ClientboundPlayerInfoPacket.PlayerUpdate(GameProfile(it, null), 0, null, null)
+            }
+        )
     }
 }

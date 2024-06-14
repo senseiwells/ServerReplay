@@ -14,6 +14,7 @@ import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
 import me.senseiwells.replay.viewer.ReplayViewer
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -439,7 +440,7 @@ object ReplayCommand {
 
     private fun suggestSavedChunkArea(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            val names = Files.list(ServerReplay.config.chunkRecordingPath)
+            val names = ServerReplay.config.chunkRecordingPath.streamDirectoryEntriesOrEmpty()
                 .filter { it.isDirectory() }
                 .map { "\"${it.name}\"" }
             SharedSuggestionProvider.suggest(names, b)
@@ -448,7 +449,7 @@ object ReplayCommand {
 
     private fun suggestSavedPlayerUUID(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
-            val names = Files.list(ServerReplay.config.playerRecordingPath)
+            val names = ServerReplay.config.playerRecordingPath.streamDirectoryEntriesOrEmpty()
                 .filter { it.isDirectory() && kotlin.runCatching { UUID.fromString(it.name) }.isSuccess }
                 .map { it.name }
             SharedSuggestionProvider.suggest(names, b)
@@ -459,7 +460,7 @@ object ReplayCommand {
         return SuggestionProvider<CommandSourceStack> { c, b ->
             val uuid = UuidArgument.getUuid(c, "uuid")
             val playerPath = ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
-            val names = Files.list(playerPath)
+            val names = playerPath.streamDirectoryEntriesOrEmpty()
                 .filter { !it.isDirectory() && it.extension == "mcpr" }
                 .map { "\"${it.nameWithoutExtension}\"" }
             SharedSuggestionProvider.suggest(names, b)
@@ -470,7 +471,7 @@ object ReplayCommand {
         return SuggestionProvider<CommandSourceStack> { c, b ->
             val areaName = StringArgumentType.getString(c, "area")
             val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
-            val names = Files.list(chunkPath)
+            val names = chunkPath.streamDirectoryEntriesOrEmpty()
                 .filter { !it.isDirectory() && it.extension == "mcpr" }
                 .map { "\"${it.nameWithoutExtension}\"" }
             SharedSuggestionProvider.suggest(names, b)

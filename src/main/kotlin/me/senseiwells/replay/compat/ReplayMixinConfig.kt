@@ -22,9 +22,6 @@ class ReplayMixinConfig: IMixinConfigPlugin {
         if (mixinClassName.startsWith("$MIXIN_COMPAT.carpet")) {
             return FabricLoader.getInstance().isModLoaded("carpet")
         }
-        if (mixinClassName.startsWith("$MIXIN_COMPAT.vmp")) {
-            return FabricLoader.getInstance().isModLoaded("vmp")
-        }
         return true
     }
 

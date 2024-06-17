@@ -17,8 +17,6 @@
     "common.MinecraftServerMixin",
     "common.ServerLevelMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
-    "compat.vmp.NearbyEntityTrackingMixin",
-    "compat.vmp.TrackedEntityMixin",
     "player.PlayerListMixin",
     "player.ServerEntityMixin",
     "player.ServerGamePacketListenerImplMixin",

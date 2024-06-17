@@ -1,5 +1,6 @@
 package me.senseiwells.replay.viewer
 
+import com.mojang.authlib.GameProfile
 import com.replaymod.replaystudio.PacketData
 import com.replaymod.replaystudio.io.ReplayInputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
@@ -341,7 +342,7 @@ class ReplayViewer(
         when (packet) {
             is ClientboundLevelChunkWithLightPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundForgetLevelChunkPacket -> this.chunks.remove(ChunkPos.asLong(packet.x, packet.z))
-            // TODO: ClientboundAddPlayer
+            is ClientboundAddPlayerPacket -> this.entities.add(packet.entityId)
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
             is ClientboundRemoveEntitiesPacket -> this.entities.removeAll(packet.entityIds)
             is ClientboundPlayerInfoPacket -> {
@@ -390,21 +391,23 @@ class ReplayViewer(
                 packet.isFlat
             )
         }
-//        if (packet is ClientboundPlayerInfoPacket) {
-//            val copy = ArrayList(packet.entries)
-//
-//            val index = packet.entries.indexOfFirst { it.profile.id == this.player.uuid }
-//            if (index >= 0) {
-//                val previous = copy[index]
-//                copy[index] = ClientboundPlayerInfoPacket.PlayerUpdate(
-//                    previous.profile,
-//                    previous.latency,
-//                    previous.gameMode,
-//                    previous.displayName
-//                )
-//            }
-//            return ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(packet.action, copy)
-//        }
+        if (packet is ClientboundPlayerInfoPacket) {
+            val copy = ArrayList(packet.entries)
+
+            val index = packet.entries.indexOfFirst { it.profile.id == this.player.uuid }
+            if (index >= 0) {
+                val previous = copy[index]
+                val profile = GameProfile(VIEWER_UUID, previous.profile.name)
+                profile.properties.putAll(previous.profile.properties)
+                copy[index] = ClientboundPlayerInfoPacket.PlayerUpdate(
+                    profile,
+                    previous.latency,
+                    previous.gameMode,
+                    previous.displayName
+                )
+            }
+            return ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(packet.action, copy)
+        }
         if (packet is ClientboundAddPlayerPacket && packet.playerId == this.player.uuid) {
             val buf = FriendlyByteBuf(Unpooled.buffer())
             buf.writeVarInt(packet.entityId)

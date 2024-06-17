@@ -16,7 +16,6 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundChatPacket
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket
-import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
 import java.util.*
 import java.util.function.Consumer
 
@@ -41,7 +40,7 @@ object ReplayViewerCommands {
         val player = viewer.player
         val source = player.createCommandSourceStack().withSource(ReplayViewerCommandSource(viewer))
         // TODO: Exception handling
-        this.dispatcher.execute(command, source)
+        this.dispatcher.execute(command.substring(1), source)
     }
 
     private fun registerReplayViewCommand() {

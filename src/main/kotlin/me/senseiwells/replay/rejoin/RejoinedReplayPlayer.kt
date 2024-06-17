@@ -133,18 +133,7 @@ class RejoinedReplayPlayer private constructor(
                 uniques.add(player)
             }
 
-
             listener.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, uniques))
-            val hidden = ArrayList<ServerPlayer>()
-            for (unique in uniques) {
-                val replaced = if (unique.uuid == old.uuid) old else unique
-                if (shouldHidePlayer(replaced)) {
-                    hidden.add(replaced)
-                }
-            }
-            if (hidden.isNotEmpty()) {
-                listener.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.REMOVE_PLAYER, hidden))
-            }
 
             players.sendLevelInfo(player, level)
 

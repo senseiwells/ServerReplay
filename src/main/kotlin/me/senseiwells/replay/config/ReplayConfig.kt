@@ -29,82 +29,70 @@ import kotlin.time.Duration
 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
-class ReplayConfig {
+data class ReplayConfig(
     @SerialName("enabled")
-    var enabled: Boolean = false
+    var enabled: Boolean = false,
     @SerialName("debug")
     @EncodeDefault(Mode.NEVER)
-    var debug: Boolean = false
-
+    var debug: Boolean = false,
     @SerialName("world_name")
-    var worldName: String = "World"
+    var worldName: String = "World",
     @SerialName("server_name")
-    var serverName: String = "Server"
-
+    var serverName: String = "Server",
     @SerialName("chunk_recording_path")
     @Serializable(with = PathSerializer::class)
-    var chunkRecordingPath: Path = recordings.resolve("chunks")
+    var chunkRecordingPath: Path = recordings.resolve("chunks"),
     @SerialName("player_recording_path")
     @Serializable(with = PathSerializer::class)
-    var playerRecordingPath: Path = recordings.resolve("players")
-
+    var playerRecordingPath: Path = recordings.resolve("players"),
     @SerialName("max_file_size")
-    var maxFileSize = FileSize("0GB")
+    var maxFileSize: FileSize = FileSize("0GB"),
     @SerialName("restart_after_max_file_size")
-    var restartAfterMaxFileSize = false
-
+    var restartAfterMaxFileSize: Boolean = false,
     @SerialName("max_duration")
     @Serializable(with = DurationSerializer::class)
-    var maxDuration = Duration.ZERO
+    var maxDuration: Duration = Duration.ZERO,
     @SerialName("restart_after_max_duration")
-    var restartAfterMaxDuration = false
-
+    var restartAfterMaxDuration: Boolean = false,
     @SerialName("recover_unsaved_replays")
-    var recoverUnsavedReplays = true
-
+    var recoverUnsavedReplays: Boolean = true,
     @SerialName("include_compressed_in_status")
-    var includeCompressedReplaySizeInStatus = true
-
+    var includeCompressedReplaySizeInStatus: Boolean = true,
     @SerialName("fixed_daylight_cycle")
-    var fixedDaylightCycle = -1L
-
+    var fixedDaylightCycle: Long = -1L,
     @SerialName("chunk_recorder_load_radius")
-    var chunkRecorderLoadRadius = -1
+    var chunkRecorderLoadRadius: Int = -1,
     @SerialName("pause_unloaded_chunks")
-    var skipWhenChunksUnloaded = false
+    var skipWhenChunksUnloaded: Boolean = false,
     @SerialName("pause_notify_players")
-    var notifyPlayersLoadingChunks = true
+    var notifyPlayersLoadingChunks: Boolean = true,
     @SerialName("notify_admins_of_status")
-    var notifyAdminsOfStatus = true
+    var notifyAdminsOfStatus: Boolean = true,
     @SerialName("fix_carpet_bot_view_distance")
-    var fixCarpetBotViewDistance = false
+    var fixCarpetBotViewDistance: Boolean = false,
     @SerialName("ignore_sound_packets")
-    var ignoreSoundPackets = false
+    var ignoreSoundPackets: Boolean = false,
     @SerialName("ignore_light_packets")
-    var ignoreLightPackets = true
+    var ignoreLightPackets: Boolean = true,
     @SerialName("ignore_chat_packets")
-    var ignoreChatPackets = false
+    var ignoreChatPackets: Boolean = false,
     @SerialName("ignore_scoreboard_packets")
-    var ignoreScoreboardPackets = false
+    var ignoreScoreboardPackets: Boolean = false,
     @SerialName("optimize_explosion_packets")
-    var optimizeExplosionPackets = true
+    var optimizeExplosionPackets: Boolean = true,
     @SerialName("optimize_entity_packets")
-    var optimizeEntityPackets = false
-
+    var optimizeEntityPackets: Boolean = false,
     @SerialName("record_voice_chat")
-    var recordVoiceChat = false
-
+    var recordVoiceChat: Boolean = false,
     @SerialName("replay_viewer_pack_ip")
-    var replayViewerPackIp: String? = null
+    var replayViewerPackIp: String? = null,
     @SerialName("replay_viewer_pack_port")
-    var replayViewerPackPort = 24464
-
+    var replayViewerPackPort: Int = 24464,
     @SerialName("player_predicate")
-    private var playerPredicate: ReplayPlayerPredicate = NonePredicate
-
+    private var playerPredicate: ReplayPlayerPredicate = NonePredicate,
     @SerialName("chunks")
-    private val chunks: List<ChunkAreaConfig> = listOf()
-
+    private val chunks: List<ChunkAreaConfig> = listOf(),
+) {
     fun shouldRecordPlayer(context: ReplayPlayerContext): Boolean {
         return this.playerPredicate.shouldRecord(context)
     }

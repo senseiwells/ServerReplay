@@ -71,13 +71,16 @@ By default, this will be in `./recordings/players/<uuid>/<date-and-time>.mcpr`.
 
 This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
-An important note: if you are going to record carpet bots you most likely want to
-enable `"fix_carpet_bot_view_distance"` in the config otherwise only an area of 2 chunks
-around the carpet bot will be recorded.
+> [!NOTE]  
+> If you are going to record carpet bots you most likely want to
+> enable `"fix_carpet_bot_view_distance"` in the config otherwise only an area of 2 chunks
+> around the carpet bot will be recorded.
 
 #### Chunks
 
-> **IMPORTANT NOTE:** While the mod will record the chunks you specify, the Minecraft client will **not** render the outermost chunks. So to record an area of **visible** chunks, you must add one chunk to your border, e.g. recording a visible area from `-5, -5` to `5, 5` you must record between `-6, -6` and `6, 6`.
+> [!NOTE] 
+> While the mod will record the chunks you specify, the Minecraft client will **not** render the outermost chunks. 
+> So to record an area of **visible** chunks, you must add one chunk to your border, e.g. recording a visible area from `-5, -5` to `5, 5` you must record between `-6, -6` and `6, 6`.
 
 To record an area of chunks on your server you can run `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>`, for example:
 ```
@@ -94,8 +97,14 @@ Alternatively you can specify a chunk and a radius around it to be recorded `/re
 
 Chunk recorders are static and cannot move, they record the specified chunks.
 An important thing to note is that when the replay starts, the specified chunks
-will be loaded (and generated if necessary). 
-However, after this the chunk recorder does not load the chunks.
+will be loaded (and generated if necessary).
+However, after this, the chunk recorder does not load the chunks.
+
+You can further configure this with the 
+`"chunk_recorder_load_radius"` setting, which will set a maximum initial radius
+that the chunk recorder will load, any chunks outside this radius that are recorded
+will need to be loaded 'naturally' to be recorded.
+
 
 If the server stops, the replay will automatically stop and save.
 
@@ -194,6 +203,7 @@ After you boot the server a new file will be generated in the path
   "recover_unsaved_replays": true,
   "include_compressed_in_status": true,
   "fixed_daylight_cycle": -1,
+  "chunk_recorder_load_radius": -1,
   "pause_unloaded_chunks": false,
   "pause_notify_players": true,
   "notify_admins_of_status": true,
@@ -205,6 +215,8 @@ After you boot the server a new file will be generated in the path
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
   "record_voice_chat": false,
+  "replay_viewer_pack_ip": null,
+  "replay_viewer_pack_port": 24464,
   "player_predicate": {
     "type": "none"
   },
@@ -226,6 +238,7 @@ After you boot the server a new file will be generated in the path
 | `"recover_unsaved_replays"`      | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p>                                                                                                                                                                                                                                                                                                                                       |
 | `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>                                                                                                                                                                                                                                                                                                                                           |
+| `"chunk_recorder_load_radius"`   | <p> This sets the default chunk recorder loading radius, this is useful when you want to record a very large area and you don't want all of the recorded chunks to be loaded at once. </p> <p> For example if you are recording a 13x13 chunk area, you could set the radius to 3, so the center-most 7x7 would be initially loaded, the rest of the chunks will then be recorded whenever they're 'naturally' loaded. </p> <p> Set this to `-1` to load all chunks. </p>                                                                                                                           |
 | `"pause_unloaded_chunks"`        | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p>                                                                                                                                                                                                                                                                                                                                         |
 | `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"notify_admins_of_status"`      | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -236,9 +249,11 @@ After you boot the server a new file will be generated in the path
 | `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `"replay_viewer_pack_ip"`        | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. </p> <p> This should contain the public ip address of your server. This also requires `"replay_viewer_pack_port"`. </p>                                                                                                                                                                                                                                                                                                                    |
+| `"replay_viewer_pack_port"`      | <p> This requires `"replay_viewer_pack_ip"`. This is the port you wish to host your server-side resource packs on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `"record_voice_chat"`            | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, when watching back the replay you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                                                                                                                                                |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `"chunks"`                       | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `"chunks"`                       | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ### Chunks Config
 

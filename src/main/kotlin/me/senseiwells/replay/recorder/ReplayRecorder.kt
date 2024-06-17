@@ -411,7 +411,7 @@ abstract class ReplayRecorder(
      */
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
-        map["settings"] = ReplayConfig.toJson(ServerReplay.config)
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayViewerPackIp = "hidden"))
         map["location"] = JsonPrimitive(this.location.pathString)
         map["time"] = JsonPrimitive(System.currentTimeMillis())
 

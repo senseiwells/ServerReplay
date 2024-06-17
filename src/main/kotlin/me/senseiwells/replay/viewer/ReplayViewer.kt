@@ -503,8 +503,8 @@ class ReplayViewer(
         val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
 
         val EMPTY_PACK = ClientboundResourcePackPacket(
-            "https://download.mc-packs.net/pack/ea8cc3798ea1f47e8ce9e3d05d27a37d80641a5e.zip",
-            "ea8cc3798ea1f47e8ce9e3d05d27a37d80641a5e",
+            "https://static.planetminecraft.com/files/resource_media/texture/nothing.zip",
+            "",
             false,
             null
         )

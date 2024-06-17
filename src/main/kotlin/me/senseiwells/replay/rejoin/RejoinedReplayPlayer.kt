@@ -13,23 +13,13 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
+import java.util.*
+import kotlin.collections.HashSet
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: ReplayRecorder
 ): ServerPlayer(original.server, original.getLevel(), original.gameProfile) {
-    companion object {
-        fun rejoin(player: ServerPlayer, recorder: ReplayRecorder) {
-            recorder.afterLogin()
-
-            val rejoined = RejoinedReplayPlayer(player, recorder)
-            val connection = RejoinConnection()
-
-            rejoined.load(player.saveWithoutId(CompoundTag()))
-            rejoined.place(connection)
-        }
-    }
-
     init {
         this.id = this.original.id
     }
@@ -40,99 +30,117 @@ class RejoinedReplayPlayer private constructor(
         if (connection is `ServerReplay$PackTracker`) {
             val packet = connection.`replay$getPack`() ?: return
             this.recorder.record(packet)
+        } else {
+            val server = this.server
+            if (server.resourcePack.isNotEmpty()) {
+                this.sendTexturePack(
+                    server.resourcePack,
+                    server.resourcePackHash,
+                    server.isResourcePackRequired,
+                    server.resourcePackPrompt
+                )
+            }
         }
     }
 
-    private fun place(connection: RejoinConnection) {
-        // Create the fake packet listener
-        val listener = RejoinGamePacketListener(this, connection)
+    companion object {
+        fun rejoin(player: ServerPlayer, recorder: ReplayRecorder) {
+            recorder.afterLogin()
 
-        val server = this.server
-        val players = server.playerList
-        val level = this.getLevel()
-        val levelData = level.levelData
-        val rules = level.gameRules
-        this.recorder.record(ClientboundLoginPacket(
-            this.id,
-            this.original.gameMode.gameModeForPlayer,
-            this.original.gameMode.previousGameModeForPlayer,
-            BiomeManager.obfuscateSeed(level.seed),
-            levelData.isHardcore,
-            server.levelKeys(),
-            server.registryAccess() as RegistryAccess.RegistryHolder,
-            level.dimensionType(),
-            level.dimension(),
-            players.maxPlayers,
-            players.viewDistance,
-            rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
-            !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
-            level.isDebug,
-            level.isFlat
-        ))
-        this.recorder.record(ClientboundCustomPayloadPacket(ClientboundCustomPayloadPacket.BRAND, PacketByteBufs.create().writeUtf(this.server.serverModName)))
-        this.recorder.record(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
-        this.recorder.record(ClientboundPlayerAbilitiesPacket(this.abilities))
-        this.recorder.record(ClientboundSetCarriedItemPacket(this.inventory.selected))
-        this.recorder.record(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
-        this.recorder.record(ClientboundUpdateTagsPacket(this.server.tags.serializeToNetwork(server.registryAccess())))
-        players.sendPlayerPermissionLevel(this)
+            val rejoined = RejoinedReplayPlayer(player, recorder)
+            val connection = RejoinConnection()
 
-        this.recipeBook.sendInitialRecipeBook(this)
+            rejoined.load(player.saveWithoutId(CompoundTag()))
+            place(rejoined, RejoinGamePacketListener(rejoined, connection), player, rejoined::sendResourcePacks) {
+                recorder.shouldHidePlayerFromTabList(it)
+            }
 
-        val scoreboard = server.scoreboard
-        for (playerTeam in scoreboard.playerTeams) {
-            this.recorder.record(ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(playerTeam, true))
-        }
-
-        val set = HashSet<Objective>()
-        for (i in 0..18) {
-            val objective = scoreboard.getDisplayObjective(i)
-            if (objective != null && !set.contains(objective)) {
-                for (packet in scoreboard.getStartTrackingPackets(objective)) {
-                    this.recorder.record(packet)
+            for (plugin in ServerReplayPluginManager.plugins) {
+                when (recorder) {
+                    is PlayerRecorder -> plugin.onPlayerReplayStart(recorder)
+                    is ChunkRecorder -> plugin.onChunkReplayStart(recorder)
                 }
-                set.add(objective)
             }
         }
 
-        listener.teleport(this.x, this.y, this.z, this.yRot, this.xRot)
+        fun place(
+            player: ServerPlayer,
+            listener: ServerGamePacketListenerImpl,
+            old: ServerPlayer = player,
+            afterLogin: () -> Unit = {},
+            shouldHidePlayer: (ServerPlayer) -> Boolean = { false }
+        ) {
+            val server = player.server
+            val players = server.playerList
+            val level = player.getLevel()
+            val levelData = level.levelData
+            val rules = level.gameRules
+            listener.send(ClientboundLoginPacket(
+                player.id,
+                old.gameMode.gameModeForPlayer,
+                old.gameMode.previousGameModeForPlayer,
+                BiomeManager.obfuscateSeed(level.seed),
+                levelData.isHardcore,
+                server.levelKeys(),
+                server.registryAccess() as RegistryAccess.RegistryHolder,
+                level.dimensionType(),
+                level.dimension(),
+                players.maxPlayers,
+                players.viewDistance,
+                rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
+                !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
+                level.isDebug,
+                level.isFlat
+            ))
+            afterLogin()
 
-        // We do this to ensure that we have ALL the players
-        // including any 'fake' chunk players
-        val uniques = HashSet(players.players)
-        if (!uniques.contains(this.original)) {
-            uniques.add(this)
-        }
+            listener.send(ClientboundCustomPayloadPacket(ClientboundCustomPayloadPacket.BRAND, PacketByteBufs.create().writeUtf(server.serverModName)))
+            listener.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
+            listener.send(ClientboundPlayerAbilitiesPacket(player.abilities))
+            listener.send(ClientboundSetCarriedItemPacket(player.inventory.selected))
+            listener.send(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
+            listener.send(ClientboundUpdateTagsPacket(server.tags.serializeToNetwork(server.registryAccess())))
+            players.sendPlayerPermissionLevel(player)
 
-        for (player in uniques) {
-            this.recorder.record(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, player))
-        }
-        players.sendLevelInfo(this, level)
+            player.recipeBook.sendInitialRecipeBook(player)
 
-        for (event in server.customBossEvents.events) {
-            if (event.players.contains(this.original) && event.isVisible) {
-                this.recorder.record(ClientboundBossEventPacket.createAddPacket(event))
+            val scoreboard = server.scoreboard
+            for (playerTeam in scoreboard.playerTeams) {
+                listener.send(ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(playerTeam, true))
             }
-        }
 
-        this.sendResourcePacks()
-        if (this.server.resourcePack.isNotEmpty()) {
-            this.sendTexturePack(
-                server.resourcePack,
-                server.resourcePackHash,
-                server.isResourcePackRequired,
-                server.resourcePackPrompt
-            )
-        }
+            val set = HashSet<Objective>()
+            for (i in 0..18) {
+                val objective = scoreboard.getDisplayObjective(i)
+                if (objective != null && !set.contains(objective)) {
+                    for (packet in scoreboard.getStartTrackingPackets(objective)) {
+                        listener.send(packet)
+                    }
+                    set.add(objective)
+                }
+            }
 
-        for (mobEffectInstance in this.activeEffects) {
-            this.recorder.record(ClientboundUpdateMobEffectPacket(this.id, mobEffectInstance))
-        }
+            listener.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
 
-        for (plugin in ServerReplayPluginManager.plugins) {
-            when (this.recorder) {
-                is PlayerRecorder -> plugin.onPlayerReplayStart(this.recorder)
-                is ChunkRecorder -> plugin.onChunkReplayStart(this.recorder)
+            // We do this to ensure that we have ALL the players
+            // including any 'fake' chunk players
+            val uniques = HashSet(players.players)
+            if (!uniques.contains(old)) {
+                uniques.add(player)
+            }
+
+            listener.send(ClientboundPlayerInfoPacket(ClientboundPlayerInfoPacket.Action.ADD_PLAYER, uniques))
+
+            players.sendLevelInfo(player, level)
+
+            for (event in server.customBossEvents.events) {
+                if (event.players.contains(old) && event.isVisible) {
+                    listener.send(ClientboundBossEventPacket.createAddPacket(event))
+                }
+            }
+
+            for (mobEffectInstance in player.activeEffects) {
+                listener.send(ClientboundUpdateMobEffectPacket(player.id, mobEffectInstance))
             }
         }
     }

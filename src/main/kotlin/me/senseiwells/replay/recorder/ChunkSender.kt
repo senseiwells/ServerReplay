@@ -19,6 +19,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.ApiStatus.NonExtendable
+import org.jetbrains.annotations.ApiStatus.OverrideOnly
 import java.util.function.Consumer
 import kotlin.math.min
 
@@ -86,13 +87,34 @@ interface ChunkSender {
     }
 
     /**
+     * This is called when a chunk is successfully sent to the client.
+     *
+     * @param chunk The chunk that was sent.
+     */
+    @OverrideOnly
+    fun onChunkSent(chunk: LevelChunk) {
+
+    }
+
+    /**
      * This sends all chunk and entity packets.
      */
     @NonExtendable
     fun sendChunksAndEntities() {
         val seen = IntOpenHashSet()
+        this.sendChunkViewDistance()
         this.sendChunks(seen)
         this.sendChunkEntities(seen)
+    }
+
+    /**
+     * This sends all the chunk view distance and simulation distance packets.
+     */
+    @Internal
+    fun sendChunkViewDistance() {
+        val center = this.getCenterChunk()
+        this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
+        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
     }
 
     /**
@@ -102,11 +124,6 @@ interface ChunkSender {
      */
     @Internal
     fun sendChunks(seen: IntSet) {
-        val center = this.getCenterChunk()
-
-        this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
-        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
-
         val source = this.level.chunkSource
         val chunks = source.chunkMap
         this.forEachChunk { pos ->
@@ -169,6 +186,8 @@ interface ChunkSender {
         for (entity in ridden) {
             this.sendPacket(ClientboundSetPassengersPacket(entity))
         }
+
+        this.onChunkSent(chunk)
     }
 
     /**

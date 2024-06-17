@@ -1,14 +1,15 @@
 package me.senseiwells.replay.util
 
+import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.Path
 import java.text.NumberFormat
 import java.text.ParseException
 import java.text.StringCharacterIterator
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.name
-import kotlin.io.path.notExists
+import java.util.stream.Stream
+import kotlin.io.path.*
 import kotlin.math.abs
 
 object FileUtils {
@@ -75,5 +76,16 @@ object FileUtils {
             }
         }
         throw IllegalStateException("Cannot find next available path for ${original.absolutePathString()}")
+    }
+
+    fun Path.streamDirectoryEntriesOrEmpty(): Stream<Path> {
+        if (this.notExists() || !this.isDirectory()) {
+            return Stream.empty()
+        }
+        return try {
+            Files.list(this)
+        } catch (e: IOException) {
+            Stream.empty()
+        }
     }
 }

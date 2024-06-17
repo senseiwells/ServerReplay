@@ -68,6 +68,8 @@ class ReplayConfig {
     @SerialName("fixed_daylight_cycle")
     var fixedDaylightCycle = -1L
 
+    @SerialName("chunk_recorder_load_radius")
+    var chunkRecorderLoadRadius = -1
     @SerialName("pause_unloaded_chunks")
     var skipWhenChunksUnloaded = false
     @SerialName("pause_notify_players")
@@ -91,6 +93,11 @@ class ReplayConfig {
 
     @SerialName("record_voice_chat")
     var recordVoiceChat = false
+
+    @SerialName("replay_viewer_pack_ip")
+    var replayViewerPackIp: String? = null
+    @SerialName("replay_viewer_pack_port")
+    var replayViewerPackPort = 24464
 
     @SerialName("player_predicate")
     private var playerPredicate: ReplayPlayerPredicate = NonePredicate

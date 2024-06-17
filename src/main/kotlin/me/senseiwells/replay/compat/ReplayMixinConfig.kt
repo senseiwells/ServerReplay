@@ -1,4 +1,4 @@
-package me.senseiwells.replay.util
+package me.senseiwells.replay.compat
 
 import net.fabricmc.loader.api.FabricLoader
 import org.objectweb.asm.tree.ClassNode
@@ -6,6 +6,10 @@ import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo
 
 class ReplayMixinConfig: IMixinConfigPlugin {
+    companion object {
+        private const val MIXIN_COMPAT = "me.senseiwells.replay.mixin.compat"
+    }
+
     override fun onLoad(mixinPackage: String?) {
 
     }
@@ -15,7 +19,7 @@ class ReplayMixinConfig: IMixinConfigPlugin {
     }
 
     override fun shouldApplyMixin(targetClassName: String, mixinClassName: String): Boolean {
-        if (mixinClassName.startsWith("me.senseiwells.replay.mixin.compat.carpet")) {
+        if (mixinClassName.startsWith("$MIXIN_COMPAT.carpet")) {
             return FabricLoader.getInstance().isModLoaded("carpet")
         }
         return true

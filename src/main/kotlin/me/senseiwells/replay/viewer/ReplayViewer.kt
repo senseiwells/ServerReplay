@@ -296,6 +296,8 @@ class ReplayViewer(
         for (pack in this.previousPacks) {
             this.connection.send(pack)
         }
+
+        player.inventoryMenu.sendAllDataToRemote()
     }
 
     private fun removeFromServer() {

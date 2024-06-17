@@ -335,6 +335,7 @@ class ReplayViewer(
         when (packet) {
             is ClientboundLevelChunkWithLightPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundForgetLevelChunkPacket -> this.chunks.remove(ChunkPos.asLong(packet.x, packet.z))
+            is ClientboundAddPlayerPacket -> this.entities.add(packet.entityId)
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
             is ClientboundRemoveEntitiesPacket -> this.entities.removeAll(packet.entityIds)
             is ClientboundPlayerInfoUpdatePacket -> {

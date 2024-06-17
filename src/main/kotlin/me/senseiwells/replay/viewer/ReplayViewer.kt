@@ -298,6 +298,16 @@ class ReplayViewer(
         }
 
         player.inventoryMenu.sendAllDataToRemote()
+        this.connection.send(ClientboundSetHealthPacket(
+            player.health,
+            player.foodData.foodLevel,
+            player.foodData.saturationLevel
+        ))
+        this.connection.send(ClientboundSetExperiencePacket(
+            player.experienceProgress,
+            player.totalExperience,
+            player.experienceLevel
+        ))
     }
 
     private fun removeFromServer() {

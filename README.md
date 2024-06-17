@@ -118,6 +118,34 @@ By default, this will be in `./recordings/chunks/<name>/<date-and-time>.mcpr`.
 
 This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
+#### Viewing
+
+After a replay has finished recording, you are able to view the replay completely server-side. 
+The player viewing the replay will be completely removed from the actual server while they 
+view the replay, and will be treated as if they are offline.
+
+Essentially, this just "runs" another server that sends the client packets. This runs asynchronously
+from the main server, so there is little to no impact on performance.
+
+When a replay has finished recording, you can click on the green text in chat to view the
+replay that just finished; this will autocomplete a command in chat for you.
+The command to view chunk replays is: `/replay view chunks <name> <date-time>`, and for players: 
+`/replay view players <uuid> <date-time>`, for example:
+```
+/replay view player d4fca8c4-e083-4300-9a73-bf438847861c "2024-05-11--19-19-55"
+/replay view chunks "Chunks (183, 166) to (203, 186)" "2024-05-11--19-19-55"
+```
+
+You will then be teleported to the new "server" where the replay will start playing.
+You will only have access to a limited set of commands when viewing replays, these include:
+- `/replay view pause` Pauses the playback of the current replay.
+- `/replay view unpause` Unpauses the playback of the current replay.
+- `/replay view speed <multiplier>` Sets the playback speed of the current replay.
+- `/replay view restart` Restarts the playback of the current replay.
+- `/replay view close` Closes the current replay and brings you back to the server.
+
+If you disconnect while watching a replay, you will be brought back to the server when you login.
+
 ### Commands
 
 A note for all commands; players must either have op (level 4), alternatively if you

@@ -11,17 +11,10 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket
 import net.minecraft.server.network.ServerGamePacketListenerImpl
-import java.util.EnumSet
 import java.util.UUID
 import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 
 object ReplayViewerUtils {
-    private val CLIENTBOUND_PLAY_TYPES = ConnectionProtocol.PLAY.getPacketsByIds(PacketFlow.CLIENTBOUND)
-
-    fun ReplayPacket.getClientboundPlayPacketType(): Class<out Packet<*>>? {
-        return CLIENTBOUND_PLAY_TYPES.get(this.id)
-    }
-
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
         return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, toFriendlyByteBuf(this.buf))
             ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")

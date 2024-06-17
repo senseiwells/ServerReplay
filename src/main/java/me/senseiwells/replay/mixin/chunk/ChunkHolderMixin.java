@@ -1,15 +1,12 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.datafixers.util.Either;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.chunk.LevelChunk;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,9 +24,9 @@ import java.util.concurrent.Executor;
 public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	@Shadow private volatile CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> fullChunkFuture;
 
-	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
+	@Shadow public abstract CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> getFullChunkFuture();
 
-	@Shadow public abstract @Nullable LevelChunk getFullChunk();
+	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
 
 	@Inject(
 		method = "broadcast",
@@ -115,5 +112,12 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
+	}
+
+	@Unique
+	private LevelChunk getFullChunk() {
+		CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> completableFuture = this.getFullChunkFuture();
+		Either<LevelChunk, ChunkHolder.ChunkLoadingFailure> either = completableFuture.getNow(null);
+		return either == null ? null : either.left().orElse(null);
 	}
 }

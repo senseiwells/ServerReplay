@@ -20,7 +20,6 @@ import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.MathUtils
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
@@ -29,6 +28,7 @@ import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
 import me.senseiwells.replay.viewer.packhost.PackHost
 import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.SharedConstants
+import net.minecraft.core.RegistryAccess
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
@@ -189,10 +189,11 @@ class ReplayViewer(
         var lastTime = -1L
         var data: PacketData? = stream.readPacket()
         while (data != null && active.get()) {
+            val packet = data.packet.toClientboundPlayPacket()
+
             // We don't care about all the packets before the player logs in.
             if (lastTime < 0) {
-                val type = data.packet.getClientboundPlayPacketType()
-                if (type != ClientboundLoginPacket::class.java) {
+                if (packet !is ClientboundLoginPacket) {
                     data.release()
                     data = stream.readPacket()
                     continue
@@ -206,7 +207,6 @@ class ReplayViewer(
                 delay(50)
             }
 
-            val packet = data.packet.toClientboundPlayPacket()
             if (this.shouldSendPacket(packet)) {
                 val modified = modifyPacketForViewer(packet)
                 this.onSendPacket(modified)
@@ -352,7 +352,7 @@ class ReplayViewer(
     private fun onSendPacket(packet: Packet<*>) {
         // We keep track of some state to revert later
         when (packet) {
-            is ClientboundLevelChunkWithLightPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
+            is ClientboundLevelChunkPacket -> this.chunks.add(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundForgetLevelChunkPacket -> this.chunks.remove(ChunkPos.asLong(packet.x, packet.z))
             is ClientboundAddPlayerPacket -> this.entities.add(packet.entityId)
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
@@ -386,19 +386,18 @@ class ReplayViewer(
             // with any entities in the replay
             return ClientboundLoginPacket(
                 VIEWER_ID,
-                packet.hardcore,
                 packet.gameType,
                 packet.previousGameType,
-                packet.levels,
-                packet.registryHolder,
+                packet.seed,
+                packet.isHardcore,
+                packet.levels(),
+                packet.registryAccess() as RegistryAccess.RegistryHolder,
                 packet.dimensionType,
                 packet.dimension,
-                packet.seed,
                 packet.maxPlayers,
                 packet.chunkRadius,
-                packet.simulationDistance,
-                packet.reducedDebugInfo,
-                packet.showDeathScreen,
+                packet.isReducedDebugInfo,
+                packet.shouldShowDeathScreen(),
                 packet.isDebug,
                 packet.isFlat
             )
@@ -452,7 +451,7 @@ class ReplayViewer(
     private fun synchronizeClientLevel() {
         val level = this.player.getLevel()
         this.send(ClientboundRespawnPacket(
-            level.dimensionTypeRegistration(),
+            level.dimensionType(),
             level.dimension(),
             BiomeManager.obfuscateSeed(level.seed),
             this.player.gameMode.gameModeForPlayer,

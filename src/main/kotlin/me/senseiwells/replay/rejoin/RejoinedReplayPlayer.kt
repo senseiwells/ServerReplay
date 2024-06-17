@@ -10,10 +10,10 @@ import net.minecraft.core.RegistryAccess
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
-import java.util.*
 import kotlin.collections.HashSet
 
 class RejoinedReplayPlayer private constructor(

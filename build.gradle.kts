@@ -124,11 +124,14 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added support for [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat)
-            - Added new player predicate `"type": "is_fake"` to check whether a player is not a real player (e.g. carpet bot)
-            - Added `max_duration` that lets you specify a maximum duration for your replay
-            - Added `restart_after_max_duration` that lets you automatically restart the replay if the max duration limit is met
-            - Fixed a bug that would cause gradual server lag if `max_file_size` was set
+            - Added new Server Side Replay Viewer
+                - You can now view your replays completely server-side!
+                - Added the `/replay view` command
+                - When your replays finish saving a message will appear, if clicked you can view the replay
+            - Added new config "chunk_recorder_load_radius" which allows you to specify a maximum radius that will be initially loaded
+            - Fixes an error when VoiceChat was enabled
+            - Fixes compatability with ViaVersion
+            - Fixes compatability with VeryManyPlayers
             """.trimIndent()
         )
         type = STABLE

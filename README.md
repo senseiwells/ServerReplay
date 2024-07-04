@@ -426,9 +426,9 @@ following to your `build.gradle.kts`
 
 ```kts
 repositories {
-    maven {
-        url = uri("https://jitpack.io")
-    }
+    maven("https://jitpack.io")
+    // For voicechat mod compatability
+    maven("https://maven.maxhenkel.de/repository/public")
 }
 
 dependencies {

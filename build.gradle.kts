@@ -18,7 +18,6 @@ repositories {
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
     maven("https://repo.viaversion.com")
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://api.modrinth.com/maven")
     maven("https://maven.maxhenkel.de/repository/public")
     mavenCentral()

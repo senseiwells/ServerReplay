@@ -1,15 +1,16 @@
 package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.mojang.datafixers.util.Either;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ChunkResult;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -26,11 +27,13 @@ import java.util.concurrent.Executor;
 
 @Mixin(ChunkHolder.class)
 public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
-	@Shadow private volatile CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> fullChunkFuture;
+	@Shadow @Final public static ChunkResult<LevelChunk> UNLOADED_LEVEL_CHUNK;
+
+	@Shadow private volatile CompletableFuture<ChunkResult<LevelChunk>> fullChunkFuture;
 
 	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
 
-	@Shadow public abstract @Nullable LevelChunk getFullChunk();
+	@Shadow public abstract CompletableFuture<ChunkResult<LevelChunk>> getFullChunkFuture();
 
 	@Inject(
 		method = "broadcast",
@@ -65,7 +68,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	)
 	private void onChunkLoad(ChunkMap chunkMap, Executor executor, CallbackInfo ci) {
 		this.fullChunkFuture.thenAccept(result -> {
-			result.ifLeft(chunk -> {
+			result.ifSuccess(chunk -> {
 				for (ChunkRecorder recorder : this.getRecorders()) {
 					recorder.onChunkLoaded(chunk);
 				}
@@ -99,7 +102,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder)) {
 			this.fullChunkFuture.thenAccept(result -> {
-				result.ifLeft(recorder::onChunkLoaded);
+				result.ifSuccess(recorder::onChunkLoaded);
 			});
 
 			recorder.addRecordable(this);
@@ -128,5 +131,12 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
+	}
+
+
+	@Unique
+	@Nullable
+	private LevelChunk getFullChunk() {
+		return this.getFullChunkFuture().getNow(UNLOADED_LEVEL_CHUNK).orElse(null);
 	}
 }

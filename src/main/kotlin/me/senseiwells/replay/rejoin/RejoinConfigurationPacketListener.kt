@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.common.ServerboundPongPacket
 import net.minecraft.server.network.CommonListenerCookie
 import net.minecraft.server.network.ConfigurationTask
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl
+import net.minecraft.server.network.config.SynchronizeRegistriesTask
 import java.util.*
 
 class RejoinConfigurationPacketListener(
@@ -38,6 +39,9 @@ class RejoinConfigurationPacketListener(
         // We do not have to wait for the client to respond
         for (task in this.tasks) {
             task.start(this::send)
+            if (task is SynchronizeRegistriesTask) {
+                task.handleResponse(listOf(), this::send)
+            }
         }
     }
 

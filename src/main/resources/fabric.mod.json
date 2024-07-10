@@ -19,7 +19,7 @@
         "value": "me.senseiwells.replay.ServerReplay"
       }
     ],
-    "voicechat": [
+    "voicechat_": [
       {
         "adapter": "kotlin",
         "value": "me.senseiwells.replay.compat.voicechat.ReplayVoicechatPlugin"

@@ -33,8 +33,8 @@
   "depends": {
     "fabricloader": ">=0.14.12",
     "fabric-api": "*",
-    "minecraft": "1.20.x",
-    "java": ">=17",
+    "minecraft": "1.21.x",
+    "java": ">=21",
     "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0"
   }
 }

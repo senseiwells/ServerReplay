@@ -39,9 +39,9 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
      */
     const val VERSION = 1
 
-    private val LOCATIONAL_ID = ResourceLocation(MOD_ID, "locational_sound")
-    private val ENTITY_ID = ResourceLocation(MOD_ID, "entity_sound")
-    private val STATIC_ID = ResourceLocation(MOD_ID, "static_sound")
+    private val LOCATIONAL_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "locational_sound")
+    private val ENTITY_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "entity_sound")
+    private val STATIC_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "static_sound")
 
     // We don't want to constantly decode sound packets, when broadcasted to multiple players
     private val cache = WeakHashMap<SoundPacket, Packet<ClientCommonPacketListener>>()

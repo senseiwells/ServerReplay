@@ -61,7 +61,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 		method = "updateFutures",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/level/ChunkHolder;updateChunkToSave(Ljava/util/concurrent/CompletableFuture;Ljava/lang/String;)V",
+			target = "Lnet/minecraft/server/level/ChunkHolder;addSaveDependency(Ljava/util/concurrent/CompletableFuture;)V",
 			shift = At.Shift.AFTER,
 			ordinal = 0
 		)

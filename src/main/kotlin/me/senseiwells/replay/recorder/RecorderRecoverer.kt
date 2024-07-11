@@ -6,7 +6,7 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.SetSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
@@ -27,7 +27,7 @@ import kotlin.io.path.*
 object RecorderRecoverer {
     private val path = ReplayConfig.root.resolve("recordings.json")
 
-    private val recordings: MutableSet<@Serializable(with = PathSerializer::class) Path>
+    private val recordings: MutableSet<Path>
 
     init {
         this.recordings = this.read()
@@ -131,20 +131,20 @@ object RecorderRecoverer {
         try {
             this.path.parent.createDirectories()
             this.path.outputStream().use {
-                Json.encodeToStream(this.recordings, it)
+                Json.encodeToStream(SetSerializer(PathSerializer), this.recordings, it)
             }
         } catch (e: Exception) {
             ServerReplay.logger.error("Failed to write unfinished recorders", e)
         }
     }
 
-    private inline fun <reified T> read(): MutableSet<T> {
+    private fun read(): MutableSet<Path> {
         if (!this.path.exists()) {
             return HashSet()
         }
         return try {
             this.path.inputStream().use {
-                Json.decodeFromStream<MutableSet<T>>(it)
+                HashSet(Json.decodeFromStream(SetSerializer(PathSerializer), it))
             }
         } catch (e: Exception) {
             ServerReplay.logger.error("Failed to read replay recordings", e)

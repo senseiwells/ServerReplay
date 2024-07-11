@@ -11,8 +11,8 @@ import de.maxhenkel.voicechat.api.packets.SoundPacket
 import de.maxhenkel.voicechat.net.*
 import de.maxhenkel.voicechat.plugins.impl.VolumeCategoryImpl
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.api.ServerReplayPlugin
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.player.PlayerRecorder

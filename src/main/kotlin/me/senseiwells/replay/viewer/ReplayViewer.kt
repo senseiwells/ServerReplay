@@ -17,8 +17,6 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundConfigurationPacketType
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
@@ -34,6 +32,7 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundResourcePackPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
@@ -67,6 +66,9 @@ class ReplayViewer(
     private val players = Collections.synchronizedList(ArrayList<UUID>())
 
     private var previousPack: ClientboundResourcePackPacket? = null
+
+    val server: MinecraftServer
+        get() = this.player.server
 
     val player: ServerPlayer
         get() = this.connection.player
@@ -172,77 +174,69 @@ class ReplayViewer(
         }
     }
 
-    private suspend fun streamReplay(
-        active: Supplier<Boolean>
-    ) {
+    private suspend fun streamReplay(active: Supplier<Boolean>) {
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
 
         this.replay.getPacketData(PacketTypeRegistry.get(version, State.CONFIGURATION)).use { stream ->
-            this.sendConfigurationPackets(stream, active)
-        }
-        this.replay.getPacketData(PacketTypeRegistry.get(version, State.PLAY)).use { stream ->
-            this.sendPlayPackets(stream, active)
+            this.sendPackets(stream, active)
         }
     }
 
-    private fun sendConfigurationPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
-        var data: PacketData? = stream.readPacket()
-        while (data != null && active.get()) {
-            val type = data.packet.getClientboundConfigurationPacketType()
-            if (type == ClientboundResourcePackPacket::class.java) {
-                val packet = data.packet.toClientboundConfigurationPacket()
-                if (this.shouldSendPacket(packet)) {
-                    val modified = modifyPacketForViewer(packet)
-                    this.onSendPacket(modified)
-                    this.send(modified)
-                    this.afterSendPacket(modified)
-                }
-            }
-
-            data.release()
-            data = stream.readPacket()
-        }
-        data?.release()
-    }
-
-    private suspend fun sendPlayPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
+    private suspend fun sendPackets(stream: ReplayInputStream, active: Supplier<Boolean>) {
         var lastTime = -1L
         var data: PacketData? = stream.readPacket()
         while (data != null && active.get()) {
-            // We don't care about all the packets before the player logs in.
-            if (lastTime < 0) {
-                val type = data.packet.getClientboundPlayPacketType()
-                if (type != ClientboundLoginPacket::class.java) {
-                    data.release()
-                    data = stream.readPacket()
-                    continue
-                }
-                lastTime = data.time
+            if (lastTime != -1L) {
+                delay(((data.time - lastTime) / this.speedMultiplier).toLong())
             }
-
-            delay(((data.time - lastTime) / this.speedMultiplier).toLong())
 
             while (this.paused) {
                 delay(50)
             }
 
-            val packet = data.packet.toClientboundPlayPacket()
-            if (this.shouldSendPacket(packet)) {
-                val modified = modifyPacketForViewer(packet)
-                this.onSendPacket(modified)
-                if (!active.get()) {
-                    break
+            when (data.packet.registry.state) {
+                State.CONFIGURATION -> this.sendConfigurationPacket(data, active)
+                State.PLAY -> {
+                    this.sendPlayPacket(data, active)
+                    lastTime = data.time
                 }
-                this.send(modified)
-                this.afterSendPacket(modified)
+                else -> { }
             }
 
-            lastTime = data.time
             data.release()
             data = stream.readPacket()
         }
         // Release any remaining data
         data?.release()
+    }
+
+    private fun sendConfigurationPacket(data: PacketData, active: Supplier<Boolean>) {
+        val packet = data.packet.toClientboundConfigurationPacket()
+        if (packet is ClientboundResourcePackPacket) {
+            if (this.shouldSendPacket(packet)) {
+                val modified = modifyPacketForViewer(packet)
+                this.onSendPacket(modified)
+                if (!active.get()) {
+                    return
+                }
+                this.send(modified)
+                this.afterSendPacket(modified)
+            }
+        }
+    }
+
+    private fun sendPlayPacket(data: PacketData, active: Supplier<Boolean>) {
+        val packet = data.packet.toClientboundPlayPacket()
+
+        if (this.shouldSendPacket(packet)) {
+            val modified = modifyPacketForViewer(packet)
+            this.onSendPacket(modified)
+            if (!active.get()) {
+                return
+            }
+            this.send(modified)
+            this.afterSendPacket(modified)
+        }
     }
 
     private fun sendTickingState() {

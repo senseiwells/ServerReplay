@@ -42,14 +42,13 @@ import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.io.IOException
-import java.net.URL
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.HashMap
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -772,7 +771,7 @@ abstract class ReplayRecorder(
         if (!path.exists() || !this.writeResourcePack(path.readBytes(), packet.hash, requestId)) {
             CompletableFuture.runAsync {
                 path.parent.createDirectories()
-                val bytes = URL(packet.url).openStream().readAllBytes()
+                val bytes = URI(packet.url).toURL().openStream().readAllBytes()
                 path.writeBytes(bytes)
                 if (!this.writeResourcePack(bytes, packet.hash, requestId)) {
                     ServerReplay.logger.error("Resource pack hashes do not match! Pack '${packet.url}' will not be loaded...")

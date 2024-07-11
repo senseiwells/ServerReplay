@@ -5,7 +5,6 @@ import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.viewer.ReplayViewer
 import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
@@ -17,8 +16,6 @@ import net.minecraft.world.level.GameRules
 import net.minecraft.world.scores.DisplaySlot
 import net.minecraft.world.scores.Objective
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,

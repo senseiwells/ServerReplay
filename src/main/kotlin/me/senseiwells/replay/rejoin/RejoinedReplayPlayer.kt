@@ -16,8 +16,6 @@ import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,

@@ -3,7 +3,7 @@ import java.nio.charset.Charset
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.serialization") version "1.9.21"
+    kotlin("plugin.serialization") version "2.0.0"
     id("me.modmuss50.mod-publish-plugin") version "0.4.5"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("fabric-loom")
@@ -58,7 +58,7 @@ dependencies {
     // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the
     // jar and yeet the org.slf4j packages then rezip the jar.
-    shade(modImplementation("com.github.ReplayMod:ReplayStudio:6cd39b0874") {
+    shade(modImplementation("com.github.ReplayMod:ReplayStudio:1e96fda605") {
         exclude(group = "org.slf4j")
         exclude(group = "it.unimi.dsi")
         exclude(group = "org.apache.commons")
@@ -67,7 +67,9 @@ dependencies {
         exclude(group = "com.google.guava", module = "guava")
         exclude(group = "com.google.code.gson", module = "gson")
     })
-    include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}")!!)
+    include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}") {
+        exclude("net.fabricmc.fabric-api")
+    })
 }
 
 loom {

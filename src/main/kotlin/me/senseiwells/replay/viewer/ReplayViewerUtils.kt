@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import me.senseiwells.replay.ducks.`ServerReplay$ReplayViewable`
 import me.senseiwells.replay.mixin.viewer.ClientboundPlayerInfoUpdatePacketAccessor
-import net.fabricmc.fabric.impl.networking.payload.RetainedPayload
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet

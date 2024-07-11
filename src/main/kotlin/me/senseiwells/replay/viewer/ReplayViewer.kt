@@ -19,7 +19,6 @@ import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.MathUtils
-import me.senseiwells.replay.viewer.ReplayViewerUtils.getClientboundPlayPacketType
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
@@ -196,7 +195,6 @@ class ReplayViewer(
             }
 
             when (data.packet.registry.state) {
-                State.CONFIGURATION -> this.sendConfigurationPacket(data, active)
                 State.PLAY -> {
                     this.sendPlayPacket(data, active)
                     lastTime = data.time
@@ -209,21 +207,6 @@ class ReplayViewer(
         }
         // Release any remaining data
         data?.release()
-    }
-
-    private fun sendConfigurationPacket(data: PacketData, active: Supplier<Boolean>) {
-        val packet = data.packet.toClientboundConfigurationPacket()
-        if (packet is ClientboundResourcePackPacket) {
-            if (this.shouldSendPacket(packet)) {
-                val modified = modifyPacketForViewer(packet)
-                this.onSendPacket(modified)
-                if (!active.get()) {
-                    return
-                }
-                this.send(modified)
-                this.afterSendPacket(modified)
-            }
-        }
     }
 
     private fun sendPlayPacket(data: PacketData, active: Supplier<Boolean>) {

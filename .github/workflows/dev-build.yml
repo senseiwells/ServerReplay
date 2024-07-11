@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - run: ./gradlew build --stacktrace --no-daemon
       - uses: actions/upload-artifact@v3
         with:

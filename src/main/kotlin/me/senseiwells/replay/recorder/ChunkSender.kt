@@ -17,9 +17,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
-import org.jetbrains.annotations.ApiStatus.Internal
-import org.jetbrains.annotations.ApiStatus.NonExtendable
-import org.jetbrains.annotations.ApiStatus.OverrideOnly
+import org.jetbrains.annotations.ApiStatus.*
 import java.util.function.Consumer
 import kotlin.math.min
 

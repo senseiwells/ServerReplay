@@ -111,11 +111,12 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	@Inject(
 		method = {
 			"handleChat",
-			"handleChatCommand"
+			"handleChatCommand",
+			"handleSignedChatCommand"
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;tryHandleChat(Lnet/minecraft/network/chat/LastSeenMessages$Update;)Ljava/util/Optional;"
+			target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;tryHandleChat(Ljava/lang/String;Ljava/lang/Runnable;)V"
 		),
 		cancellable = true
 	)

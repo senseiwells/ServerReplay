@@ -19,7 +19,7 @@
         "value": "me.senseiwells.replay.ServerReplay"
       }
     ],
-    "voicechat": [
+    "voicechat_": [
       {
         "adapter": "kotlin",
         "value": "me.senseiwells.replay.compat.voicechat.ReplayVoicechatPlugin"
@@ -34,7 +34,7 @@
     "fabricloader": ">=0.14.12",
     "fabric-api": "*",
     "minecraft": "1.20.x",
-    "java": ">=17",
+    "java": ">=21",
     "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0"
   }
 }

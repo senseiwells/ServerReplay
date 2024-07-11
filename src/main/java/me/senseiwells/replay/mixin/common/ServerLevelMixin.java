@@ -79,7 +79,7 @@ public abstract class ServerLevelMixin extends Level {
 		Level.ExplosionInteraction interaction,
 		ParticleOptions smallParticles,
 		ParticleOptions largeParticles,
-		SoundEvent sound,
+		Holder<SoundEvent> sound,
 		CallbackInfoReturnable<Explosion> cir,
 		@Local Explosion explosion
 	) {

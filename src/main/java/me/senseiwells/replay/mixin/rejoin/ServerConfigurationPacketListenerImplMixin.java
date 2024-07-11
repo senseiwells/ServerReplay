@@ -19,7 +19,8 @@ public class ServerConfigurationPacketListenerImplMixin {
 		method = "handleConfigurationFinished",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/network/Connection;resumeInboundAfterProtocolChange()V"
+			target = "Lnet/minecraft/server/players/PlayerList;placeNewPlayer(Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/server/network/CommonListenerCookie;)V",
+			shift = At.Shift.AFTER
 		)
 	)
 	private void afterPlayerSpawned(

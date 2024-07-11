@@ -71,7 +71,9 @@ dependencies {
         exclude(group = "com.google.guava", module = "guava")
         exclude(group = "com.google.code.gson", module = "gson")
     })
-    include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}")!!)
+    include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}") {
+        exclude("net.fabricmc.fabric-api")
+    })
 }
 
 loom {

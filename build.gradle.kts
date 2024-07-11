@@ -125,14 +125,8 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added new Server Side Replay Viewer
-                - You can now view your replays completely server-side!
-                - Added the `/replay view` command
-                - When your replays finish saving a message will appear, if clicked you can view the replay
-            - Added new config "chunk_recorder_load_radius" which allows you to specify a maximum radius that will be initially loaded
-            - Fixes an error when VoiceChat was enabled
-            - Fixes compatability with ViaVersion
-            - Fixes compatability with VeryManyPlayers
+            - Backported some fixes from 1.20.6
+            - This is the final version for 1.20.4
             """.trimIndent()
         )
         type = STABLE

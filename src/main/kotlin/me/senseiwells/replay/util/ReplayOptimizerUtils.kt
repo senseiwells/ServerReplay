@@ -2,6 +2,7 @@ package me.senseiwells.replay.util
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
+import net.minecraft.core.Holder
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
@@ -130,7 +131,7 @@ object ReplayOptimizerUtils {
         // Based on Explosion#finalizeExplosion
         val random = recorder.level.random
         recorder.record(ClientboundSoundPacket(
-            packet.explosionSound,
+            Holder.direct(packet.explosionSound),
             SoundSource.BLOCKS,
             packet.x, packet.y, packet.z,
             4.0F,

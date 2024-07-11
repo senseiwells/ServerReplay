@@ -26,7 +26,7 @@ public class ServerLoginPacketListenerImplMixin {
 		method = "handleLoginAcknowledgement",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/CommonListenerCookie;createInitial(Lcom/mojang/authlib/GameProfile;Z)Lnet/minecraft/server/network/CommonListenerCookie;"
+			target = "Lnet/minecraft/server/network/CommonListenerCookie;createInitial(Lcom/mojang/authlib/GameProfile;)Lnet/minecraft/server/network/CommonListenerCookie;"
 		)
 	)
 	private void onLoggedIn(

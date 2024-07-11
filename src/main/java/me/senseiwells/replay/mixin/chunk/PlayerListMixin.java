@@ -14,13 +14,16 @@ import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -30,6 +33,8 @@ import java.util.function.Predicate;
 
 @Mixin(PlayerList.class)
 public class PlayerListMixin {
+	@Shadow @Final private MinecraftServer server;
+
 	@Inject(
 		method = "broadcastAll(Lnet/minecraft/network/protocol/Packet;)V",
 		at = @At("HEAD")
@@ -111,7 +116,7 @@ public class PlayerListMixin {
 			if (message.isSystem()) {
 				recorder.record(new ClientboundDisguisedChatPacket(
 					message.decoratedContent(),
-					boundChatType
+					boundChatType.toNetwork(this.server.registryAccess())
 				));
 				continue;
 			}
@@ -122,7 +127,7 @@ public class PlayerListMixin {
 				message.signedBody().pack(MessageSignatureCache.createDefault()),
 				message.unsignedContent(),
 				message.filterMask(),
-				boundChatType
+				boundChatType.toNetwork(this.server.registryAccess())
 			));
 		}
 	}

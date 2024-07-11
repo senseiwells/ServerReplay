@@ -19,6 +19,7 @@ import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.Util
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
@@ -212,9 +213,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         // reads the raw packet data when it reads the replay.
         buf.writeByteArray(converter.shortsToBytes(this.decoder.decode(encoded)))
         additional(buf)
-        // TODO:
-        throw UnsupportedOperationException()
-//        return ServerPlayNetworking.createS2CPacket(id, buf)
+        return ServerPlayNetworking.createS2CPacket(id, buf)
     }
 
     private fun <T: SoundPacket> recordForReceiver(
@@ -272,8 +271,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientCommonPacketListener> {
         val buf = PacketByteBufs.create()
         this.toBytes(buf)
-        // TODO:
-        throw UnsupportedOperationException()
-//        return ServerPlayNetworking.createS2CPacket(this.identifier, buf)
+        return ServerPlayNetworking.createS2CPacket(this.identifier, buf)
     }
 }

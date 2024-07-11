@@ -41,7 +41,7 @@ class RejoinedReplayPlayer private constructor(
 
             val rejoined = RejoinedReplayPlayer(player, recorder)
             val connection = RejoinConnection()
-            val cookies = CommonListenerCookie(player.gameProfile, 0, player.clientInformation(), false)
+            val cookies = CommonListenerCookie(player.gameProfile, 0, player.clientInformation())
 
             val config = RejoinConfigurationPacketListener(rejoined, connection, cookies)
             config.startConfiguration()
@@ -84,8 +84,7 @@ class RejoinedReplayPlayer private constructor(
                 rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO),
                 !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
                 rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
-                player.createCommonSpawnInfo(level),
-                false
+                player.createCommonSpawnInfo(level)
             ))
             afterLogin()
 
@@ -155,7 +154,7 @@ class RejoinedReplayPlayer private constructor(
             }
 
             for (mobEffectInstance in player.activeEffects) {
-                listener.send(ClientboundUpdateMobEffectPacket(player.id, mobEffectInstance, false))
+                listener.send(ClientboundUpdateMobEffectPacket(player.id, mobEffectInstance))
             }
         }
     }

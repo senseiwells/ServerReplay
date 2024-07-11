@@ -27,7 +27,6 @@ import me.senseiwells.replay.viewer.packhost.PackHost
 import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
-import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
@@ -70,8 +69,6 @@ class ReplayViewer(
     private val players = Collections.synchronizedList(ArrayList<UUID>())
 
     private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
-
-    private val gameProtocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
 
     val server: MinecraftServer
         get() = this.player.server
@@ -155,7 +152,6 @@ class ReplayViewer(
         // To allow other packets, make sure you add them to the allowed packets in ReplayViewerPackets
         when (packet) {
             is ServerboundChatCommandPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
-            is ServerboundChatCommandSignedPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
         }
     }
 
@@ -233,7 +229,7 @@ class ReplayViewer(
     }
 
     private fun sendPlayPacket(data: PacketData, active: Supplier<Boolean>) {
-        val packet = data.packet.toClientboundPlayPacket(this.gameProtocol)
+        val packet = data.packet.toClientboundPlayPacket()
 
         if (this.shouldSendPacket(packet)) {
             val modified = modifyPacketForViewer(packet)
@@ -411,8 +407,7 @@ class ReplayViewer(
                 packet.reducedDebugInfo,
                 packet.showDeathScreen,
                 packet.doLimitedCrafting,
-                packet.commonPlayerSpawnInfo,
-                packet.enforcesSecureChat
+                packet.commonPlayerSpawnInfo
             )
         }
         if (packet is ClientboundPlayerInfoUpdatePacket) {
@@ -466,7 +461,12 @@ class ReplayViewer(
         if (packet is ClientboundPlayerChatPacket) {
             // We don't want to deal with chat validation...
             val message = packet.unsignedContent ?: Component.literal(packet.body.content)
-            val decorated = packet.chatType.decorate(message)
+            val type = packet.chatType.resolve(this.player.server.registryAccess())
+            val decorated = if (type.isPresent) {
+                type.get().decorate(message)
+            } else {
+                Component.literal("<").append(packet.chatType.name).append("> ").append(message)
+            }
             return ClientboundSystemChatPacket(decorated, false)
         }
         if (packet is ClientboundTickingStatePacket) {

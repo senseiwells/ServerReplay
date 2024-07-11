@@ -8,7 +8,6 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
-import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -26,20 +25,15 @@ import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.ProtocolInfo
-import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
-import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
-import net.minecraft.network.protocol.configuration.ConfigurationProtocols
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
-import net.minecraft.network.protocol.game.GameProtocols
 import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
-import net.minecraft.network.protocol.login.LoginProtocols
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -90,7 +84,7 @@ abstract class ReplayRecorder(
 
     private var start: Long = 0
 
-    private var protocol: ProtocolInfo<*> = LoginProtocols.CLIENTBOUND
+    private var protocol = ConnectionProtocol.LOGIN
     private var lastPacket = 0L
 
     private var lastCompressedSize = 0L
@@ -181,25 +175,24 @@ abstract class ReplayRecorder(
             return
         }
 
-        val buf = Unpooled.buffer()
+        val buf = FriendlyByteBuf(Unpooled.buffer())
         val saved = try {
-            @Suppress("UNCHECKED_CAST")
-            (this.protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>).encode(buf, outgoing)
+            val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
+            val state = this.protocolAsState()
+
+            outgoing.write(buf)
 
             if (ServerReplay.config.debug) {
                 val type = outgoing.getDebugName()
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
 
-            val friendly = FriendlyByteBuf(buf.slice())
-            val id = friendly.readVarInt()
-            val bytes = ByteArray(friendly.readableBytes())
-            friendly.readBytes(bytes)
+            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
 
             val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-            val registry = PacketTypeRegistry.get(version, this.protocolAsState())
+            val registry = PacketTypeRegistry.get(version, state)
 
-            Packet(registry, id, ReplayUnpooled.wrappedBuffer(bytes))
+            Packet(registry, id, wrapped)
         } finally {
             buf.release()
         }
@@ -267,7 +260,7 @@ abstract class ReplayRecorder(
         }
 
         // We only save if the player has actually logged in...
-        val future = this.close(save && this.protocol.id() == ConnectionProtocol.PLAY)
+        val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
     }
@@ -519,9 +512,9 @@ abstract class ReplayRecorder(
         this.start = System.currentTimeMillis()
 
         // We will not have recorded this, so we need to do it manually.
-        this.record(ClientboundGameProfilePacket(this.profile, false))
+        this.record(ClientboundGameProfilePacket(this.profile))
 
-        this.protocol = ConfigurationProtocols.CLIENTBOUND
+        this.protocol = ConnectionProtocol.CONFIGURATION
     }
 
     /**
@@ -531,7 +524,7 @@ abstract class ReplayRecorder(
      */
     @Internal
     fun afterConfigure() {
-        this.protocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
+        this.protocol = ConnectionProtocol.PLAY
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
@@ -747,7 +740,7 @@ abstract class ReplayRecorder(
     }
 
     private fun protocolAsState(): State {
-        return when (this.protocol.id()) {
+        return when (this.protocol) {
             ConnectionProtocol.PLAY -> State.PLAY
             ConnectionProtocol.CONFIGURATION -> State.CONFIGURATION
             ConnectionProtocol.LOGIN -> State.LOGIN
@@ -854,7 +847,7 @@ abstract class ReplayRecorder(
 
         private fun MinecraftPacket<*>.getDebugName(): String {
             return if (this is ClientboundCustomPayloadPacket) {
-                "CustomPayload(${this.payload.type().id})"
+                "CustomPayload(${this.payload.id()})"
             } else {
                 this::class.java.simpleName
             }

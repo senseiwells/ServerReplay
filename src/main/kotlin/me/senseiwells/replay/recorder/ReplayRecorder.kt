@@ -531,7 +531,7 @@ abstract class ReplayRecorder(
      */
     @Internal
     fun afterConfigure() {
-        this.protocol = GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
+        this.protocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {

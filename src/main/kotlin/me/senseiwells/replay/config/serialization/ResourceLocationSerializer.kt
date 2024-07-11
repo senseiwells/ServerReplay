@@ -20,7 +20,7 @@ object ResourceLocationSerializer: KSerializer<ResourceLocation> {
     override fun deserialize(decoder: Decoder): ResourceLocation {
         val location = decoder.decodeString()
         try {
-            return ResourceLocation.parse(location)
+            return ResourceLocation(location)
         } catch (e: ResourceLocationException) {
             throw SerializationException("Invalid dimension")
         }

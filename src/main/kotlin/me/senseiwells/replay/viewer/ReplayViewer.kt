@@ -71,7 +71,7 @@ class ReplayViewer(
 
     private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
 
-    private val gameProtocol = GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
+    private val gameProtocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
 
     val server: MinecraftServer
         get() = this.player.server

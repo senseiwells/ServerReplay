@@ -5,8 +5,8 @@ import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import me.senseiwells.replay.viewer.ReplayViewer;
-import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.PacketSendListener;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,7 +34,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
 		method = "onDisconnect",
 		at = @At("TAIL")
 	)
-	private void onDisconnect(DisconnectionDetails disconnectionDetails, CallbackInfo ci) {
+	private void onDisconnect(Component reason, CallbackInfo ci) {
 		PlayerRecorder recorder = PlayerRecorders.getByUUID(this.playerProfile().getId());
 		if (recorder != null) {
 			recorder.stop();

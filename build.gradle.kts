@@ -126,7 +126,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Updated to 1.21
+            - Updated to 1.20.6
             - Removed voicechat support (voicechat is yet to support replay)
             """.trimIndent()
         )

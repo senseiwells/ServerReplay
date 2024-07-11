@@ -16,8 +16,13 @@ import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 
 object ReplayViewerUtils {
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
-        return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, toFriendlyByteBuf(this.buf))
-            ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
+        val buf = toFriendlyByteBuf(this.buf)
+        try {
+            return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, buf)
+                ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
+        } finally {
+            buf.release()
+        }
     }
 
     private fun toFriendlyByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf): FriendlyByteBuf {

@@ -156,6 +156,9 @@ tasks {
     publishing {
         publications {
             create<MavenPublication>("mavenJava") {
+                groupId = "com.github.senseiwells"
+                artifactId = "ServerReplay"
+                version = getGitHash()
                 from(project.components.getByName("java"))
             }
         }

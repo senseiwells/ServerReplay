@@ -1,6 +1,7 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
@@ -81,6 +82,7 @@ class PlayerRecorder internal constructor(
         val player = this.player ?: return false
         RejoinedReplayPlayer.rejoin(player, this)
         this.sendChunksAndEntities()
+        ServerReplayPluginManager.startReplay(this)
         return true
     }
 

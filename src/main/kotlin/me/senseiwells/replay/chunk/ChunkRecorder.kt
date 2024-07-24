@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.player.PlayerRecorder
@@ -98,6 +99,7 @@ class ChunkRecorder internal constructor(
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.spawnPlayer()
         this.sendChunksAndEntities()
+        ServerReplayPluginManager.startReplay(this)
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
         for (pos in this.chunks) {

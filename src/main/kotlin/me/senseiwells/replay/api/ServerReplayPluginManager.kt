@@ -2,6 +2,8 @@ package me.senseiwells.replay.api
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPluginManager.registerPlugin
+import me.senseiwells.replay.chunk.ChunkRecorder
+import me.senseiwells.replay.player.PlayerRecorder
 import net.fabricmc.loader.api.FabricLoader
 
 /**
@@ -40,6 +42,18 @@ object ServerReplayPluginManager {
     @Deprecated("You should add an entrypoint for server_replay in your fabric.mod.json for your plugin")
     fun registerPlugin(plugin: ServerReplayPlugin) {
         this.plugins.add(plugin)
+    }
+
+    internal fun startReplay(recorder: PlayerRecorder) {
+        for (plugin in this.plugins) {
+            plugin.onPlayerReplayStart(recorder)
+        }
+    }
+
+    internal fun startReplay(recorder: ChunkRecorder) {
+        for (plugin in this.plugins) {
+            plugin.onChunkReplayStart(recorder)
+        }
     }
 
     internal fun loadPlugins() {

@@ -42,10 +42,13 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.scores.DisplaySlot
+import net.minecraft.world.scores.Objective
+import net.minecraft.world.scores.criteria.ObjectiveCriteria
 import java.io.IOException
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
+import kotlin.collections.ArrayList
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.name
@@ -68,6 +71,7 @@ class ReplayViewer(
     private val chunks = Collections.synchronizedCollection(LongOpenHashSet())
     private val entities = Collections.synchronizedCollection(IntOpenHashSet())
     private val players = Collections.synchronizedList(ArrayList<UUID>())
+    private val objectives = Collections.synchronizedCollection(ArrayList<String>())
 
     private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
 
@@ -351,6 +355,22 @@ class ReplayViewer(
                 this.connection.send(ClientboundForgetLevelChunkPacket(ChunkPos(chunk)))
             }
         }
+        synchronized(this.objectives) {
+            for (objective in this.objectives) {
+                @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+                val dummy = Objective(
+                    null,
+                    objective,
+                    ObjectiveCriteria.DUMMY,
+                    Component.empty(),
+                    ObjectiveCriteria.RenderType.INTEGER,
+                    false,
+                    null
+                )
+                this.send(ClientboundSetObjectivePacket(dummy, ClientboundSetObjectivePacket.METHOD_REMOVE))
+            }
+        }
+
         this.send(ClientboundResourcePackPopPacket(Optional.empty()))
     }
 
@@ -375,6 +395,13 @@ class ReplayViewer(
             is ClientboundForgetLevelChunkPacket -> this.chunks.remove(packet.pos.toLong())
             is ClientboundAddEntityPacket -> this.entities.add(packet.id)
             is ClientboundRemoveEntitiesPacket -> this.entities.removeAll(packet.entityIds)
+            is ClientboundSetObjectivePacket -> {
+                if (packet.method == ClientboundSetObjectivePacket.METHOD_REMOVE) {
+                    this.objectives.remove(packet.objectiveName)
+                } else {
+                    this.objectives.add(packet.objectiveName)
+                }
+            }
             is ClientboundPlayerInfoUpdatePacket -> {
                 for (entry in packet.newEntries()) {
                     this.players.add(entry.profileId)

@@ -19,41 +19,46 @@ import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 object ReplayViewerUtils {
     fun ReplayPacket.toClientboundPlayPacket(protocol: ProtocolInfo<ClientGamePacketListener>): Packet<*> {
         val wrapper = FriendlyByteBuf(Unpooled.buffer())
-        val buf = toByteBuf(this.buf)
-        try {
-            wrapper.writeVarInt(this.id)
-            wrapper.writeBytes(buf)
-            return protocol.codec().decode(wrapper)
-        } finally {
-            buf.release()
-            wrapper.release()
+        useByteBuf(this.buf) { buf ->
+            try {
+                wrapper.writeVarInt(this.id)
+                wrapper.writeBytes(buf)
+                return protocol.codec().decode(wrapper)
+            } finally {
+                wrapper.release()
+            }
         }
     }
 
     fun ReplayPacket.toClientboundConfigurationPacket(): Packet<*> {
         val wrapper = FriendlyByteBuf(Unpooled.buffer())
-        val buf = toByteBuf(this.buf)
-        try {
-            wrapper.writeVarInt(this.id)
-            wrapper.writeBytes(buf)
-            return ConfigurationProtocols.CLIENTBOUND.codec().decode(wrapper)
-        } finally {
-            buf.release()
-            wrapper.release()
+        useByteBuf(this.buf) { buf ->
+            try {
+                wrapper.writeVarInt(this.id)
+                wrapper.writeBytes(buf)
+                return ConfigurationProtocols.CLIENTBOUND.codec().decode(wrapper)
+            } finally {
+                wrapper.release()
+            }
         }
     }
 
-    private fun toByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf): ByteBuf {
+    private inline fun <T> useByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf, block: (ByteBuf) -> T): T {
         // When we compile we map steveice10.netty -> io.netty
         // We just need this check for dev environment
         @Suppress("USELESS_IS_CHECK")
         if (buf is ByteBuf) {
-            return buf
+            return block(buf)
         }
 
         val array = ByteArray(buf.readableBytes())
         buf.readBytes(array)
-        return Unpooled.wrappedBuffer(array)
+        val copy = Unpooled.wrappedBuffer(array)
+        try {
+            return block(copy)
+        } finally {
+            copy.release()
+        }
     }
 
     fun ServerGamePacketListenerImpl.sendReplayPacket(packet: Packet<*>) {

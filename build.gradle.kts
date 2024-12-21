@@ -15,20 +15,19 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
-    mavenLocal()
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
     maven("https://repo.viaversion.com")
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://api.modrinth.com/maven")
     maven("https://maven.maxhenkel.de/repository/public")
     maven("https://maven.andante.dev/releases/")
+    maven("https://maven4.bai.lol")
     mavenCentral()
 }
 
 
-val modVersion = "1.2.2"
+val modVersion = "1.2.7"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -52,10 +51,10 @@ dependencies {
     modCompileOnly(libs.vmp)
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
-    modImplementation(libs.voicechat)
-    implementation(libs.voicechat.api)
+    modCompileOnly(libs.voicechat)
+    compileOnly(libs.voicechat.api)
 
-    shade(modImplementation(libs.replay.studio.get())!!)
+    shade(implementation(libs.replay.studio.get())!!)
     includeModImplementation(libs.permissions) {
         exclude(libs.fabric.api.get().group)
     }
@@ -117,7 +116,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fix a crash
+            - Added `"ignore_action_bar_packets"` option
             """.trimIndent()
         )
         type = STABLE

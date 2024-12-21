@@ -69,6 +69,10 @@ object ReplayViewerCommands {
                         Commands.literal("hide").executes(::hideReplayProgress)
                     )
                 ).then(
+                    Commands.literal("camera").then(
+                        Commands.literal("reset").executes(::resetCamera)
+                    )
+                ).then(
                     Commands.literal("jump").then(
                         Commands.literal("to").then(
                             Commands.literal("marker").then(
@@ -155,6 +159,15 @@ object ReplayViewerCommands {
         }
         context.source.sendFailure(Component.literal("Progress bar was already hidden"))
         return 0
+    }
+
+    private fun resetCamera(context: CommandContext<CommandSourceStack>): Int {
+        val viewer = context.source.getReplayViewer()
+        viewer.resetCamera()
+        context.source.sendSuccess({
+            Component.literal("Successfully reset camera")
+        }, false)
+        return Command.SINGLE_SUCCESS
     }
 
     private fun jumpToMarker(

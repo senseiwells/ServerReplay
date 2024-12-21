@@ -2,7 +2,7 @@ package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.recorder.RecorderRecoverer
+import me.senseiwells.replay.util.processor.RecorderRecoverer
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer

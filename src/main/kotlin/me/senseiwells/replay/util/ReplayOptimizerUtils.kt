@@ -100,7 +100,14 @@ object ReplayOptimizerUtils {
             return true
         }
         if (ServerReplay.config.ignoreChatPackets && CHAT.contains(type)) {
-            return true
+            if (!(packet is ClientboundSystemChatPacket && packet.overlay)) {
+                return true
+            }
+        }
+        if (ServerReplay.config.ignoreActionBarPackets) {
+            if (packet is ClientboundSystemChatPacket && packet.overlay || packet is ClientboundSetActionBarTextPacket) {
+                return true
+            }
         }
         if (ServerReplay.config.ignoreScoreboardPackets && SCOREBOARD.contains(type)) {
             return true

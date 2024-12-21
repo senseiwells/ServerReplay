@@ -13,7 +13,9 @@ import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import it.unimi.dsi.fastutil.ints.IntSets
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSets
 import kotlinx.coroutines.*
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.PackTracker
@@ -21,6 +23,7 @@ import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
+import me.senseiwells.replay.util.ReplayFileUtils
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
@@ -44,6 +47,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.BossEvent.BossBarColor
 import net.minecraft.world.BossEvent.BossBarOverlay
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.RelativeMovement
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
@@ -55,9 +59,6 @@ import java.io.InputStream
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
-import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.deleteRecursively
-import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -76,8 +77,9 @@ class ReplayViewer internal constructor(
 
     private var tickSpeed = 20.0F
     private var tickFrozen = false
-    private val chunks = Collections.synchronizedCollection(LongOpenHashSet())
-    private val entities = Collections.synchronizedCollection(IntOpenHashSet())
+
+    private val chunks = LongSets.synchronize(LongOpenHashSet())
+    private val entities = IntSets.synchronize(IntOpenHashSet())
     private val players = Collections.synchronizedList(ArrayList<UUID>())
     private val objectives = Collections.synchronizedCollection(ArrayList<String>())
 
@@ -91,6 +93,8 @@ class ReplayViewer internal constructor(
     private var progress = Duration.ZERO
 
     private var target = Duration.ZERO
+
+    private var position = Vec3.ZERO
 
     val server: MinecraftServer
         get() = this.player.server
@@ -144,7 +148,16 @@ class ReplayViewer internal constructor(
             // Un-lazy the markers
             markers
 
-            streamReplay { this.isActive }
+            try {
+                streamReplay { this.isActive }
+            } catch (e: Exception) {
+                ServerReplay.logger.error("Exception while viewing replay", e)
+                stop()
+                player.sendSystemMessage(
+                    Component.literal("Exception while viewing replay, see logs for more info")
+                        .withStyle(ChatFormatting.RED)
+                )
+            }
         }
     }
 
@@ -154,15 +167,9 @@ class ReplayViewer internal constructor(
 
         try {
             this.replay.close()
+            ReplayFileUtils.deleteCaches(this.location)
         } catch (e: IOException) {
             ServerReplay.logger.error("Failed to close replay file being viewed at ${this.location}")
-        }
-        try {
-            val caches = this.location.parent.resolve(this.location.name + ".cache")
-            @OptIn(ExperimentalPathApi::class)
-            caches.deleteRecursively()
-        } catch (e: IOException) {
-            ServerReplay.logger.error("Failed to delete caches", e)
         }
     }
 
@@ -237,6 +244,12 @@ class ReplayViewer internal constructor(
 
     fun getResourcePack(hash: String): InputStream? {
         return this.replay.getResourcePack(hash).orNull()
+    }
+
+    fun resetCamera() {
+        this.send(ClientboundPlayerPositionPacket(
+            this.position.x, this.position.y, this.position.z, 0.0F, 0.0F, setOf(), 0
+        ))
     }
 
     private fun readMarkers(): Multimap<String?, Marker> {
@@ -462,6 +475,9 @@ class ReplayViewer internal constructor(
         return when (packet) {
             is ClientboundGameEventPacket -> packet.event != CHANGE_GAME_MODE
             is ClientboundPlayerPositionPacket -> {
+                if (!packet.relativeArguments.containsAll(setOf(RelativeMovement.X, RelativeMovement.Y, RelativeMovement.Z))) {
+                    this.position = Vec3(packet.x, packet.y, packet.z)
+                }
                 // We want the client to teleport to the first initial position
                 // subsequent positions will teleport the viewer which we don't want
                 val teleported = this.teleported
@@ -590,7 +606,10 @@ class ReplayViewer internal constructor(
             val request = packet.url.removePrefix("replay://").toIntOrNull()
                 ?: throw IllegalStateException("Malformed replay packet url")
             val hash = this.replay.resourcePackIndex[request]
-                ?: throw IllegalStateException("Unknown replay resource pack index")
+            if (hash == null) {
+                ServerReplay.logger.error("Unknown replay resource pack index, $request for replay ${this.location}")
+                return packet
+            }
             val url = DownloadPacksHttpInjector.createUrl(this, hash)
             return ClientboundResourcePackPushPacket(packet.id, url, "", packet.required, packet.prompt)
         }

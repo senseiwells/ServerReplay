@@ -1,4 +1,4 @@
-package me.senseiwells.replay.recorder
+package me.senseiwells.replay.util.processor
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
@@ -13,8 +13,9 @@ import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.config.serialization.PathSerializer
+import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.util.ReplayFileUtils
 import net.minecraft.server.MinecraftServer
-import net.minecraft.util.Mth
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.io.EOFException
 import java.io.IOException
@@ -29,24 +30,26 @@ object RecorderRecoverer {
 
     private val recordings: MutableSet<Path>
 
+    private var future: CompletableFuture<Void>? = null
+
     init {
-        this.recordings = this.read()
+        recordings = read()
     }
 
     fun add(recorder: ReplayRecorder) {
-        this.recordings.add(recorder.location)
-        this.write()
+        recordings.add(recorder.location)
+        write()
     }
 
     fun remove(recorder: ReplayRecorder) {
-        this.recordings.remove(recorder.location)
-        this.write()
+        recordings.remove(recorder.location)
+        write()
     }
 
     @Internal
     @JvmStatic
     fun tryRecover(server: MinecraftServer) {
-        val recorders = this.recordings
+        val recorders = recordings
         if (!ServerReplay.config.recoverUnsavedReplays || recorders.isEmpty()) {
             return
         }
@@ -54,21 +57,30 @@ object RecorderRecoverer {
         val recordings = if (recorders.size > 1) "recordings" else "recording"
         ServerReplay.logger.info("Detected unfinished replay $recordings that ended abruptly...")
         val executor = Executors.newFixedThreadPool(
-            Mth.ceil(recorders.size / 2.0),
+            ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3),
             ThreadFactoryBuilder().setNameFormat("replay-recoverer-%d").build()
         )
-        for (recording in this.recordings) {
+        val futures = ArrayList<CompletableFuture<Void>>()
+        for (recording in RecorderRecoverer.recordings) {
             ServerReplay.logger.info("Attempting to recover recording: $recording, please do not stop the server")
 
-            CompletableFuture.runAsync({ this.recover(recording) }, executor).thenRunAsync({
-                this.recordings.remove(recording)
-                this.write()
-            }, server)
+            futures.add(CompletableFuture.runAsync({ recover(recording) }, executor).thenRunAsync({
+                RecorderRecoverer.recordings.remove(recording)
+                write()
+            }, server))
+        }
+        this.future = CompletableFuture.allOf(*futures.toTypedArray()).thenRun {
+            this.future = null
         }
         executor.shutdown()
     }
 
-    @OptIn(ExperimentalPathApi::class)
+    fun waitForRecovering() {
+        val future = this.future ?: return
+        ServerReplay.logger.warn("Waiting for recordings to be recovered, please do NOT kill the server")
+        future.join()
+    }
+
     private fun recover(recording: Path) {
         val temp = recording.parent.resolve(recording.name + ".tmp")
         if (temp.exists()) {
@@ -109,6 +121,7 @@ object RecorderRecoverer {
             try {
                 replay.saveTo(recording.parent.resolve(recording.name + ".mcpr").toFile())
                 replay.close()
+                ReplayFileUtils.deleteCaches(recording)
                 ServerReplay.logger.info("Successfully recovered recording $recording")
             } catch (e: IOException) {
                 ServerReplay.logger.error("Failed to write unfinished replay $recording")
@@ -116,22 +129,13 @@ object RecorderRecoverer {
         } else {
             ServerReplay.logger.warn("Could not find unfinished replay files for $recording??")
         }
-
-        val cache = recording.parent.resolve(recording.name + ".cache")
-        if (cache.exists()) {
-            try {
-                cache.deleteRecursively()
-            } catch (e: Exception) {
-                ServerReplay.logger.error("Failed to delete replay cache for $recording")
-            }
-        }
     }
 
     private fun write() {
         try {
-            this.path.parent.createDirectories()
-            this.path.outputStream().use {
-                Json.encodeToStream(SetSerializer(PathSerializer), this.recordings, it)
+            path.parent.createDirectories()
+            path.outputStream().use {
+                Json.encodeToStream(SetSerializer(PathSerializer), recordings, it)
             }
         } catch (e: Exception) {
             ServerReplay.logger.error("Failed to write unfinished recorders", e)
@@ -139,11 +143,11 @@ object RecorderRecoverer {
     }
 
     private fun read(): MutableSet<Path> {
-        if (!this.path.exists()) {
+        if (!path.exists()) {
             return HashSet()
         }
         return try {
-            this.path.inputStream().use {
+            path.inputStream().use {
                 HashSet(Json.decodeFromStream(SetSerializer(PathSerializer), it))
             }
         } catch (e: Exception) {

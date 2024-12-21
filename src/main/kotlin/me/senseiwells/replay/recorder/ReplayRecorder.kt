@@ -794,15 +794,8 @@ abstract class ReplayRecorder(
                         .append(", compressed to ${FileUtils.formatSize(size)}")
                 }
 
-                try {
-                    val caches = this.location.parent.resolve(this.location.name + ".cache")
-                    @OptIn(ExperimentalPathApi::class)
-                    caches.deleteRecursively()
-                } catch (e: IOException) {
-                    ServerReplay.logger.error("Failed to delete caches", e)
-                }
-
                 this.replay.close()
+                ReplayFileUtils.deleteCaches(this.location)
                 this.broadcastToOpsAndConsole(
                     Component.literal("Successfully closed replay ${this.getName()}").append(additional)
                 )
@@ -830,6 +823,7 @@ abstract class ReplayRecorder(
         val registry = PacketTypeRegistry.get(version, State.LOGIN)
 
         this.executor.execute {
+            // When updating before ReplayStudio ensure to write the correct meta
             this.replay.writeMetaData(registry, this.meta)
 
             this.replay.write(ENTRY_SERVER_REPLAY_META).use {
@@ -890,7 +884,9 @@ abstract class ReplayRecorder(
                 null
             }
         }
-        this.packs[requestId] = packet.url
+        this.executor.execute {
+            this.packs[requestId] = packet.url
+        }
         this.record(ClientboundResourcePackPushPacket(
             packet.id,
             "replay://${requestId}",

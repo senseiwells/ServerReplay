@@ -13,7 +13,7 @@ pluginManagement {
         maven("https://maven.fabricmc.net/") {
             name = "Fabric"
         }
-        maven("https://maven2.bai.lol")
+        maven("https://maven4.bai.lol")
         mavenCentral()
         gradlePluginPortal()
     }

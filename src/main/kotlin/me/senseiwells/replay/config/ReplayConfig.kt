@@ -36,6 +36,9 @@ data class ReplayConfig(
     @SerialName("debug")
     @EncodeDefault(Mode.NEVER)
     var debug: Boolean = false,
+    @SerialName("async_thread_pool_size")
+    @EncodeDefault(Mode.NEVER)
+    var asyncThreadPoolSize: Int? = 1,
     @SerialName("world_name")
     var worldName: String = "World",
     @SerialName("server_name")
@@ -81,6 +84,8 @@ data class ReplayConfig(
     var ignoreLightPackets: Boolean = true,
     @SerialName("ignore_chat_packets")
     var ignoreChatPackets: Boolean = false,
+    @SerialName("ignore_action_bar_packets")
+    var ignoreActionBarPackets: Boolean = false,
     @SerialName("ignore_scoreboard_packets")
     var ignoreScoreboardPackets: Boolean = false,
     @SerialName("optimize_explosion_packets")

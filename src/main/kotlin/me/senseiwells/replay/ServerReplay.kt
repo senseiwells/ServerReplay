@@ -6,6 +6,7 @@ import me.senseiwells.replay.commands.ReplayCommand
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
+import me.senseiwells.replay.util.processor.RecorderFixerUpper
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.loader.api.FabricLoader
@@ -43,6 +44,8 @@ object ServerReplay: ModInitializer {
                 PackCommand.register(dispatcher)
             }
         }
+
+        RecorderFixerUpper.tryFixingUp()
     }
 
     fun getIp(server: MinecraftServer): String {

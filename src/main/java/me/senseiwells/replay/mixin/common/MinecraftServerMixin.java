@@ -6,7 +6,8 @@ import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
-import me.senseiwells.replay.recorder.RecorderRecoverer;
+import me.senseiwells.replay.util.processor.RecorderFixerUpper;
+import me.senseiwells.replay.util.processor.RecorderRecoverer;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -57,5 +58,8 @@ public class MinecraftServerMixin {
 		for (ChunkRecorder recorder : ChunkRecorders.recorders()) {
 			recorder.stop();
 		}
+
+		RecorderRecoverer.INSTANCE.waitForRecovering();
+		RecorderFixerUpper.INSTANCE.waitForFixingUp();
 	}
 }

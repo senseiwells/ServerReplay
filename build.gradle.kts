@@ -28,7 +28,7 @@ repositories {
 }
 
 
-val modVersion = "1.2.7"
+val modVersion = "1.2.8"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -119,7 +119,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added `"ignore_action_bar_packets"` option
+            - Fix a compatability issue with polymer
             """.trimIndent()
         )
         type = STABLE

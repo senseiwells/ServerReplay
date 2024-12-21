@@ -47,8 +47,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.BossEvent.BossBarColor
 import net.minecraft.world.BossEvent.BossBarOverlay
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.PositionMoveRotation
-import net.minecraft.world.entity.Relative
+import net.minecraft.world.entity.RelativeMovement
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
@@ -249,7 +248,7 @@ class ReplayViewer internal constructor(
 
     fun resetCamera() {
         this.send(ClientboundPlayerPositionPacket(
-            0, PositionMoveRotation(this.position, Vec3.ZERO, 0.0F, 0.0F), setOf()
+            this.position.x, this.position.y, this.position.z, 0.0F, 0.0F, setOf(), 0
         ))
     }
 
@@ -476,8 +475,8 @@ class ReplayViewer internal constructor(
         return when (packet) {
             is ClientboundGameEventPacket -> packet.event != CHANGE_GAME_MODE
             is ClientboundPlayerPositionPacket -> {
-                if (!packet.relatives.containsAll(setOf(Relative.X, Relative.Y, Relative.Z))) {
-                    this.position = packet.change.position
+                if (!packet.relativeArguments.containsAll(setOf(RelativeMovement.X, RelativeMovement.Y, RelativeMovement.Z))) {
+                    this.position = Vec3(packet.x, packet.y, packet.z)
                 }
                 // We want the client to teleport to the first initial position
                 // subsequent positions will teleport the viewer which we don't want

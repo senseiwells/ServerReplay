@@ -15,7 +15,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ServerCommonPacketListenerImpl.class)
+// We want to apply our #send mixin *LAST*, any
+// other mods which modify the packs should come first
+@Mixin(value = ServerCommonPacketListenerImpl.class, priority = 5000)
 public abstract class ServerCommonPacketListenerImplMixin {
 	@Shadow protected abstract GameProfile playerProfile();
 

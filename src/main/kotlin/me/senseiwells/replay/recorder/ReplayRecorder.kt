@@ -185,7 +185,7 @@ abstract class ReplayRecorder(
      *
      * @param outgoing The outgoing [MinecraftPacket].
      */
-    fun record(outgoing: MinecraftPacket<*>) {
+    open fun record(outgoing: MinecraftPacket<*>) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }

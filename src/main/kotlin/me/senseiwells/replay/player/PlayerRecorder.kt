@@ -2,6 +2,7 @@ package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.api.ServerReplayPluginManager
+import me.senseiwells.replay.compat.polymer.PolymerPacketPatcher
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
@@ -157,7 +158,7 @@ class PlayerRecorder internal constructor(
      * @param packet The packet to be recorded.
      */
     override fun sendPacket(packet: Packet<*>) {
-        this.record(packet)
+        this.record(PolymerPacketPatcher.replace(this.getPlayerOrThrow().connection, packet))
     }
 
     /**

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPluginManager
+import me.senseiwells.replay.compat.polymer.PolymerPacketPatcher
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.player.PlayerRecorder
@@ -83,6 +84,10 @@ class ChunkRecorder internal constructor(
      */
     override val rotation: Vec2
         get() = Vec2.ZERO
+
+    override fun record(outgoing: Packet<*>) {
+        super.record(PolymerPacketPatcher.replace(this.dummy.connection, outgoing))
+    }
 
     /**
      * This gets the name of the replay recording.

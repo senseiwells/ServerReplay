@@ -65,7 +65,7 @@ interface ChunkSender {
      *
      * @param packet The packet to send.
      */
-    fun sendPacket(packet: Packet<*>)
+    fun sendChunkPacket(packet: Packet<*>)
 
     /**
      * This is called when [shouldTrackEntity] returns `true`,
@@ -111,9 +111,9 @@ interface ChunkSender {
     @Internal
     fun sendChunkViewDistance() {
         val center = this.getCenterChunk()
-        this.sendPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
-        this.sendPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
-        this.sendPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
+        this.sendChunkPacket(ClientboundSetChunkCacheCenterPacket(center.x, center.z))
+        this.sendChunkPacket(ClientboundSetChunkCacheRadiusPacket(this.getViewDistance()))
+        this.sendChunkPacket(ClientboundSetSimulationDistancePacket(this.getViewDistance()))
     }
 
     /**
@@ -152,7 +152,7 @@ interface ChunkSender {
 
         // We don't need to use the chunkSender
         // We are only writing the packets to disk...
-        this.sendPacket(ClientboundLevelChunkWithLightPacket(
+        this.sendChunkPacket(ClientboundLevelChunkWithLightPacket(
             chunk,
             chunk.level.lightEngine,
             null,
@@ -184,10 +184,10 @@ interface ChunkSender {
         }
 
         for (entity in leashed) {
-            this.sendPacket(ClientboundSetEntityLinkPacket(entity, entity.leashHolder))
+            this.sendChunkPacket(ClientboundSetEntityLinkPacket(entity, entity.leashHolder))
         }
         for (entity in ridden) {
-            this.sendPacket(ClientboundSetPassengersPacket(entity))
+            this.sendChunkPacket(ClientboundSetPassengersPacket(entity))
         }
 
         this.onChunkSent(chunk)

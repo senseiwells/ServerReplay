@@ -259,7 +259,7 @@ class ChunkRecorder internal constructor(
      *
      * @param packet The packet to be recorded.
      */
-    override fun sendPacket(packet: Packet<*>) {
+    override fun sendChunkPacket(packet: Packet<*>) {
         this.record(packet)
     }
 

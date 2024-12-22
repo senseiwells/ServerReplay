@@ -157,7 +157,7 @@ class PlayerRecorder internal constructor(
      *
      * @param packet The packet to be recorded.
      */
-    override fun sendPacket(packet: Packet<*>) {
+    override fun sendChunkPacket(packet: Packet<*>) {
         this.record(PolymerPacketPatcher.replace(this.getPlayerOrThrow().connection, packet))
     }
 
@@ -185,7 +185,7 @@ class PlayerRecorder internal constructor(
     override fun addTrackedEntity(tracked: ChunkSender.WrappedTrackedEntity) {
         val list = ArrayList<Packet<ClientGamePacketListener>>()
         tracked.getServerEntity().sendPairingData(this.getPlayerOrThrow(), list::add)
-        this.record(ClientboundBundlePacket(list))
+        this.sendChunkPacket(ClientboundBundlePacket(list))
     }
 
     /**

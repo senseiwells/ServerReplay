@@ -24,11 +24,12 @@ repositories {
     maven("https://maven.maxhenkel.de/repository/public")
     maven("https://maven.andante.dev/releases/")
     maven("https://maven4.bai.lol")
+    maven("https://maven.nucleoid.xyz")
     mavenCentral()
 }
 
 
-val modVersion = "1.2.8"
+val modVersion = "1.2.9"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -55,6 +56,7 @@ dependencies {
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
     modCompileOnly(libs.voicechat)
+    modCompileOnly(libs.polymer.core)
     compileOnly(libs.voicechat.api)
 
     shade(implementation(libs.replay.studio.get())!!)

@@ -15,6 +15,7 @@ vmp           = "0.2.0+beta.7.168+1.21.1"
 c2me          = "0.3.0+alpha.0.206+1.21.1"
 servux        = "1.21-0.3.8-sakura.1"
 syncmatica    = "1.21-sakura.6"
+polymer       = "0.9.17+1.21.1"
 replay-studio = "aa5ab3a302"
 
 # Plugins
@@ -35,13 +36,14 @@ inject-http      = { module = "net.mcbrawls.inject:http"           , version.ref
 inject-fabric    = { module = "net.mcbrawls.inject:fabric"         , version.ref = "inject" }
 
 # Compatability depdendencies
-carpet           = { module = "com.github.gnembon:fabric-carpet"    , version.ref = "carpet" }
-voicechat        = { module = "maven.modrinth:simple-voice-chat"    , version.ref = "voicechat" }
-voicechat-api    = { module = "de.maxhenkel.voicechat:voicechat-api", version.ref = "voicechat-api" }
-vmp              = { module = "maven.modrinth:vmp-fabric"           , version.ref = "vmp" }
-c2me             = { module = "maven.modrinth:c2me-fabric"          , version.ref = "c2me" }
-servux           = { module = "com.github.sakura-ryoko:servux"      , version.ref = "servux" }
-syncmatica       = { module = "com.github.sakura-ryoko:syncmatica"  , version.ref = "syncmatica" }
+carpet        = { module = "com.github.gnembon:fabric-carpet"    , version.ref = "carpet" }
+voicechat     = { module = "maven.modrinth:simple-voice-chat"    , version.ref = "voicechat" }
+voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api", version.ref = "voicechat-api" }
+vmp           = { module = "maven.modrinth:vmp-fabric"           , version.ref = "vmp" }
+c2me          = { module = "maven.modrinth:c2me-fabric"          , version.ref = "c2me" }
+servux        = { module = "com.github.sakura-ryoko:servux"      , version.ref = "servux" }
+syncmatica    = { module = "com.github.sakura-ryoko:syncmatica"  , version.ref = "syncmatica" }
+polymer-core  = { module = "eu.pb4:polymer-core"                 , version.ref = "polymer" }
 
 [plugins]
 fabric-loom = { id = "fabric-loom"                    , version.ref = "fabric-loom" }

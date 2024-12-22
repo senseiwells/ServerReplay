@@ -118,7 +118,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fix a compatability issue with polymer
+            - Fixes a compatability issue when recording polymer entities
             """.trimIndent()
         )
         type = STABLE

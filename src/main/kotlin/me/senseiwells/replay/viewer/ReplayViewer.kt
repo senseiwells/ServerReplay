@@ -151,6 +151,8 @@ class ReplayViewer internal constructor(
 
             try {
                 streamReplay { this.isActive }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 ServerReplay.logger.error("Exception while viewing replay", e)
                 stop()

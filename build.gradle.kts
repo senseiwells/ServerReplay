@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "1.2.11"
+val modVersion = "1.2.12"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -121,7 +121,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixes a compatability issue when recording polymer entities
+            - Fixes a crash when "fixed_daylight_cycle" is set to anything > 0
             """.trimIndent()
         )
         type = STABLE

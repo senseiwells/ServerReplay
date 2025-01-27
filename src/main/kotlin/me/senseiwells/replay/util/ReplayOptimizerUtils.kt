@@ -83,7 +83,7 @@ object ReplayOptimizerUtils {
         }
 
         val time = ServerReplay.config.fixedDaylightCycle
-        if (time >= 0 && packet is ClientboundSetTimePacket && packet.dayTime != -time) {
+        if (time >= 0 && packet is ClientboundSetTimePacket && packet.dayTime != time) {
             recorder.record(ClientboundSetTimePacket(packet.gameTime, time, false))
             return true
         }

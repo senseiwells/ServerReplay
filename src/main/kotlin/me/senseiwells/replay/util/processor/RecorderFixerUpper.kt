@@ -18,7 +18,7 @@ object RecorderFixerUpper {
     @OptIn(ExperimentalPathApi::class)
     fun tryFixingUp() {
         val executor = Executors.newFixedThreadPool(
-            ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3),
+            ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3 + 1),
             ThreadFactoryBuilder().setNameFormat("replay-fixer-upper-%d").build()
         )
         val futures = ArrayList<CompletableFuture<Void>>()

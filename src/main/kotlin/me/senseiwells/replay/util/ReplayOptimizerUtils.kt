@@ -3,6 +3,7 @@ package me.senseiwells.replay.util
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.level.ServerLevel
@@ -71,11 +72,16 @@ object ReplayOptimizerUtils {
         this.addEntityPacket(ClientboundTeleportEntityPacket::class.java) { packet, level -> level.getEntity(packet.id) }
     }
 
-    fun optimisePackets(recorder: ReplayRecorder, packet: Packet<*>): Boolean {
+    fun shouldIgnorePacket(recorder: ReplayRecorder, packet: Packet<*>): Boolean {
+        val isOnMainThread = recorder.server.isSameThread
         if (ServerReplay.config.optimizeEntityPackets) {
-            if (this.optimiseEntity(recorder, packet)) {
+            if (isOnMainThread && this.optimiseEntity(recorder, packet)) {
                 return true
             }
+        }
+
+        if (ServerReplay.config.ignoreCustomPayloads && packet is ClientboundCustomPayloadPacket) {
+            return true
         }
 
         if (ServerReplay.config.ignoreLightPackets && packet is ClientboundLightUpdatePacket) {

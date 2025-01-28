@@ -57,7 +57,7 @@ object RecorderRecoverer {
         val recordings = if (recorders.size > 1) "recordings" else "recording"
         ServerReplay.logger.info("Detected unfinished replay $recordings that ended abruptly...")
         val executor = Executors.newFixedThreadPool(
-            ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3),
+            ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3 + 1),
             ThreadFactoryBuilder().setNameFormat("replay-recoverer-%d").build()
         )
         val futures = ArrayList<CompletableFuture<Void>>()

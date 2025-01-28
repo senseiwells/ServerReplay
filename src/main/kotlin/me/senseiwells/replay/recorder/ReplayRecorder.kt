@@ -197,7 +197,7 @@ abstract class ReplayRecorder(
             ServerReplay.logger.warn("Trying to record packet off-thread ${outgoing.getDebugName()}")
         }
 
-        if (safe && ReplayOptimizerUtils.optimisePackets(this, outgoing)) {
+        if (ReplayOptimizerUtils.shouldIgnorePacket(this, outgoing)) {
             return
         }
 

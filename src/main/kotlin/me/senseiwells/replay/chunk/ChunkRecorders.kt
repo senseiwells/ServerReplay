@@ -1,6 +1,7 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.saver.ReplayModSaver
 import me.senseiwells.replay.util.processor.RecorderRecoverer
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -49,10 +50,11 @@ object ChunkRecorders {
             throw IllegalArgumentException("Recorder with name already exists")
         }
 
+        val path = ServerReplay.config.chunkRecordingPath.resolve(name)
         val recorder = ChunkRecorder(
             area,
             name,
-            ServerReplay.config.chunkRecordingPath.resolve(name)
+            ReplayModSaver.dated(path)
         )
         this.chunks[area] = recorder
         this.chunksByName[name] = recorder

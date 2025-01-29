@@ -46,6 +46,7 @@ object ServerReplay: ModInitializer {
         }
 
         RecorderFixerUpper.tryFixingUp()
+        this.warnDeprecatedConfig()
     }
 
     fun getIp(server: MinecraftServer): String {
@@ -55,5 +56,15 @@ object ServerReplay: ModInitializer {
 
     fun reload() {
         this.config = ReplayConfig.read()
+    }
+
+    private fun warnDeprecatedConfig() {
+        if (this.config.includeCompressedReplaySizeInStatus) {
+            this.logger.warn("\"include_compressed_in_status\" is enabled in your config, this option is deprecated and will be removed soon")
+        }
+        if (this.config.maxFileSize.bytes > 0) {
+            this.logger.warn("\"max_file_size\" is configured in your config, this option is deprecated and will be removed soon")
+            this.logger.warn("consider using \"max_duration\" instead")
+        }
     }
 }

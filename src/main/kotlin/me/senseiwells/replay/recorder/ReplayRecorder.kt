@@ -1,47 +1,24 @@
 package me.senseiwells.replay.recorder
 
-import com.google.common.hash.Hashing
 import com.mojang.authlib.GameProfile
-import com.replaymod.replaystudio.data.Marker
-import com.replaymod.replaystudio.io.ReplayOutputStream
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
-import com.replaymod.replaystudio.protocol.Packet
-import com.replaymod.replaystudio.protocol.PacketTypeRegistry
-import com.replaymod.replaystudio.replay.ReplayMetaData
-import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
-import io.netty.handler.codec.EncoderException
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.player.PlayerRecorder
-import me.senseiwells.replay.util.*
-import net.minecraft.ChatFormatting
-import net.minecraft.DetectedVersion
-import net.minecraft.SharedConstants
+import me.senseiwells.replay.saver.ReplaySaver
+import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOpsAndConsole
+import me.senseiwells.replay.util.DebugPacketData
+import me.senseiwells.replay.util.FileUtils
+import me.senseiwells.replay.util.ReplayOptimizerUtils
+import me.senseiwells.replay.util.getDebugName
 import net.minecraft.network.ConnectionProtocol
-import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.chat.ClickEvent
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.HoverEvent
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.PacketType
+import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
-import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
-import net.minecraft.network.protocol.common.CommonPacketTypes
 import net.minecraft.network.protocol.configuration.ConfigurationProtocols
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.GameProtocols
 import net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket
@@ -49,25 +26,16 @@ import net.minecraft.network.protocol.login.LoginProtocols
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.entity.EntityType
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
-import java.io.IOException
-import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import kotlin.io.path.*
-import kotlin.math.max
+import kotlin.io.path.pathString
 import kotlin.time.Duration.Companion.milliseconds
-import com.github.steveice10.netty.buffer.Unpooled as ReplayUnpooled
-import net.minecraft.network.protocol.Packet as MinecraftPacket
 
 /**
  * This is the abstract class representing a replay recorder.
@@ -77,51 +45,28 @@ import net.minecraft.network.protocol.Packet as MinecraftPacket
  *
  * @param server The [MinecraftServer] instance.
  * @param profile The profile of the player being recorded.
- * @param recordings The replay recordings directory.
  * @see PlayerRecorder
  * @see ChunkRecorder
  */
 abstract class ReplayRecorder(
     val server: MinecraftServer,
     val profile: GameProfile,
-    private val recordings: Path
+    provider: (ReplayRecorder) -> ReplaySaver
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
-    private val executor: ExecutorService
-
-    private val replay: SizedZipReplayFile
-    private val output: ReplayOutputStream
-    private val meta: ReplayMetaData
-    private val date: String
-
-    private val packs = HashMap<Int, String>()
 
     private var start: Long = 0
 
     private var protocol: ProtocolInfo<*> = LoginProtocols.CLIENTBOUND
     private var lastPacket = 0L
 
-    private var lastCompressedSize = 0L
-    private var lastRawSize = 0L
-    private var startTimeOfLastSize = System.currentTimeMillis() - 1
-    private var endTimeOfLastSize = System.currentTimeMillis()
-    private var currentSizeFuture: CompletableFuture<Long>? = null
-    private var isCheckingSize = false
-
-    private var nextFileCheckTime = System.currentTimeMillis() + DEFAULT_FILE_CHECK_TIME_MS
-
-    private var packId = 0
-
     internal var started = false
         private set
 
     private var ignore = false
 
-    /**
-     * The number of markers that have been added to the recording.
-     */
-    var markers = 0
-        private set
+    @Suppress("LeakingThis")
+    private val saver = provider.invoke(this)
 
     /**
      * The directory at which all the temporary replay
@@ -129,13 +74,14 @@ abstract class ReplayRecorder(
      * This also determines the final location of the replay file.
      */
     val location: Path
+        get() = this.saver.path
 
     /**
      * Whether the replay recorder has stopped and
      * is no longer recording any packets.
      */
     val stopped: Boolean
-        get() = this.executor.isShutdown
+        get() = this.saver.closed
 
     /**
      * The [UUID] of the player the recording is of.
@@ -158,19 +104,6 @@ abstract class ReplayRecorder(
      */
     abstract val rotation: Vec2
 
-    init {
-        this.executor = Executors.newSingleThreadExecutor()
-
-        this.date = DateTimeUtils.getFormattedDate()
-        this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
-        this.replay = SizedZipReplayFile(out = this.location.toFile())
-
-        this.output = this.replay.writePacketData()
-        this.meta = this.createNewMeta()
-
-        this.saveMeta()
-    }
-
     /**
      * This records an outgoing clientbound packet to the
      * replay file.
@@ -183,9 +116,9 @@ abstract class ReplayRecorder(
      * the main thread, therefore only calling this method on
      * the main thread is preferable.
      *
-     * @param outgoing The outgoing [MinecraftPacket].
+     * @param outgoing The outgoing [Packet].
      */
-    open fun record(outgoing: MinecraftPacket<*>) {
+    open fun record(outgoing: Packet<*>) {
         if (!this.started) {
             throw IllegalStateException("Cannot record packets if recorder not started")
         }
@@ -201,7 +134,16 @@ abstract class ReplayRecorder(
             return
         }
 
-        if (this.prePacket(outgoing)) {
+        if (outgoing is ClientboundBundlePacket) {
+            for (sub in outgoing.subPackets()) {
+                this.record(sub)
+            }
+            return
+        }
+        if (this.saver.prePacketRecord(outgoing)) {
+            return
+        }
+        if (!this.canRecordPacket(outgoing)) {
             return
         }
 
@@ -209,12 +151,14 @@ abstract class ReplayRecorder(
         val timestamp = this.getTimestamp()
         this.lastPacket = timestamp
 
-        this.executor.execute {
-            this.writePacket(outgoing, protocol, timestamp, !safe)
+        this.saver.writePacket(outgoing, protocol, timestamp, !safe).thenApply { bytes ->
+            if (ServerReplay.config.debug && bytes != null) {
+                val type = outgoing.getDebugName()
+                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(bytes)
+            }
         }
 
-        this.postPacket(outgoing)
-        this.calculateAndCheckFileSize()
+        this.saver.postPacketRecord(outgoing)
         this.checkDuration()
     }
 
@@ -241,7 +185,7 @@ abstract class ReplayRecorder(
      */
     @JvmOverloads
     fun logStart(restart: Boolean = false) {
-        this.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
+        this.saver.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
     }
 
     /**
@@ -261,11 +205,11 @@ abstract class ReplayRecorder(
         }
 
         if (ServerReplay.config.debug) {
-            this.broadcastToOpsAndConsole("Replay ${this.getName()} Debug Packet Data:\n${this.getDebugPacketData()}")
+            this.saver.broadcastToOpsAndConsole("Replay ${this.getName()} Debug Packet Data:\n${this.getDebugPacketData()}")
         }
 
         // We only save if the player has actually logged in...
-        val future = this.close(save && this.protocol.id() == ConnectionProtocol.PLAY)
+        val future = this.saver.close(this.lastPacket.toInt(), save && this.protocol.id() == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
     }
@@ -276,29 +220,16 @@ abstract class ReplayRecorder(
      * @param name The name of the marker, null for unnamed.
      * @param position The marked position.
      * @param rotation The marked rotation.
-     * @param time The timestamp of the marker (milliseconds).
+     * @param timestamp The timestamp of the marker (milliseconds).
      */
     @JvmOverloads
     fun addMarker(
         name: String? = null,
         position: Vec3 = this.position,
         rotation: Vec2 = this.rotation,
-        time: Int = this.getTimestamp().toInt()
+        timestamp: Int = this.getTimestamp().toInt()
     ) {
-        this.markers++
-        val marker = Marker()
-        marker.time = time
-        marker.name = name
-        marker.x = position.x
-        marker.y = position.y
-        marker.z = position.z
-        marker.pitch = rotation.x
-        marker.yaw = rotation.y
-        this.executor.execute {
-            val markers = this.replay.markers.or(::HashSet)
-            markers.add(marker)
-            this.replay.writeMarkers(markers)
-        }
+        this.saver.writeMarker(name, position, rotation, timestamp)
     }
 
     /**
@@ -319,7 +250,7 @@ abstract class ReplayRecorder(
      * @return The raw file size of the replay in bytes.
      */
     fun getRawRecordingSize(): Long {
-        return this.replay.getRawFileSize()
+        return this.saver.getRawRecordingSize()
     }
 
     /**
@@ -342,34 +273,10 @@ abstract class ReplayRecorder(
      *     compressed file size in bytes.
      * @see getRawRecordingSize
      */
+    @Deprecated("Getting the compressed recording size is computationally expensive")
     fun getCompressedRecordingSize(force: Boolean = false): CompletableFuture<Long> {
-        val current = this.currentSizeFuture
-        if (current != null) {
-            return current
-        }
-
-        if (!force && !this.shouldRecalculateFileSize()) {
-            return CompletableFuture.completedFuture(this.lastCompressedSize)
-        }
-
-        // This will block the executor thread from recording packets
-        // until it has duplicated all of its files (so we can access them async)
-        val future = CompletableFuture.supplyAsync {
-            val recordingTime = this.getTotalRecordingTime()
-            this.startTimeOfLastSize = System.currentTimeMillis()
-            val compressed = this.replay.getCompressedFileSize(this.executor)
-            // Update our check if this is called elsewhere
-            this.server.execute {
-                this.checkFileSize(compressed, this.lastCompressedSize, this.endTimeOfLastSize, recordingTime)
-            }
-            this.lastRawSize = this.getRawRecordingSize()
-            this.lastCompressedSize = compressed
-            this.endTimeOfLastSize = System.currentTimeMillis()
-            this.currentSizeFuture = null
-            compressed
-        }
-        this.currentSizeFuture = future
-        return future
+        @Suppress("DEPRECATION")
+        return this.saver.getCompressedRecordingSize(force)
     }
 
     /**
@@ -399,6 +306,7 @@ abstract class ReplayRecorder(
 
         builder.append("raw_size", FileUtils.formatSize(this.getRawRecordingSize()))
         if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
+            @Suppress("DEPRECATION")
             val compressed = this.getCompressedRecordingSize()
             return compressed.thenApply {
                 "${builder.append("compressed_size", FileUtils.formatSize(it))}"
@@ -429,36 +337,35 @@ abstract class ReplayRecorder(
     }
 
     /**
+     * This allows you to add any additional metadata which will be
+     * saved in the replay file.
+     *
+     * @param map The JSON metadata map which can be mutated.
+     */
+    open fun addMetadata(map: MutableMap<String, Any>) {
+        map["name"] = this.getName()
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
+        map["location"] = this.location.pathString
+        map["time"] = System.currentTimeMillis()
+    }
+
+    /**
      * This appends any additional data to the status.
      *
      * @param builder The [ToStringBuilder] which is used to build the status.
      * @see getStatusWithSize
      */
     protected open fun appendToStatus(builder: ToStringBuilder) {
-        val duration = this.nextFileCheckTime - System.currentTimeMillis()
-        if (duration > 0) {
-            builder.append("next_size_check", duration.milliseconds.toString())
-        }
+
     }
 
     /**
-     * This allows you to add any additional metadata which will be
-     * saved in the replay file.
+     * This method tries to restart the replay recorder by creating
+     * a new instance of itself.
      *
-     * @param map The JSON metadata map which can be mutated.
+     * @return Whether it successfully restarted.
      */
-    protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
-        map["name"] = JsonPrimitive(this.getName())
-        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
-        map["location"] = JsonPrimitive(this.location.pathString)
-        map["time"] = JsonPrimitive(System.currentTimeMillis())
-
-        map["start_of_last_file_check"] = JsonPrimitive(this.startTimeOfLastSize)
-        map["end_of_last_file_check"] = JsonPrimitive(this.endTimeOfLastSize)
-        map["last_raw_size"] = JsonPrimitive(this.lastRawSize)
-        map["last_compressed_size"] = JsonPrimitive(this.lastCompressedSize)
-        map["next_file_check"] = JsonPrimitive(this.nextFileCheckTime)
-    }
+    abstract fun restart(): Boolean
 
     /**
      * This gets the name of the replay recording.
@@ -466,6 +373,13 @@ abstract class ReplayRecorder(
      * @return The name of the replay recording.
      */
     abstract fun getName(): String
+
+    /**
+     * This gets the viewing command for this replay for after it's saved.
+     *
+     * @return The command to view this replay.
+     */
+    abstract fun getViewingCommand(): String
 
     /**
      * This starts the replay recording, note this is **not** called
@@ -476,14 +390,6 @@ abstract class ReplayRecorder(
     protected abstract fun initialize(): Boolean
 
     /**
-     * This method tries to restart the replay recorder by creating
-     * a new instance of itself.
-     *
-     * @return Whether it successfully restarted.
-     */
-    protected abstract fun restart(): Boolean
-
-    /**
      * This gets called when the replay is closing.
      *
      * @param future The future that will complete once the replay has closed.
@@ -491,19 +397,12 @@ abstract class ReplayRecorder(
     protected abstract fun onClosing(future: CompletableFuture<Long>)
 
     /**
-     * This gets the viewing command for this replay for after it's saved.
-     *
-     * @return The command to view this replay.
-     */
-    protected abstract fun getViewingCommand(): String
-
-    /**
      * Determines whether a given packet is able to be recorded.
      *
      * @param packet The packet that is going to be recorded.
      * @return Whether this recorded should record it.
      */
-    protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+    protected open fun canRecordPacket(packet: Packet<*>): Boolean {
         if (packet is ClientboundCustomPayloadPacket) {
             val payload = packet.payload
             if (payload is RecordablePayload && !payload.shouldRecord()) {
@@ -569,100 +468,6 @@ abstract class ReplayRecorder(
         this.protocol = GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
     }
 
-    private fun writePacket(
-        outgoing: MinecraftPacket<*>,
-        protocol: ProtocolInfo<*>,
-        timestamp: Long,
-        offThread: Boolean
-    ) {
-        val saved = try {
-            this.encodePacket(outgoing, protocol)
-        } catch (e: EncoderException) {
-            val name = outgoing.getDebugName()
-            if (!offThread) {
-                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
-                return
-            }
-            ServerReplay.logger.error(
-                "Failed to encode packet $name during ${protocol.id()} likely due to being off-thread, skipping", e
-            )
-            return
-        }
-        if (ServerReplay.config.debug) {
-            val type = outgoing.getDebugName()
-            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
-        }
-
-        try {
-            this.output.write(timestamp, saved)
-        } catch (e: IOException) {
-            ServerReplay.logger.error("Failed to write packet", e)
-        }
-    }
-
-    private fun encodePacket(outgoing: MinecraftPacket<*>, protocol: ProtocolInfo<*>): Packet {
-        val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-        val registry = PacketTypeRegistry.get(version, this.protocolAsState(protocol))
-
-        @Suppress("UNCHECKED_CAST")
-        val codec = (protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>)
-
-        if (outgoing is ClientboundCustomPayloadPacket) {
-            val payload = outgoing.payload
-            if (payload is RecordablePayload) {
-                @Suppress("UNCHECKED_CAST")
-                codec as IdDispatchCodecAccessor<PacketType<*>>
-
-                val id = codec.typeToIdMap.getInt(CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD)
-                val friendly = FriendlyByteBuf(Unpooled.buffer())
-                try {
-                    friendly.writeResourceLocation(payload.type().id)
-                    payload.record(friendly)
-                    return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
-                } finally {
-                    friendly.release()
-                }
-            }
-        }
-
-        val buf = Unpooled.buffer()
-        try {
-            codec.encode(buf, outgoing)
-            val friendly = FriendlyByteBuf(buf.slice())
-            val id = friendly.readVarInt()
-            return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
-        } finally {
-            buf.release()
-        }
-    }
-
-    private fun prePacket(packet: MinecraftPacket<*>): Boolean {
-        when (packet) {
-            is ClientboundAddEntityPacket -> {
-                if (packet.type == EntityType.PLAYER) {
-                    val uuids = this.meta.players.toMutableSet()
-                    uuids.add(packet.uuid.toString())
-                    this.meta.players = uuids.toTypedArray()
-                    this.saveMeta()
-                }
-            }
-            is ClientboundBundlePacket -> {
-                for (sub in packet.subPackets()) {
-                    this.record(sub)
-                }
-                return true
-            }
-            is ClientboundResourcePackPushPacket -> {
-                return this.downloadAndRecordResourcePack(packet)
-            }
-        }
-        return !this.canRecordPacket(packet)
-    }
-
-    protected open fun postPacket(packet: MinecraftPacket<*>) {
-
-    }
-
     private fun checkDuration() {
         val maxDuration = ServerReplay.config.maxDuration
         if (!maxDuration.isPositive()) {
@@ -671,290 +476,11 @@ abstract class ReplayRecorder(
 
         if (this.getTimestamp().milliseconds > maxDuration) {
             this.stop(true)
-            this.broadcastToOpsAndConsole(
+            this.saver.broadcastToOpsAndConsole(
                 "Stopped recording replay for ${this.getName()}, past duration limit ${maxDuration}!"
             )
             if (ServerReplay.config.restartAfterMaxDuration) {
                 this.restart()
-            }
-        }
-    }
-
-    private fun shouldRecalculateFileSize(): Boolean {
-        val increase = this.getRawRecordingSize() / this.lastRawSize.toDouble()
-        // We've recorded an extra 10% of our previous raw size
-        if (increase > 1.1) {
-            if (ServerReplay.config.debug) {
-                ServerReplay.logger.info("Recalculating file size, file ratio: $increase")
-            }
-            return true
-        }
-
-        val now = System.currentTimeMillis()
-        val lastTimeTaken = this.endTimeOfLastSize - this.startTimeOfLastSize
-        if (this.endTimeOfLastSize + lastTimeTaken * 0.75 > now) {
-            // It's been a while since we last recalculated
-            if (ServerReplay.config.debug) {
-                ServerReplay.logger.info("Recalculating file size, last check was at ${this.endTimeOfLastSize}ms")
-            }
-            return true
-        }
-        return false
-    }
-
-    private fun calculateAndCheckFileSize() {
-        val maxFileSize = ServerReplay.config.maxFileSize
-        if (maxFileSize.bytes <= 0 || this.isCheckingSize) {
-            return
-        }
-
-        if (System.currentTimeMillis() < this.nextFileCheckTime) {
-            val increase = this.getRawRecordingSize() / this.lastRawSize.toDouble()
-            // If there's a very significant raw increase, then we should probably check
-            if (increase < 1.4 || this.getTotalRecordingTime() < DEFAULT_FILE_CHECK_TIME_MS) {
-                return
-            }
-        }
-
-        // We don't want to do multiple concurrent checks, one is enough
-        this.isCheckingSize = true
-        this.getCompressedRecordingSize(true).thenRunAsync({
-            this.isCheckingSize = false
-            // We implicitly call #checkFileSize by compressing the file
-        }, this.server)
-    }
-
-    private fun checkFileSize(
-        compressed: Long,
-        previousCompressed: Long,
-        previousEndTime: Long,
-        totalRecordingTime: Long
-    ) {
-        val maxFileSize = ServerReplay.config.maxFileSize
-        if (maxFileSize.bytes <= 0) {
-            return
-        }
-
-        if (compressed > maxFileSize.bytes) {
-            this.stop(true)
-            this.broadcastToOpsAndConsole(
-                "Stopped recording replay for ${this.getName()}, over max file size ${maxFileSize.raw}!"
-            )
-            if (ServerReplay.config.restartAfterMaxFileSize) {
-                this.restart()
-            }
-        } else {
-            // The bytes per ms for the entire recording duration
-            val lDelta = compressed / totalRecordingTime.toDouble()
-            // The bytes per ms since the previous compression time
-            val sDelta = (compressed - previousCompressed) / (this.startTimeOfLastSize - previousEndTime).toDouble()
-            val remaining = maxFileSize.bytes - compressed
-
-            // We average out the deltas and multiply by 1.5 to account for fluctuations
-            val estimatedDelta = (lDelta + sDelta) * 0.75
-
-            val estimatedTime = max((remaining / estimatedDelta).toLong(), DEFAULT_FILE_CHECK_TIME_MS)
-            this.nextFileCheckTime = this.startTimeOfLastSize + estimatedTime
-            if (ServerReplay.config.debug) {
-                val timeUntilNextCheck = (this.nextFileCheckTime - System.currentTimeMillis()).milliseconds.toString()
-                ServerReplay.logger.info(
-                    "Checked compress filesize to be ${FileUtils.formatSize(compressed)}, checking next file size in $timeUntilNextCheck"
-                )
-            }
-        }
-    }
-
-    private fun close(save: Boolean): CompletableFuture<Long> {
-        if (save) {
-            this.meta.duration = this.lastPacket.toInt()
-            this.saveMeta()
-        }
-        val future = CompletableFuture.supplyAsync({
-            var size = 0L
-            try {
-                val path = this.recording()
-                this.output.close()
-
-                val additional = Component.empty()
-                if (save) {
-                    this.broadcastToOpsAndConsole("Starting to save replay ${this.getName()}, please do not stop the server!")
-
-                    this.replay.saveTo(path.toFile())
-                    size = path.fileSize()
-                    additional.append(" and saved to ")
-                        .append(Component.literal(path.toString()).withStyle {
-                            it.withClickEvent(ClickEvent(
-                                ClickEvent.Action.SUGGEST_COMMAND,
-                                this.getViewingCommand()
-                            )).withHoverEvent(HoverEvent(
-                                HoverEvent.Action.SHOW_TEXT,
-                                Component.literal("Click to view replay")
-                            )).withColor(ChatFormatting.GREEN)
-                        })
-                        .append(", compressed to ${FileUtils.formatSize(size)}")
-                }
-
-                this.replay.close()
-                ReplayFileUtils.deleteCaches(this.location)
-                this.broadcastToOpsAndConsole(
-                    Component.literal("Successfully closed replay ${this.getName()}").append(additional)
-                )
-            } catch (exception: Exception) {
-                val message = "Failed to write replay ${this.getName()}"
-                this.broadcastToOps(Component.literal(message).withStyle {
-                    it.withHoverEvent(HoverEvent(
-                        HoverEvent.Action.SHOW_TEXT,
-                        Component.literal(exception.stackTraceToString())
-                    ))
-                })
-                ServerReplay.logger.error(message, exception)
-                throw exception
-            }
-            size
-        }, this.executor)
-
-        this.executor.shutdown()
-        return future
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    private fun saveMeta() {
-        val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-        val registry = PacketTypeRegistry.get(version, State.LOGIN)
-
-        this.executor.execute {
-            // When updating before ReplayStudio ensure to write the correct meta
-            this.replay.writeMetaData(registry, this.meta)
-
-            this.replay.write(ENTRY_SERVER_REPLAY_META).use {
-                val json = HashMap<String, JsonElement>()
-                this.addMetadata(json)
-                Json.encodeToStream(json, it)
-            }
-
-            this.replay.write(ENTRY_SERVER_REPLAY_PACKS).use {
-                Json.encodeToStream(this.packs, it)
-            }
-        }
-    }
-
-    private fun recording(): Path {
-        return this.location.parent.resolve(this.location.name + ".mcpr")
-    }
-
-    private fun protocolAsState(protocol: ProtocolInfo<*>): State {
-        return when (protocol.id()) {
-            ConnectionProtocol.PLAY -> State.PLAY
-            ConnectionProtocol.CONFIGURATION -> State.CONFIGURATION
-            ConnectionProtocol.LOGIN -> State.LOGIN
-            else -> throw IllegalStateException("Expected connection protocol to be 'PLAY', 'CONFIGURATION' or 'LOGIN'")
-        }
-    }
-
-    private fun createNewMeta(): ReplayMetaData {
-        val meta = ReplayMetaData()
-        meta.isSingleplayer = false
-        meta.serverName = ServerReplay.config.worldName
-        meta.customServerName = ServerReplay.config.serverName
-        meta.generator = "ServerReplay v${ServerReplay.version}"
-        meta.date = System.currentTimeMillis()
-        meta.mcVersion = DetectedVersion.BUILT_IN.name
-        return meta
-    }
-
-    private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPushPacket): Boolean {
-        if (!ServerReplay.config.includeResourcePacks || packet.url.startsWith("replay://")) {
-            return false
-        }
-        @Suppress("DEPRECATION")
-        val pathHash = Hashing.sha1().hashString(packet.url, StandardCharsets.UTF_8).toString()
-        val path = ReplayConfig.root.resolve("packs").resolve(pathHash)
-
-        val requestId = this.packId++
-        if (!path.exists() || !this.writeResourcePack(path.readBytes(), packet.hash, requestId)) {
-            CompletableFuture.runAsync {
-                path.parent.createDirectories()
-                val bytes = URI(packet.url).toURL().openStream().readAllBytes()
-                path.writeBytes(bytes)
-                if (!this.writeResourcePack(bytes, packet.hash, requestId)) {
-                    ServerReplay.logger.error("Resource pack hashes do not match! Pack '${packet.url}' will not be loaded...")
-                }
-            }.exceptionally {
-                ServerReplay.logger.error("Failed to download resource pack", it)
-                null
-            }
-        }
-        this.executor.execute {
-            this.packs[requestId] = packet.url
-        }
-        this.record(ClientboundResourcePackPushPacket(
-            packet.id,
-            "replay://${requestId}",
-            "",
-            packet.required,
-            packet.prompt
-        ))
-        return true
-    }
-
-    private fun writeResourcePack(bytes: ByteArray, expectedHash: String, id: Int): Boolean {
-        @Suppress("DEPRECATION")
-        val packHash = Hashing.sha1().hashBytes(bytes).toString()
-        if (expectedHash == "" || expectedHash == packHash) {
-            this.executor.execute {
-                try {
-                    val index = this.replay.resourcePackIndex ?: HashMap()
-                    val write = !index.containsValue(packHash)
-                    index[id] = packHash
-                    this.replay.writeResourcePackIndex(index)
-                    if (write) {
-                        this.replay.writeResourcePack(packHash).use {
-                            it.write(bytes)
-                        }
-                    }
-                } catch (e: IOException) {
-                    ServerReplay.logger.warn("Failed to write resource pack", e)
-                }
-            }
-            return true
-        }
-        return false
-    }
-
-    private fun broadcastToOps(message: Component) {
-        if (!ServerReplay.config.notifyAdminsOfStatus) {
-            return
-        }
-        this.server.execute {
-            val players = this.server.playerList.players
-            for (player in players) {
-                if (this.server.playerList.isOp(player.gameProfile)) {
-                    player.sendSystemMessage(message)
-                }
-            }
-        }
-    }
-
-    private fun broadcastToOpsAndConsole(message: String) {
-        this.broadcastToOps(Component.literal(message))
-        ServerReplay.logger.info(message)
-    }
-
-    private fun broadcastToOpsAndConsole(message: Component) {
-        this.broadcastToOps(message)
-        ServerReplay.logger.info(message.string)
-    }
-
-    companion object {
-        private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
-        private const val DEFAULT_FILE_CHECK_TIME_MS = 30_000L
-        const val ENTRY_SERVER_REPLAY_PACKS = "server_replay_packs.json"
-
-        private fun MinecraftPacket<*>.getDebugName(): String {
-            return if (this is ClientboundCustomPayloadPacket) {
-                "CustomPayload(${this.payload.type().id})"
-            } else {
-                this.type().id.toString()
             }
         }
     }

@@ -2,8 +2,6 @@ package me.senseiwells.replay.chunk
 
 import it.unimi.dsi.fastutil.ints.IntArraySet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.compat.polymer.PolymerPacketPatcher
@@ -14,6 +12,7 @@ import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ChunkSender.WrappedTrackedEntity
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.saver.ReplaySaver
 import me.senseiwells.replay.util.ClientboundAddEntityPacket
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
@@ -32,7 +31,6 @@ import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
-import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.io.path.nameWithoutExtension
@@ -44,15 +42,14 @@ import kotlin.io.path.nameWithoutExtension
  *
  * @param chunks The [ChunkArea] to record.
  * @param recorderName The name of the [ChunkRecorder].
- * @param recordings The chunks recordings directory.
  * @see PlayerRecorder
  * @see ChunkRecorder
  */
 class ChunkRecorder internal constructor(
     val chunks: ChunkArea,
     val recorderName: String,
-    recordings: Path
-): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
+    provider: (ReplayRecorder) -> ReplaySaver
+): ReplayRecorder(chunks.level.server, PROFILE, provider), ChunkSender {
     private val dummy by lazy {
         val player = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
         ChunkGamePacketPacketListener(this, player)
@@ -207,12 +204,12 @@ class ChunkRecorder internal constructor(
      *
      * @param map The JSON metadata map which can be mutated.
      */
-    override fun addMetadata(map: MutableMap<String, JsonElement>) {
+    override fun addMetadata(map: MutableMap<String, Any>) {
         super.addMetadata(map)
-        map["chunks_world"] = JsonPrimitive(this.chunks.level.dimension().location().toString())
-        map["chunks_from"] = JsonPrimitive(this.chunks.from.toString())
-        map["chunks_to"] = JsonPrimitive(this.chunks.to.toString())
-        map["paused_time"] = JsonPrimitive(this.totalPausedTime)
+        map["chunks_world"] = this.chunks.level.dimension().location().toString()
+        map["chunks_from"] = this.chunks.from.toString()
+        map["chunks_to"] = this.chunks.to.toString()
+        map["paused_time"] = this.totalPausedTime
     }
 
     /**

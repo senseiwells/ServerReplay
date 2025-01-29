@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.util.processor.RecorderRecoverer
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.saver.ReplayModSaver
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
@@ -45,11 +46,11 @@ object PlayerRecorders {
             throw IllegalArgumentException("Player already has a recorder")
         }
 
-        ServerReplay.config.playerRecordingName
+        val path = ServerReplay.config.getPlayerRecordingLocation(profile)
         val recorder = PlayerRecorder(
             server,
             profile,
-            ServerReplay.config.getPlayerRecordingLocation(profile)
+            ReplayModSaver.dated(path)
         )
         this.players[profile.id] = recorder
         RecorderRecoverer.add(recorder)

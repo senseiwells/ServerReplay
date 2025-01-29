@@ -63,7 +63,7 @@ data class ReplayConfig(
     @SerialName("recover_unsaved_replays")
     var recoverUnsavedReplays: Boolean = true,
     @SerialName("include_compressed_in_status")
-    var includeCompressedReplaySizeInStatus: Boolean = true,
+    var includeCompressedReplaySizeInStatus: Boolean = false,
     @SerialName("fixed_daylight_cycle")
     var fixedDaylightCycle: Long = -1L,
     @SerialName("chunk_recorder_load_radius")

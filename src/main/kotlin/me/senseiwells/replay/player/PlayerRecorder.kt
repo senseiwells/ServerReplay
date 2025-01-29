@@ -6,6 +6,7 @@ import me.senseiwells.replay.compat.polymer.PolymerPacketPatcher
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.saver.ReplaySaver
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
@@ -20,7 +21,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.ApiStatus.Internal
-import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.io.path.nameWithoutExtension
@@ -33,14 +33,13 @@ import kotlin.io.path.nameWithoutExtension
  *
  * @param server The [MinecraftServer] instance.
  * @param profile The profile of the player being recorded.
- * @param recordings The player recordings directory.
  * @see ReplayRecorder
  */
 class PlayerRecorder internal constructor(
     server: MinecraftServer,
     profile: GameProfile,
-    recordings: Path,
-): ReplayRecorder(server, profile, recordings), ChunkSender {
+    provider: (ReplayRecorder) -> ReplaySaver
+): ReplayRecorder(server, profile, provider), ChunkSender {
     private val player: ServerPlayer?
         get() = this.server.playerList.getPlayer(this.recordingPlayerUUID)
 

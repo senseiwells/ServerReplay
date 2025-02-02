@@ -49,6 +49,7 @@ data class FlashbackMeta (
          * This property is only ever used when merging two
          * replays, and for our purposes will always be `false`
          */
+        @Suppress("unused")
         @SerialName("forcePlayerSnapshot")
         @EncodeDefault(Mode.ALWAYS)
         val forcePlayerSnapshot: Boolean = false

@@ -1,7 +1,6 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.saver.replay_mod.ReplayModSaver
 import me.senseiwells.replay.util.processor.RecorderRecoverer
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer

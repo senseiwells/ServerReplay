@@ -5,12 +5,18 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.saver.ReplaySaver
+import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOps
+import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOpsAndConsole
+import me.senseiwells.replay.saver.ReplaySaver.Companion.name
 import me.senseiwells.replay.util.DateTimeUtils
 import me.senseiwells.replay.util.FileUtils
+import me.senseiwells.replay.util.ReplayMetaUtils
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
@@ -25,6 +31,9 @@ import org.apache.commons.io.file.PathUtils
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import kotlin.io.path.fileSize
+import kotlin.io.path.name
+import kotlin.io.path.writer
 
 class FlashbackSaver(
     override val recorder: ReplayRecorder,
@@ -36,6 +45,8 @@ class FlashbackSaver(
 
     private val movement = HashMultimap.create<ResourceKey<Level>, Movement>()
     private val chunks = Object2IntOpenHashMap<ChunkPacketIdentity>()
+
+    private var dimension: ResourceKey<Level>? = null
 
     private var ticks = 1
 
@@ -55,12 +66,18 @@ class FlashbackSaver(
 
     override fun tick() {
         this.writeEntityMovement()
+        if (this.recorder.paused) {
+            return
+        }
+
+        val previous = this.dimension
+        this.dimension = this.recorder.level.dimension()
 
         this.writeActionAsync(FlashbackAction.NextTick)
         this.ticks++
         val ticks = this.ticks
         val chunkTicks = ticks - this.writer.meta.totalTicks
-        if (chunkTicks < CHUNK_LENGTH) {
+        if (chunkTicks < CHUNK_LENGTH && (previous == null || previous == this.dimension)) {
             return
         }
 
@@ -90,15 +107,19 @@ class FlashbackSaver(
             else -> return CompletableFuture.completedFuture(null)
         }
 
-        if (packet is ClientboundLevelChunkWithLightPacket) {
-            return this.writeCachedChunk(packet, protocol)
-        } else if (packet is ClientboundMoveEntityPacket) {
-            return this.writeMovement(packet)
+        val replacement = when (packet) {
+            is ClientboundLevelChunkWithLightPacket -> return this.writeCachedChunk(packet, protocol)
+            is ClientboundMoveEntityPacket -> return this.writeMovement(packet)
+            is ClientboundPlayerChatPacket -> {
+                val content = packet.unsignedContent ?: Component.literal(packet.body.content)
+                ClientboundSystemChatPacket(packet.chatType.decorate(content), false)
+            }
+            else -> packet
         }
 
         return this.writeActionAsync(action) { buf ->
             val start = buf.writerIndex()
-            ReplaySaver.encodePacket(packet, protocol, buf)
+            ReplaySaver.encodePacket(replacement, protocol, buf)
             buf.writerIndex() - start
         }
     }
@@ -127,6 +148,10 @@ class FlashbackSaver(
             ByteBufCodecs.GAME_PROFILE.encode(buf, profile)
             buf.writeVarInt(gamemode)
         }
+        val filtered = packets.filter { it !is ClientboundAddEntityPacket }
+        for (packet in filtered) {
+            this.recorder.record(packet)
+        }
     }
 
     override fun getRawRecordingSize(): Long {
@@ -140,8 +165,35 @@ class FlashbackSaver(
 
     override fun close(duration: Int, save: Boolean): CompletableFuture<Long> {
         val future = CompletableFuture.supplyAsync({
-            this.writer.endChunk(this.ticks)
-            0L
+            var size = 0L
+            try {
+                val additional = Component.empty()
+                if (save) {
+                    this.writer.endChunk(this.ticks)
+                    this.writeCustomMeta()
+                    val path = this.recording()
+                    this.broadcastToOpsAndConsole("Staring to save replay ${this.name}, please do not stop the server!")
+                    FileUtils.zip(this.path, path)
+                    size = path.fileSize()
+
+                    additional.append(" and saved to ")
+                        .append(path.toString())
+                        .append(", compressed to ${FileUtils.formatSize(size)}")
+                }
+                this.writer.close()
+                this.broadcastToOpsAndConsole(
+                    Component.literal("Successfully closed replay ${this.name}").append(additional)
+                )
+            } catch (exception: Exception) {
+                val message = "Failed to write replay ${this.name}"
+                val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(exception.stackTraceToString()))
+                this.broadcastToOps(Component.literal(message).withStyle {
+                    it.withHoverEvent(hover)
+                })
+                ServerReplay.logger.error(message, exception)
+                throw exception
+            }
+            size
         }, this.executor)
         this.executor.shutdown()
         return future
@@ -188,6 +240,17 @@ class FlashbackSaver(
         }
     }
 
+    private fun writeCustomMeta() {
+        try {
+            val meta = HashMap<String, Any>()
+            this.recorder.addMetadata(meta)
+            val path = this.path.resolve(ReplaySaver.ENTRY_SERVER_REPLAY_META)
+            ReplayMetaUtils.serialize(meta, path.writer())
+        } catch (exception: Exception) {
+            ServerReplay.logger.error("Failed to write ServerReplay meta!", exception)
+        }
+    }
+
     private fun writeEntityMovement() {
         this.executor.execute {
             if (this.movement.keySet().isNotEmpty()) {
@@ -209,7 +272,6 @@ class FlashbackSaver(
     private fun writeMovement(packet: ClientboundMoveEntityPacket): CompletableFuture<Int?> {
         val level = this.recorder.level
         val entity = packet.getEntity(level) ?: return CompletableFuture.completedFuture(null)
-        // TODO: Lerp?
         val id = entity.id
         val position = entity.position()
         val rotation = entity.rotationVector
@@ -219,6 +281,10 @@ class FlashbackSaver(
             this.movement.put(level.dimension(), Movement(id, position, rotation, headRot, onGround))
         }
         return CompletableFuture.completedFuture(Movement.size())
+    }
+
+    private fun recording(): Path {
+        return this.path.parent.resolve(this.path.name + ".zip")
     }
 
     private class Movement(
@@ -266,8 +332,7 @@ class FlashbackSaver(
             ClientboundMoveMinecartPacket::class.java,
 
             ClientboundForgetLevelChunkPacket::class.java,
-            ClientboundDeleteChatPacket::class.java,
-            ClientboundPlayerChatPacket::class.java,
+            ClientboundDeleteChatPacket::class.java
         )
 
         fun dated(recordings: Path): (ReplayRecorder) -> FlashbackSaver {

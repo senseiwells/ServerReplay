@@ -84,6 +84,12 @@ abstract class ReplayRecorder(
         get() = this.saver.closed
 
     /**
+     * Whether the recorder is currently paused
+     */
+    open val paused: Boolean
+        get() = false
+
+    /**
      * The [UUID] of the player the recording is of.
      */
     val recordingPlayerUUID: UUID
@@ -466,6 +472,7 @@ abstract class ReplayRecorder(
             this.start = System.currentTimeMillis()
         }
 
+        this.protocol = LoginProtocols.CLIENTBOUND
         // We will not have recorded this, so we need to do it manually.
         this.record(ClientboundLoginFinishedPacket(this.profile))
 

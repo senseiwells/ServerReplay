@@ -335,7 +335,7 @@ class ReplayModSaver(
             // When updating before ReplayStudio ensure to write the correct meta
             this.replay.writeMetaData(registry, this.meta)
 
-            this.replay.write(ENTRY_SERVER_REPLAY_META).use {
+            this.replay.write(ReplaySaver.ENTRY_SERVER_REPLAY_META).use {
                 val meta = HashMap<String, Any>()
                 this.recorder.addMetadata(meta)
                 this.addCustomMeta(meta)
@@ -447,7 +447,6 @@ class ReplayModSaver(
     }
 
     companion object {
-        private const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
         private const val ENTRY_SERVER_REPLAY_PACKS = "server_replay_packs.json"
         private const val DEFAULT_FILE_CHECK_TIME_MS = 30_000L
 

@@ -60,6 +60,8 @@ interface ReplaySaver {
     fun close(duration: Int, save: Boolean): CompletableFuture<Long>
 
     companion object {
+        const val ENTRY_SERVER_REPLAY_META = "server_replay_meta.json"
+
         val ReplaySaver.name
             get() = this.recorder.getName()
 

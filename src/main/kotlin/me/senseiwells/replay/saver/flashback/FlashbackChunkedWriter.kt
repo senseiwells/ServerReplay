@@ -16,7 +16,6 @@ class FlashbackChunkedWriter(
     private val directory: Path,
     private val access: RegistryAccess
 ) {
-    // TODO: Remember to free this memory!
     private val buffer = RegistryFriendlyByteBuf(Unpooled.buffer(), this.access)
 
     private var snapshot: SnapshotState = SnapshotState.Empty
@@ -117,6 +116,12 @@ class FlashbackChunkedWriter(
         } finally {
             buffer.release()
         }
+    }
+
+    @OptIn(ExperimentalPathApi::class)
+    fun close() {
+        this.buffer.release()
+        this.directory.deleteRecursively()
     }
 
     private fun writeHeader() {

@@ -64,6 +64,9 @@ class ChunkRecorder internal constructor(
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
 
+    override val paused: Boolean
+        get() = this.lastPaused != 0L
+
     /**
      * The level that the chunk recording is currently in.
      */
@@ -377,7 +380,7 @@ class ChunkRecorder internal constructor(
     }
 
     private fun pause() {
-        if (!this.paused() && ServerReplay.config.skipWhenChunksUnloaded) {
+        if (!this.paused && ServerReplay.config.skipWhenChunksUnloaded) {
             this.lastPaused = System.currentTimeMillis()
 
             if (ServerReplay.config.notifyPlayersLoadingChunks) {
@@ -392,7 +395,7 @@ class ChunkRecorder internal constructor(
     }
 
     private fun resume() {
-        if (this.paused()) {
+        if (this.paused) {
             this.totalPausedTime += this.getCurrentPause()
             this.lastPaused = 0L
 
@@ -408,14 +411,10 @@ class ChunkRecorder internal constructor(
     }
 
     private fun getCurrentPause(): Long {
-        if (this.paused()) {
+        if (this.paused) {
             return System.currentTimeMillis() - this.lastPaused
         }
         return 0L
-    }
-
-    private fun paused(): Boolean {
-        return this.lastPaused != 0L
     }
 
     companion object {

@@ -349,6 +349,10 @@ abstract class ReplayRecorder(
         map["time"] = System.currentTimeMillis()
     }
 
+    protected fun spawnPlayer(player: ServerPlayer, packets: Collection<Packet<*>>) {
+        this.saver.writePlayer(player, packets)
+    }
+
     /**
      * This appends any additional data to the status.
      *
@@ -428,6 +432,14 @@ abstract class ReplayRecorder(
         }
     }
 
+    @Internal
+    abstract fun takeSnapshot()
+
+    @Internal
+    fun tick() {
+        this.saver.tick()
+    }
+
     /**
      * This method formats all the debug packet data
      * into a string.
@@ -449,8 +461,10 @@ abstract class ReplayRecorder(
      */
     @Internal
     fun afterLogin() {
-        this.started = true
-        this.start = System.currentTimeMillis()
+        if (!this.started) {
+            this.started = true
+            this.start = System.currentTimeMillis()
+        }
 
         // We will not have recorded this, so we need to do it manually.
         this.record(ClientboundLoginFinishedPacket(this.profile))

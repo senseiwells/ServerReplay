@@ -114,7 +114,13 @@ class ChunkRecorder internal constructor(
         this.dummy.isInvisible = true
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
-        this.spawnPlayer()
+        val spawnPackets = ArrayList<Packet<*>>(2)
+        spawnPackets.add(ClientboundAddEntityPacket(this.dummy))
+        val tracked = this.dummy.entityData.nonDefaultValues
+        if (tracked != null) {
+            spawnPackets.add(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
+        }
+        this.spawnPlayer(this.dummy, spawnPackets)
         this.sendChunksAndEntities()
         ServerReplayPluginManager.startReplay(this)
 
@@ -298,6 +304,11 @@ class ChunkRecorder internal constructor(
         return super.canRecordPacket(packet)
     }
 
+    override fun takeSnapshot() {
+        RejoinedReplayPlayer.rejoin(this.dummy, this)
+        this.sendChunksAndEntities()
+    }
+
     /**
      * This gets the dummy chunk recording player.
      *
@@ -362,14 +373,6 @@ class ChunkRecorder internal constructor(
 
         if (this.loadedChunks.isEmpty()) {
             this.pause()
-        }
-    }
-
-    private fun spawnPlayer() {
-        this.record(ClientboundAddEntityPacket(this.dummy))
-        val tracked = this.dummy.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
         }
     }
 

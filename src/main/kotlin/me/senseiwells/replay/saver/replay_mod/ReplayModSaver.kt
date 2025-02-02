@@ -1,4 +1,4 @@
-package me.senseiwells.replay.saver
+package me.senseiwells.replay.saver.replay_mod
 
 import com.google.common.hash.Hashing
 import com.replaymod.replaystudio.data.Marker
@@ -7,23 +7,21 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
-import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.EncoderException
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.saver.ReplaySaver
 import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOps
 import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOpsAndConsole
+import me.senseiwells.replay.saver.ReplaySaver.Companion.encodePacket
 import me.senseiwells.replay.saver.ReplaySaver.Companion.name
 import me.senseiwells.replay.util.*
 import net.minecraft.ChatFormatting
-import net.minecraft.DetectedVersion
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
@@ -31,12 +29,8 @@ import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
-import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.PacketType
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
-import net.minecraft.network.protocol.common.CommonPacketTypes
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.phys.Vec2
@@ -243,35 +237,13 @@ class ReplayModSaver(
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
         val registry = PacketTypeRegistry.get(version, this.protocolAsState(protocol))
 
-        @Suppress("UNCHECKED_CAST")
-        val codec = (protocol.codec() as StreamCodec<ByteBuf, Packet<*>>)
-
-        if (packet is ClientboundCustomPayloadPacket) {
-            val payload = packet.payload
-            if (payload is RecordablePayload) {
-                @Suppress("UNCHECKED_CAST")
-                codec as IdDispatchCodecAccessor<PacketType<*>>
-
-                val id = codec.typeToIdMap.getInt(CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD)
-                val friendly = FriendlyByteBuf(Unpooled.buffer())
-                try {
-                    friendly.writeResourceLocation(payload.type().id)
-                    payload.record(friendly)
-                    return ReplayPacket(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
-                } finally {
-                    friendly.release()
-                }
-            }
-        }
-
-        val buf = Unpooled.buffer()
+        val friendly = FriendlyByteBuf(Unpooled.buffer())
         try {
-            codec.encode(buf, packet)
-            val friendly = FriendlyByteBuf(buf.slice())
+            encodePacket(packet, protocol, friendly)
             val id = friendly.readVarInt()
             return ReplayPacket(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
         } finally {
-            buf.release()
+            friendly.release()
         }
     }
 
@@ -350,7 +322,7 @@ class ReplayModSaver(
         meta.customServerName = ServerReplay.config.serverName
         meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
-        meta.mcVersion = DetectedVersion.BUILT_IN.name
+        meta.mcVersion = SharedConstants.getCurrentVersion().name
         return meta
     }
 

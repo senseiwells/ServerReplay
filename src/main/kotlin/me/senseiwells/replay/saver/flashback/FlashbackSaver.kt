@@ -49,6 +49,7 @@ class FlashbackSaver(
     private var dimension: ResourceKey<Level>? = null
 
     private var ticks = 1
+    private var last = 0
 
     override val closed: Boolean
         get() = this.executor.isShutdown
@@ -76,10 +77,11 @@ class FlashbackSaver(
         this.writeActionAsync(FlashbackAction.NextTick)
         this.ticks++
         val ticks = this.ticks
-        val chunkTicks = ticks - this.writer.meta.totalTicks
+        val chunkTicks = ticks - this.last
         if (chunkTicks < CHUNK_LENGTH && (previous == null || previous == this.dimension)) {
             return
         }
+        this.last = ticks
 
         this.executor.execute {
             this.writer.endChunk(ticks)
@@ -180,10 +182,16 @@ class FlashbackSaver(
                         .append(path.toString())
                         .append(", compressed to ${FileUtils.formatSize(size)}")
                 }
-                this.writer.close()
-                this.broadcastToOpsAndConsole(
-                    Component.literal("Successfully closed replay ${this.name}").append(additional)
-                )
+                try {
+                    this.writer.close()
+                    this.broadcastToOpsAndConsole(
+                        Component.literal("Successfully closed replay ${this.name}").append(additional)
+                    )
+                } catch (exception: Exception) {
+                    val message = "Failed to close replay writer"
+                    this.broadcastToOps(Component.literal(message).append(additional))
+                    ServerReplay.logger.error(message, exception)
+                }
             } catch (exception: Exception) {
                 val message = "Failed to write replay ${this.name}"
                 val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(exception.stackTraceToString()))

@@ -6,8 +6,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 
 class ChunkPacketIdentity private constructor(
-    val x: Int,
-    val z: Int,
     val hashes: IntArray
 ) {
     val hash = this.hashes.contentHashCode()
@@ -24,9 +22,6 @@ class ChunkPacketIdentity private constructor(
             return false
         }
         if (this.hash != other.hash) {
-            return false
-        }
-        if (this.x != other.x || this.z != other.z) {
             return false
         }
         return this.hashes.contentEquals(other.hashes)
@@ -57,7 +52,7 @@ class ChunkPacketIdentity private constructor(
             }
             hashes[4] = blockEntityHashes.contentHashCode()
 
-            return ChunkPacketIdentity(packet.x, packet.z, hashes)
+            return ChunkPacketIdentity(hashes)
         }
     }
 }

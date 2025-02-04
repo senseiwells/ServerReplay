@@ -138,7 +138,7 @@ format; however, you can change this by running the following commands in game:
 /replay encoding set replay-mod
 ```
 
-> [!WARN]
+> [!WARNING]
 > Currently flashback support is experimental and may result in flashback replays not recording correctly,
 > use at your own risk.
 

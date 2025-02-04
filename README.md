@@ -2,15 +2,15 @@
 
 **English** | [中文](./README_cn.md)
 
-A completely server-side implementation of the replay mod, this mod allows you
+A completely server-side implementation of [Replay Mod](https://www.replaymod.com/) and [Flashback](https://modrinth.com/mod/flashback), this mod allows you
 to record multiple players that are online, or chunk areas, on a server at a time. This will
-produce replay files which can then be used with the replay mod for rendering.
+produce replay files which can then be used with the replay mod or flashback for rendering.
 
 [![Modrinth download](https://img.shields.io/modrinth/dt/server-replay?label=Download%20on%20Modrinth&style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIGZpbGwtcnVsZT0iZXZlbm9kZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEuNSIgY2xpcC1ydWxlPSJldmVub2RkIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgxMDB2MTAwSDB6Ii8+PGNsaXBQYXRoIGlkPSJhIj48cGF0aCBkPSJNMTAwIDBIMHYxMDBoMTAwVjBaTTQ2LjAwMiA0OS4yOTVsLjA3NiAxLjc1NyA4LjgzIDMyLjk2MyA3Ljg0My0yLjEwMi04LjU5Ni0zMi4wOTQgNS44MDQtMzIuOTMyLTcuOTk3LTEuNDEtNS45NiAzMy44MThaIi8+PC9jbGlwUGF0aD48ZyBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGw9IiMwMGQ4NDUiIGQ9Ik01MCAxN2MxOC4yMDcgMCAzMi45ODggMTQuNzg3IDMyLjk4OCAzM1M2OC4yMDcgODMgNTAgODMgMTcuMDEyIDY4LjIxMyAxNy4wMTIgNTAgMzEuNzkzIDE3IDUwIDE3Wm0wIDljMTMuMjQgMCAyMy45ODggMTAuNzU1IDIzLjk4OCAyNFM2My4yNCA3NCA1MCA3NCAyNi4wMTIgNjMuMjQ1IDI2LjAxMiA1MCAzNi43NiAyNiA1MCAyNloiLz48L2c+PGNsaXBQYXRoIGlkPSJiIj48cGF0aCBkPSJNMCAwdjQ2aDUwbDEuMzY4LjI0MUw5OSA2My41NzhsLTIuNzM2IDcuNTE3TDQ5LjI5NSA1NEgwdjQ2aDEwMFYwSDBaIi8+PC9jbGlwUGF0aD48ZyBjbGlwLXBhdGg9InVybCgjYikiPjxwYXRoIGZpbGw9IiMwMGQ4NDUiIGQ9Ik01MCAwYzI3LjU5NiAwIDUwIDIyLjQwNCA1MCA1MHMtMjIuNDA0IDUwLTUwIDUwUzAgNzcuNTk2IDAgNTAgMjIuNDA0IDAgNTAgMFptMCA5YzIyLjYyOSAwIDQxIDE4LjM3MSA0MSA0MVM3Mi42MjkgOTEgNTAgOTEgOSA3Mi42MjkgOSA1MCAyNy4zNzEgOSA1MCA5WiIvPjwvZz48Y2xpcFBhdGggaWQ9ImMiPjxwYXRoIGQ9Ik01MCAwYzI3LjU5NiAwIDUwIDIyLjQwNCA1MCA1MHMtMjIuNDA0IDUwLTUwIDUwUzAgNzcuNTk2IDAgNTAgMjIuNDA0IDAgNTAgMFptMCAzOS41NDljNS43NjggMCAxMC40NTEgNC42ODMgMTAuNDUxIDEwLjQ1MSAwIDUuNzY4LTQuNjgzIDEwLjQ1MS0xMC40NTEgMTAuNDUxLTUuNzY4IDAtMTAuNDUxLTQuNjgzLTEwLjQ1MS0xMC40NTEgMC01Ljc2OCA0LjY4My0xMC40NTEgMTAuNDUxLTEwLjQ1MVoiLz48L2NsaXBQYXRoPjxnIGNsaXAtcGF0aD0idXJsKCNjKSI+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBkODQ1IiBzdHJva2Utd2lkdGg9IjkiIGQ9Ik01MCA1MCA1LjE3MSA3NS44ODIiLz48L2c+PGNsaXBQYXRoIGlkPSJkIj48cGF0aCBkPSJNNTAgMGMyNy41OTYgMCA1MCAyMi40MDQgNTAgNTBzLTIyLjQwNCA1MC01MCA1MFMwIDc3LjU5NiAwIDUwIDIyLjQwNCAwIDUwIDBabTAgMjUuMzZjMTMuNTk5IDAgMjQuNjQgMTEuMDQxIDI0LjY0IDI0LjY0UzYzLjU5OSA3NC42NCA1MCA3NC42NCAyNS4zNiA2My41OTkgMjUuMzYgNTAgMzYuNDAxIDI1LjM2IDUwIDI1LjM2WiIvPjwvY2xpcFBhdGg+PGcgY2xpcC1wYXRoPSJ1cmwoI2QpIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiMwMGQ4NDUiIHN0cm9rZS13aWR0aD0iOSIgZD0ibTUwIDUwIDUwLTEzLjM5NyIvPjwvZz48cGF0aCBmaWxsPSIjMDBkODQ1IiBkPSJNMzcuMjQzIDUyLjc0NiAzNSA0NWw4LTkgMTEtMyA0IDQtNiA2LTQgMS0zIDQgMS4xMiA0LjI0IDMuMTEyIDMuMDkgNC45NjQtLjU5OCAyLjg2Ni0yLjk2NCA4LjE5Ni0yLjE5NiAxLjQ2NCA1LjQ2NC04LjA5OCA4LjAyNkw0Ni44MyA2NS40OWwtNS41ODctNS44MTUtNC02LjkyOVoiLz48L3N2Zz4=)](https://modrinth.com/mod/server-replay)
 
 ### Why Server-Side?
 
-Compared to the client [Replay Mod](https://www.replaymod.com/) recording
+Compared to the client [Replay Mod](https://www.replaymod.com/) or [Flashback](https://modrinth.com/mod/flashback) recording
 server-side has many benefits:
 - The ability to record static chunks.
   - You can specify the exact chunk size (not bound by server view distance).
@@ -19,7 +19,7 @@ server-side has many benefits:
     - The chunks will also not be loaded by the recorder (like, for example, [PCRC](https://github.com/Fallen-Breath/PCRC)).
     - The recorder can skip periods of time that the area is unloaded.
 - The ability to record individual players.
-  - Players aren't required to install replay mod.
+  - Players aren't required to install replay mod or flashback.
   - You can record all POVs at once.
   - Recordings can be automated using the configuration.
 - Recordings can be started at anytime by operators (or anyone with permissions).
@@ -27,8 +27,8 @@ server-side has many benefits:
 However, there are also some downsides and known issues:
 - Some features are not recorded by chunk recordings, e.g. custom boss bars.
 - To view the replay, you must download the file from the server.
-- Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/).
-- Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues please submit a issue.
+- Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/) or [Flashback](https://modrinth.com/mod/flashback).
+- Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues, please submit an issue.
 
 ## Usage
 
@@ -127,6 +127,21 @@ By default, this will be in `./recordings/chunks/<name>/<date-and-time>.mcpr`.
 
 This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
+#### Encoding
+
+ServerReplay supports flashback (for the more recent versions), as well as replay mod replays.
+
+By default, all recordings will be recorded using replay mod's 
+format; however, you can change this by running the following commands in game:
+```
+/replay encoding set flashback
+/replay encoding set replay-mod
+```
+
+> [!WARN]
+> Currently flashback support is experimental and may result in flashback replays not recording correctly,
+> use at your own risk.
+
 #### Viewing
 
 After a replay has finished recording, you are able to view the replay completely server-side. 
@@ -197,6 +212,7 @@ have the permission `replay.commands.replay` to access these commands.
 - `/replay status` Sends a status message of whether replay is enabled and a list of all the
   players and chunks that are currently being recorded, how long they've been recorded for, and their file sizes.
 - `/replay reload` Reloads the config file for the replay mod.
+- `/replay encoding set <encoding-type>` Sets what type of replay to record, either `flashback` or `replay-mod`
 
 ### Configuring
 

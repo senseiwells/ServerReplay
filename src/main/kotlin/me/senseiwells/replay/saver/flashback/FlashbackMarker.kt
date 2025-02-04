@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import me.senseiwells.replay.config.serialization.Vec3Serializer
 import net.minecraft.world.phys.Vec3
 
+@Suppress("unused")
 @Serializable
 class FlashbackMarker(
     @SerialName("colour")

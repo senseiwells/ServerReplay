@@ -32,6 +32,7 @@ data class FlashbackMeta (
     @SerialName("total_ticks")
     @EncodeDefault(Mode.ALWAYS)
     val totalTicks: Int = 0,
+    val markers: Map<String, FlashbackMarker> = mapOf(),
     @EncodeDefault(Mode.ALWAYS)
     val chunks: Map<String, ChunkMeta> = mapOf()
 ) {

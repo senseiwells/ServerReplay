@@ -51,6 +51,8 @@ class FlashbackSaver(
     private var ticks = 1
     private var last = 0
 
+    override var markers: Int = 0
+
     override val closed: Boolean
         get() = this.executor.isShutdown
 
@@ -153,6 +155,13 @@ class FlashbackSaver(
         val filtered = packets.filter { it !is ClientboundAddEntityPacket }
         for (packet in filtered) {
             this.recorder.record(packet)
+        }
+    }
+
+    override fun writeMarker(name: String?, position: Vec3, rotation: Vec2, timestamp: Int) {
+        this.markers++
+        this.executor.execute {
+            this.writer.addMarker(this.ticks, name, 0xFF0000, position, this.recorder.level.dimension())
         }
     }
 

@@ -8,6 +8,9 @@ import kotlinx.serialization.json.encodeToStream
 import net.minecraft.core.RegistryAccess
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.Level
+import net.minecraft.world.phys.Vec3
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.*
@@ -22,11 +25,14 @@ class FlashbackChunkedWriter(
     private var action: FlashbackAction? = null
     private var chunk = 0
 
+    private val markers = HashMap<String, FlashbackMarker>()
+
     var meta = FlashbackMeta()
         private set
 
     init {
         this.writeHeader()
+        this.meta = this.meta.copy(markers = this.markers)
     }
 
     fun startSnapshot() {
@@ -70,13 +76,15 @@ class FlashbackChunkedWriter(
              throw IllegalStateException("Tried writing action within another action!")
         }
         this.action = action
-        this.buffer.writeVarInt(action.ordinal)
+        try {
+            this.buffer.writeVarInt(action.ordinal)
 
-        val result = this.writeSizeOf(this.buffer) {
-            block.invoke(this.buffer)
+            return this.writeSizeOf(this.buffer) {
+                block.invoke(this.buffer)
+            }
+        } finally {
+            this.action = null
         }
-        this.action = null
-        return result
     }
 
     fun endChunk(tick: Int) {
@@ -116,6 +124,10 @@ class FlashbackChunkedWriter(
         } finally {
             buffer.release()
         }
+    }
+
+    fun addMarker(ticks: Int, name: String?, color: Int, position: Vec3, dimension: ResourceKey<Level>) {
+        this.markers["$ticks"] = FlashbackMarker(color, FlashbackMarker.Location(position, dimension.toString()), name)
     }
 
     @OptIn(ExperimentalPathApi::class)

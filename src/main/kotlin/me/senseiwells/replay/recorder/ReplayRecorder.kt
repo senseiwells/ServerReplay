@@ -192,6 +192,7 @@ abstract class ReplayRecorder(
     @JvmOverloads
     fun logStart(restart: Boolean = false) {
         this.saver.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
+        ServerReplay.warnDeprecatedConfig(this)
     }
 
     /**

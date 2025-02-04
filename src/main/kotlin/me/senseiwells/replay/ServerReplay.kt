@@ -1,7 +1,5 @@
 package me.senseiwells.replay
 
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
@@ -12,7 +10,7 @@ import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.player.PlayerRecorders
-import me.senseiwells.replay.saver.flashback.FlashbackMarker
+import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.processor.RecorderFixerUpper
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
@@ -20,13 +18,14 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
 import net.mcbrawls.inject.fabric.InjectFabric
+import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.phys.Vec3
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import kotlin.system.exitProcess
 
 object ServerReplay: ModInitializer {
+    private var warned: Boolean = false
+
     const val MOD_ID = "server-replay"
 
     @JvmField
@@ -70,6 +69,22 @@ object ServerReplay: ModInitializer {
 
     fun reload() {
         this.config = ReplayConfig.read()
+    }
+
+    internal fun warnDeprecatedConfig(recorder: ReplayRecorder) {
+        if (this.warned) {
+            return
+        }
+        this.warned = true
+        if (this.config.maxFileSize.bytes > 0) {
+            recorder.server.playerList.players.filter {
+                recorder.server.playerList.isOp(it.gameProfile)
+            }.forEach {
+                it.sendSystemMessage(Component.literal("\"max_file_size\" is configured in your config"))
+                it.sendSystemMessage(Component.literal("This option is deprecated and will be removed soon"))
+                it.sendSystemMessage(Component.literal("Consider using \"max_duration\" instead"))
+            }
+        }
     }
 
     private fun warnDeprecatedConfig() {

@@ -239,6 +239,7 @@ class FlashbackSaver(
         }
     }
 
+    @Suppress("SameParameterValue")
     private fun writeActionAsync(action: FlashbackAction) {
         this.executor.execute {
             this.writer.writeAction(action)

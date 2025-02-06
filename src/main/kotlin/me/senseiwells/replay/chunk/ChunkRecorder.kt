@@ -244,6 +244,11 @@ class ChunkRecorder internal constructor(
             return
         }
 
+        val iter = this.sentChunks.longIterator()
+        while (iter.hasNext()) {
+            val sent = iter.nextLong()
+            consumer.accept(ChunkPos(sent))
+        }
         ChunkPos.rangeClosed(this.chunks.center, radius + 1).filter {
             this.chunks.contains(this.level.dimension(), it)
         }.forEach(consumer)

@@ -335,8 +335,6 @@ class FlashbackSaver(
         const val LEVEL_CHUNK_CACHE_SIZE = 10000
 
         private val IGNORED_PACKETS = setOf(
-            ClientboundChunkBatchStartPacket::class.java,
-            ClientboundChunkBatchFinishedPacket::class.java,
             ClientboundStartConfigurationPacket::class.java,
             ClientboundFinishConfigurationPacket::class.java,
             ClientboundSetChunkCacheCenterPacket::class.java,

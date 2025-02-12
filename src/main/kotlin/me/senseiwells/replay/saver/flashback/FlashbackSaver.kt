@@ -57,6 +57,9 @@ class FlashbackSaver(
 
     override var markers: Int = 0
 
+    override val cacheChunksOnUnload: Boolean
+        get() = true
+
     override val closed: Boolean
         get() = this.executor.isShutdown
 

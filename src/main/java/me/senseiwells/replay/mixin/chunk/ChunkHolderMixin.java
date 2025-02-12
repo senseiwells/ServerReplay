@@ -87,7 +87,7 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 		LevelChunk chunk = this.getFullChunk();
 		if (chunk != null) {
 			for (ChunkRecorder recorder : this.getRecorders()) {
-				recorder.onChunkUnloaded(this.pos);
+				recorder.onChunkUnloaded(this.pos, chunk);
 			}
 		}
 	}
@@ -113,7 +113,7 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 		if (this.replay$recorders.remove(recorder)) {
 			LevelChunk chunk = this.getFullChunk();
 			if (chunk != null) {
-				recorder.onChunkUnloaded(this.pos);
+				recorder.onChunkUnloaded(this.pos, chunk);
 			}
 
 			recorder.removeRecordable(this);
@@ -125,7 +125,7 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 		LevelChunk chunk = this.getFullChunk();
 		for (ChunkRecorder recorder : this.replay$recorders) {
 			if (chunk != null) {
-				recorder.onChunkUnloaded(this.pos);
+				recorder.onChunkUnloaded(this.pos, chunk);
 			}
 			recorder.removeRecordable(this);
 		}

@@ -17,6 +17,7 @@ import me.senseiwells.replay.util.ClientboundAddEntityPacket
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ClientInformation
@@ -370,10 +371,17 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
-    fun onChunkUnloaded(pos: ChunkPos) {
+    fun onChunkUnloaded(pos: ChunkPos, chunk: LevelChunk?) {
         if (!this.chunks.contains(this.level.dimension(), pos)) {
             ServerReplay.logger.error("Tried to unload chunk out of bounds!")
             return
+        }
+
+        if (chunk != null && this.saver.cacheChunksOnUnload) {
+            val packet = ClientboundLevelChunkWithLightPacket(
+                chunk, this.level.lightEngine, null, null
+            )
+            this.record(packet)
         }
 
         this.loadedChunks.remove(pos.toLong())

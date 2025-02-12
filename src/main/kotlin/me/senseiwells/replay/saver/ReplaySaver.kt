@@ -28,6 +28,9 @@ interface ReplaySaver {
     val markers: Int
         get() = 0
 
+    val cacheChunksOnUnload: Boolean
+        get() = false
+
     fun tick() {
 
     }

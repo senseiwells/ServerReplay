@@ -33,6 +33,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import java.util.stream.Collectors
 import kotlin.io.path.nameWithoutExtension
 
 /**
@@ -244,14 +245,12 @@ class ChunkRecorder internal constructor(
             return
         }
 
-        val iter = this.sentChunks.longIterator()
-        while (iter.hasNext()) {
-            val sent = iter.nextLong()
-            consumer.accept(ChunkPos(sent))
-        }
+        val copy = this.sentChunks.longStream().mapToObj { ChunkPos(it) }
+            .collect(Collectors.toCollection(::ArrayList))
         ChunkPos.rangeClosed(this.chunks.center, radius + 1).filter {
             this.chunks.contains(this.level.dimension(), it)
-        }.forEach(consumer)
+        }.collect(Collectors.toCollection { copy })
+        copy.forEach(consumer)
     }
 
     /**
@@ -314,7 +313,7 @@ class ChunkRecorder internal constructor(
 
     override fun takeSnapshot() {
         RejoinedReplayPlayer.rejoin(this.dummy, this)
-        this.sendChunksAndEntities()
+        this.sendChunksAndEntities { pos -> this.saver.writeCachedChunk(pos) }
     }
 
     /**

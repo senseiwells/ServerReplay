@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.PacketType
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.CommonPacketTypes
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import java.nio.file.Path
@@ -46,6 +47,10 @@ interface ReplaySaver {
         for (packet in packets) {
             this.recorder.record(packet)
         }
+    }
+
+    fun writeCachedChunk(pos: ChunkPos): Boolean {
+        return false
     }
 
     fun writeMarker(name: String?, position: Vec3, rotation: Vec2, timestamp: Int) {

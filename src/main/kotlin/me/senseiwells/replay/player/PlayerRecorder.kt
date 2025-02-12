@@ -125,7 +125,7 @@ class PlayerRecorder internal constructor(
 
     override fun takeSnapshot() {
         RejoinedReplayPlayer.rejoin(this.getPlayerOrThrow(), this)
-        this.sendChunksAndEntities()
+        this.sendChunksAndEntities { pos -> this.saver.writeCachedChunk(pos) }
     }
 
     /**

@@ -66,7 +66,7 @@ abstract class ReplayRecorder(
     private var ignore = false
 
     @Suppress("LeakingThis")
-    private val saver = provider.invoke(this)
+    protected val saver = provider.invoke(this)
 
     /**
      * The directory at which all the temporary replay

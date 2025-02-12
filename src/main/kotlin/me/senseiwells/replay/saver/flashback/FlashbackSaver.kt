@@ -1,7 +1,9 @@
 package me.senseiwells.replay.saver.flashback
 
 import com.google.common.collect.HashMultimap
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.saver.ReplaySaver
@@ -24,6 +26,7 @@ import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurati
 import net.minecraft.network.protocol.game.*
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
@@ -45,6 +48,7 @@ class FlashbackSaver(
 
     private val movement = HashMultimap.create<ResourceKey<Level>, Movement>()
     private val chunks = Object2IntOpenHashMap<ChunkPacketIdentity>()
+    private val recent = Object2ObjectOpenHashMap<ResourceKey<Level>, Long2IntOpenHashMap>()
 
     private var dimension: ResourceKey<Level>? = null
 
@@ -158,6 +162,20 @@ class FlashbackSaver(
         }
     }
 
+    override fun writeCachedChunk(pos: ChunkPos): Boolean {
+        val dimension = this.recorder.level.dimension()
+        val chunks = this.recent[dimension] ?: return false
+        val posAsLong = pos.toLong()
+        if (!chunks.containsKey(posAsLong)) {
+            return false
+        }
+        val index = chunks.get(posAsLong)
+        this.writeActionAsync(FlashbackAction.CacheChunk) { buf ->
+            buf.writeVarInt(index)
+        }
+        return true
+    }
+
     override fun writeMarker(name: String?, position: Vec3, rotation: Vec2, timestamp: Int) {
         this.markers++
         this.executor.execute {
@@ -220,6 +238,7 @@ class FlashbackSaver(
         packet: ClientboundLevelChunkWithLightPacket,
         protocol: ProtocolInfo<*>
     ): CompletableFuture<Int?> {
+        val dimension = this.recorder.level.dimension()
         return this.writeActionAsync(FlashbackAction.CacheChunk) { buf ->
             val identity = ChunkPacketIdentity.of(packet)
             var index = this.chunks.getInt(identity)
@@ -234,6 +253,8 @@ class FlashbackSaver(
                 }
                 this.chunks.put(identity, index)
             }
+            val map = this.recent.getOrPut(dimension, ::Long2IntOpenHashMap)
+            map.put(ChunkPos.asLong(packet.x, packet.z), index)
             buf.writeVarInt(index)
             size + buf.writerIndex()
         }

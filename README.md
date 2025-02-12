@@ -533,3 +533,8 @@ Then you simply register this in your `fabric.mod.json`:
   // ...
 }
 ```
+
+### Acknowledgements
+
+Thank you to [ExperimentalIdea](https://www.youtube.com/@ExperimentalIdea)
+for helping test flashback support!

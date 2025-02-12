@@ -98,10 +98,10 @@ interface ChunkSender {
      * This sends all chunk and entity packets.
      */
     @NonExtendable
-    fun sendChunksAndEntities() {
+    fun sendChunksAndEntities(unloaded: (ChunkPos) -> Boolean = { false }) {
         val seen = IntOpenHashSet()
         this.sendChunkViewDistance()
-        this.sendChunks(seen)
+        this.sendChunks(seen, unloaded)
         this.sendChunkEntities(seen)
     }
 
@@ -122,15 +122,20 @@ interface ChunkSender {
      * @param seen The [IntSet] of entity ids that have already been seen.
      */
     @Internal
-    fun sendChunks(seen: IntSet) {
+    fun sendChunks(seen: IntSet, unloaded: (ChunkPos) -> Boolean = { false }) {
         val source = this.level.chunkSource
         val chunks = source.chunkMap
         this.forEachChunk { pos ->
-            val chunk = source.getChunk(pos.x, pos.z, true)
+            var chunk = source.getChunk(pos.x, pos.z, false)
             if (chunk != null) {
                 this.sendChunk(chunks, chunk, seen)
-            } else {
-                ServerReplay.logger.warn("Failed to get chunk at $pos, didn't send")
+            } else if (!unloaded.invoke(pos)) {
+                chunk = source.getChunk(pos.x, pos.z, true)
+                if (chunk != null) {
+                    this.sendChunk(chunks, chunk, seen)
+                } else {
+                    ServerReplay.logger.warn("Failed to get chunk at $pos, didn't send")
+                }
             }
         }
     }

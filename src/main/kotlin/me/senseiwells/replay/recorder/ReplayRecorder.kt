@@ -351,9 +351,11 @@ abstract class ReplayRecorder(
      */
     open fun addMetadata(map: MutableMap<String, Any>) {
         map["name"] = this.getName()
+        map["version"] = ServerReplay.version
         map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
         map["location"] = this.location.pathString
         map["time"] = System.currentTimeMillis()
+        map["mods"] = ServerReplay.getLoadedMods()
     }
 
     protected fun spawnPlayer(player: ServerPlayer, packets: Collection<Packet<*>>) {

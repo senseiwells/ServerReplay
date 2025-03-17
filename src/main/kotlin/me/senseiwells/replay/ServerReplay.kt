@@ -17,6 +17,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
+import net.fabricmc.loader.api.metadata.ModOrigin
+import net.fabricmc.loader.impl.metadata.AbstractModMetadata
 import net.mcbrawls.inject.fabric.InjectFabric
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
@@ -69,6 +71,13 @@ object ServerReplay: ModInitializer {
 
     fun reload() {
         this.config = ReplayConfig.read()
+    }
+
+    internal fun getLoadedMods(): Map<String, String> {
+        return FabricLoader.getInstance().allMods
+            .filter { it.origin.kind != ModOrigin.Kind.NESTED }
+            .filter { it.metadata.type != AbstractModMetadata.TYPE_BUILTIN }
+            .associateBy({ it.metadata.id }, { it.metadata.version.friendlyString })
     }
 
     internal fun warnDeprecatedConfig(recorder: ReplayRecorder) {

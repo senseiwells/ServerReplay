@@ -13,7 +13,7 @@ import kotlin.collections.LinkedHashMap
 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
-data class FlashbackMeta (
+data class FlashbackMeta(
     @Serializable(UUIDSerializer::class)
     val uuid: UUID = UUID.randomUUID(),
     @EncodeDefault(Mode.ALWAYS)

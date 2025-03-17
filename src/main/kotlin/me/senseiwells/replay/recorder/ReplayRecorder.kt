@@ -66,7 +66,7 @@ abstract class ReplayRecorder(
     private var ignore = false
 
     @Suppress("LeakingThis")
-    private val saver = provider.invoke(this)
+    protected val saver = provider.invoke(this)
 
     /**
      * The directory at which all the temporary replay
@@ -82,6 +82,12 @@ abstract class ReplayRecorder(
      */
     val stopped: Boolean
         get() = this.saver.closed
+
+    /**
+     * Whether the recorder is currently paused
+     */
+    open val paused: Boolean
+        get() = false
 
     /**
      * The [UUID] of the player the recording is of.
@@ -186,6 +192,7 @@ abstract class ReplayRecorder(
     @JvmOverloads
     fun logStart(restart: Boolean = false) {
         this.saver.broadcastToOpsAndConsole("${if (restart) "Restarted" else "Started"} replay for ${this.getName()}")
+        ServerReplay.warnDeprecatedConfig(this)
     }
 
     /**
@@ -344,9 +351,15 @@ abstract class ReplayRecorder(
      */
     open fun addMetadata(map: MutableMap<String, Any>) {
         map["name"] = this.getName()
+        map["version"] = ServerReplay.version
         map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
         map["location"] = this.location.pathString
         map["time"] = System.currentTimeMillis()
+        map["mods"] = ServerReplay.getLoadedMods()
+    }
+
+    protected fun spawnPlayer(player: ServerPlayer, packets: Collection<Packet<*>>) {
+        this.saver.writePlayer(player, packets)
     }
 
     /**
@@ -428,6 +441,14 @@ abstract class ReplayRecorder(
         }
     }
 
+    @Internal
+    abstract fun takeSnapshot()
+
+    @Internal
+    fun tick() {
+        this.saver.tick()
+    }
+
     /**
      * This method formats all the debug packet data
      * into a string.
@@ -449,9 +470,12 @@ abstract class ReplayRecorder(
      */
     @Internal
     fun afterLogin() {
-        this.started = true
-        this.start = System.currentTimeMillis()
+        if (!this.started) {
+            this.started = true
+            this.start = System.currentTimeMillis()
+        }
 
+        this.protocol = LoginProtocols.CLIENTBOUND
         // We will not have recorded this, so we need to do it manually.
         this.record(ClientboundLoginFinishedPacket(this.profile))
 

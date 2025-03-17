@@ -9,10 +9,10 @@ import java.text.StringCharacterIterator
 import java.util.*
 import java.util.regex.Pattern
 import java.util.stream.Stream
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.isDirectory
-import kotlin.io.path.name
-import kotlin.io.path.notExists
+import java.util.zip.Deflater
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import kotlin.io.path.*
 import kotlin.math.abs
 
 object FileUtils {
@@ -79,6 +79,19 @@ object FileUtils {
             }
         }
         throw IllegalStateException("Cannot find next available path for ${original.absolutePathString()}")
+    }
+
+    @OptIn(ExperimentalPathApi::class)
+    fun zip(source: Path, file: Path) {
+        ZipOutputStream(file.outputStream()).use { out ->
+            out.setLevel(Deflater.BEST_SPEED)
+            for (path in source.walk()) {
+                val entry = ZipEntry(source.relativize(path).toString())
+                out.putNextEntry(entry)
+                Files.copy(path, out)
+                out.closeEntry()
+            }
+        }
     }
 
     fun Path.streamDirectoryEntriesOrEmpty(): Stream<Path> {

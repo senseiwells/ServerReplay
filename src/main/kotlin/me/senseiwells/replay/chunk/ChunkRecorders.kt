@@ -1,7 +1,6 @@
 package me.senseiwells.replay.chunk
 
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.saver.ReplayModSaver
 import me.senseiwells.replay.util.processor.RecorderRecoverer
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -54,7 +53,7 @@ object ChunkRecorders {
         val recorder = ChunkRecorder(
             area,
             name,
-            ReplayModSaver.dated(path)
+            ServerReplay.config.saverType.create(path)
         )
         this.chunks[area] = recorder
         this.chunksByName[name] = recorder

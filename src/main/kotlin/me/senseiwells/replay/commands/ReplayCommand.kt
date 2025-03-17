@@ -15,6 +15,7 @@ import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.saver.ReplaySaverType
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
 import me.senseiwells.replay.viewer.ReplayViewers
 import net.minecraft.ChatFormatting
@@ -186,6 +187,14 @@ object ReplayCommand {
                                 ).executes { this.addChunkMarker(it, null) }
                             )
                         )
+                    )
+                )
+            ).then(
+                Commands.literal("encoding").then(
+                    Commands.literal("set").then(
+                        Commands.literal("flashback").executes { this.changeEncoding(it, ReplaySaverType.Flashback) }
+                    ).then(
+                        Commands.literal("replay-mod").executes { this.changeEncoding(it, ReplaySaverType.ReplayMod) }
                     )
                 )
             )
@@ -502,6 +511,19 @@ object ReplayCommand {
             return futures
         }
         return listOf(CompletableFuture.completedFuture("Not Currently Recording $type"))
+    }
+
+    private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplaySaverType): Int {
+        ServerReplay.config.saverType = type
+        if (type == ReplaySaverType.Flashback) {
+            context.source.sendSystemMessage(
+                Component.literal("Flashback support is currently experimental: you may encounter issues with your recordings, including issues that may cause recordings to be corrupt, you have been warned!")
+            )
+        }
+        context.source.sendSuccess({
+            Component.literal("Successfully changed encoding type to ${type.name}")
+        }, true)
+        return 1
     }
 
     private fun suggestChunkX(): SuggestionProvider<CommandSourceStack> {

@@ -17,6 +17,7 @@ import me.senseiwells.replay.util.ClientboundAddEntityPacket
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ClientInformation
@@ -33,6 +34,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import java.util.stream.Collectors
 import kotlin.io.path.nameWithoutExtension
 
 /**
@@ -63,6 +65,9 @@ class ChunkRecorder internal constructor(
 
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
+
+    override val paused: Boolean
+        get() = this.lastPaused != 0L
 
     /**
      * The level that the chunk recording is currently in.
@@ -114,7 +119,13 @@ class ChunkRecorder internal constructor(
         this.dummy.isInvisible = true
 
         RejoinedReplayPlayer.rejoin(this.dummy, this)
-        this.spawnPlayer()
+        val spawnPackets = ArrayList<Packet<*>>(2)
+        spawnPackets.add(ClientboundAddEntityPacket(this.dummy))
+        val tracked = this.dummy.entityData.nonDefaultValues
+        if (tracked != null) {
+            spawnPackets.add(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
+        }
+        this.spawnPlayer(this.dummy, spawnPackets)
         this.sendChunksAndEntities()
         ServerReplayPluginManager.startReplay(this)
 
@@ -235,9 +246,12 @@ class ChunkRecorder internal constructor(
             return
         }
 
+        val copy = this.sentChunks.longStream().mapToObj { ChunkPos(it) }
+            .collect(Collectors.toCollection(::ArrayList))
         ChunkPos.rangeClosed(this.chunks.center, radius + 1).filter {
             this.chunks.contains(this.level.dimension(), it)
-        }.forEach(consumer)
+        }.collect(Collectors.toCollection { copy })
+        copy.forEach(consumer)
     }
 
     /**
@@ -298,6 +312,11 @@ class ChunkRecorder internal constructor(
         return super.canRecordPacket(packet)
     }
 
+    override fun takeSnapshot() {
+        RejoinedReplayPlayer.rejoin(this.dummy, this)
+        this.sendChunksAndEntities { pos -> this.saver.writeCachedChunk(pos) }
+    }
+
     /**
      * This gets the dummy chunk recording player.
      *
@@ -352,10 +371,17 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
-    fun onChunkUnloaded(pos: ChunkPos) {
+    fun onChunkUnloaded(pos: ChunkPos, chunk: LevelChunk?) {
         if (!this.chunks.contains(this.level.dimension(), pos)) {
             ServerReplay.logger.error("Tried to unload chunk out of bounds!")
             return
+        }
+
+        if (chunk != null && this.saver.cacheChunksOnUnload) {
+            val packet = ClientboundLevelChunkWithLightPacket(
+                chunk, this.level.lightEngine, null, null
+            )
+            this.record(packet)
         }
 
         this.loadedChunks.remove(pos.toLong())
@@ -365,16 +391,8 @@ class ChunkRecorder internal constructor(
         }
     }
 
-    private fun spawnPlayer() {
-        this.record(ClientboundAddEntityPacket(this.dummy))
-        val tracked = this.dummy.entityData.nonDefaultValues
-        if (tracked != null) {
-            this.record(ClientboundSetEntityDataPacket(this.dummy.id, tracked))
-        }
-    }
-
     private fun pause() {
-        if (!this.paused() && ServerReplay.config.skipWhenChunksUnloaded) {
+        if (!this.paused && ServerReplay.config.skipWhenChunksUnloaded) {
             this.lastPaused = System.currentTimeMillis()
 
             if (ServerReplay.config.notifyPlayersLoadingChunks) {
@@ -389,7 +407,7 @@ class ChunkRecorder internal constructor(
     }
 
     private fun resume() {
-        if (this.paused()) {
+        if (this.paused) {
             this.totalPausedTime += this.getCurrentPause()
             this.lastPaused = 0L
 
@@ -405,14 +423,10 @@ class ChunkRecorder internal constructor(
     }
 
     private fun getCurrentPause(): Long {
-        if (this.paused()) {
+        if (this.paused) {
             return System.currentTimeMillis() - this.lastPaused
         }
         return 0L
-    }
-
-    private fun paused(): Boolean {
-        return this.lastPaused != 0L
     }
 
     companion object {

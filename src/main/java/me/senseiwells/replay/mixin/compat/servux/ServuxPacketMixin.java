@@ -11,10 +11,10 @@ import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(
     value = {
-        ServuxEntitiesPacket.class,
-        ServuxLitematicaPacket.class,
-        ServuxStructuresPacket.class,
-        ServuxTweaksPacket.class
+        ServuxEntitiesPacket.Payload.class,
+        ServuxLitematicaPacket.Payload.class,
+        ServuxStructuresPacket.Payload.class,
+        ServuxTweaksPacket.Payload.class
     },
     remap = false
 )

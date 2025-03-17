@@ -3,7 +3,8 @@ package me.senseiwells.replay.util
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.minecraft.network.protocol.Packet
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
+import net.minecraft.network.protocol.common.*
+import net.minecraft.network.protocol.cookie.ClientboundCookieRequestPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.level.ServerLevel
@@ -23,7 +24,9 @@ object ReplayOptimizerUtils {
         ClientboundSetCameraPacket::class.java,
         ClientboundHorseScreenOpenPacket::class.java,
         ClientboundContainerClosePacket::class.java,
+        // TODO: Flashback uses this for first person mode:
         ClientboundContainerSetSlotPacket::class.java,
+        ClientboundContainerSetContentPacket::class.java,
         ClientboundContainerSetDataPacket::class.java,
         ClientboundOpenSignEditorPacket::class.java,
         ClientboundAwardStatsPacket::class.java,
@@ -32,7 +35,27 @@ object ReplayOptimizerUtils {
         ClientboundLoginCompressionPacket::class.java,
         ClientboundCommandSuggestionsPacket::class.java,
         ClientboundCustomChatCompletionsPacket::class.java,
-        ClientboundCommandsPacket::class.java
+        ClientboundCommandsPacket::class.java,
+        ClientboundKeepAlivePacket::class.java,
+        ClientboundPingPacket::class.java,
+        ClientboundCookieRequestPacket::class.java,
+        ClientboundStoreCookiePacket::class.java,
+        ClientboundTransferPacket::class.java,
+        ClientboundCustomReportDetailsPacket::class.java,
+        ClientboundServerLinksPacket::class.java,
+        ClientboundRecipeBookAddPacket::class.java,
+        ClientboundRecipeBookRemovePacket::class.java,
+        ClientboundRecipeBookSettingsPacket::class.java,
+        ClientboundPlayerCombatEndPacket::class.java,
+        ClientboundPlayerCombatEnterPacket::class.java,
+        ClientboundPlayerCombatKillPacket::class.java,
+        ClientboundSetCameraPacket::class.java,
+        ClientboundSetCursorItemPacket::class.java,
+        ClientboundPlaceGhostRecipePacket::class.java,
+        ClientboundTagQueryPacket::class.java,
+        ClientboundMerchantOffersPacket::class.java,
+        ClientboundChunkBatchStartPacket::class.java,
+        ClientboundChunkBatchFinishedPacket::class.java,
     )
     // Set of all chat related packs
     private val CHAT = setOf<Class<out Packet<*>>>(

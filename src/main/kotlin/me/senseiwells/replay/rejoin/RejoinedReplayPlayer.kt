@@ -4,6 +4,7 @@ import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action
 import net.minecraft.server.level.ServerPlayer
@@ -24,6 +25,9 @@ class RejoinedReplayPlayer private constructor(
     }
 
     private fun sendResourcePacks() {
+        // We pop all packs (in case it's a flashback snapshot)
+        this.recorder.record(ClientboundResourcePackPopPacket(Optional.empty()))
+
         val connection = this.original.connection
         // Our connection may be null if we're using a fake player
         if (connection is PackTracker) {

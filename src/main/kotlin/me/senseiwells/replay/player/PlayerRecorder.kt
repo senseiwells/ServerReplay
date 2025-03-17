@@ -123,6 +123,11 @@ class PlayerRecorder internal constructor(
         PlayerRecorders.close(this.server, this, future)
     }
 
+    override fun takeSnapshot() {
+        RejoinedReplayPlayer.rejoin(this.getPlayerOrThrow(), this)
+        this.sendChunksAndEntities { pos -> this.saver.writeCachedChunk(pos) }
+    }
+
     /**
      * This gets the viewing command for this replay for after it's saved.
      *
@@ -190,13 +195,14 @@ class PlayerRecorder internal constructor(
     /**
      * This records the recording player.
      *
-     * @param player The recording player's [ServerEntity].
+     * @param entity The recording player's [ServerEntity].
      */
     @Internal
-    fun spawnPlayer(player: ServerEntity) {
+    fun spawnPlayer(entity: ServerEntity) {
         val list = ArrayList<Packet<ClientGamePacketListener>>()
-        player.sendPairingData(this.getPlayerOrThrow(), list::add)
-        this.record(ClientboundBundlePacket(list))
+        val player = this.getPlayerOrThrow()
+        entity.sendPairingData(player, list::add)
+        this.spawnPlayer(player, list)
     }
 
     /**

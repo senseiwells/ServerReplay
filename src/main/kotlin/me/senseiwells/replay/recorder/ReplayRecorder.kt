@@ -84,6 +84,13 @@ abstract class ReplayRecorder(
         get() = this.saver.closed
 
     /**
+     * The number of markers the replay has recorded.
+     */
+    @Suppress("unused")
+    val markers: Int
+        get() = this.saver.markers
+
+    /**
      * Whether the recorder is currently paused
      */
     open val paused: Boolean

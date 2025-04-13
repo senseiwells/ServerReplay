@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.0.0-beta.3"
+val modVersion = "2.0.1"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -141,6 +141,7 @@ tasks {
             resource packs in replays will still be loaded if the packs are still being hosted externally
             
             **Other changes this update:**
+            - Fixed an issue where you couldn't use ServerReplay in Singleplayer
             - Fixed compatability with servux
             - Added config option `"ignore_custom_payloads"` which ignores custom payload
             packets, this may resolve compatability issues with some mods, but will break others

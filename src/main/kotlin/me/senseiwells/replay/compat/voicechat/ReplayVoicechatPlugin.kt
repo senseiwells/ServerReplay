@@ -13,11 +13,11 @@ import de.maxhenkel.voicechat.plugins.impl.VolumeCategoryImpl
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPlugin
 import me.senseiwells.replay.api.ServerReplayPluginManager
-import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.chunk.ChunkRecorders
-import me.senseiwells.replay.player.PlayerRecorder
-import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders
+import me.senseiwells.replay.recorder.player.PlayerRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorders
 import net.minecraft.Util
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet

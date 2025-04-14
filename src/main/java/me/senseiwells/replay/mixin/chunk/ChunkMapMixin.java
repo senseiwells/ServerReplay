@@ -1,9 +1,9 @@
 package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import me.senseiwells.replay.chunk.ChunkRecordable;
-import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
+import me.senseiwells.replay.recorder.chunk.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;

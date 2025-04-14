@@ -2,8 +2,8 @@ package me.senseiwells.replay.api
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPluginManager.registerPlugin
-import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.player.PlayerRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorder
 import net.fabricmc.loader.api.FabricLoader
 
 /**

@@ -7,7 +7,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.longOrNull
 import java.lang.reflect.Type
 import kotlinx.serialization.json.JsonArray as KJsonArray
 import kotlinx.serialization.json.JsonElement as KJsonElement

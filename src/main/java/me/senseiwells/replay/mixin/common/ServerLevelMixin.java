@@ -1,10 +1,10 @@
 package me.senseiwells.replay.mixin.common;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
-import me.senseiwells.replay.player.PlayerRecorder;
-import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
+import me.senseiwells.replay.recorder.player.PlayerRecorder;
+import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;

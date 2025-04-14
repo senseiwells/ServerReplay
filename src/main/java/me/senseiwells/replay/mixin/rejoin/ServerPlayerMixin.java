@@ -2,7 +2,7 @@ package me.senseiwells.replay.mixin.rejoin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import me.senseiwells.replay.rejoin.RejoinedReplayPlayer;
+import me.senseiwells.replay.recorder.rejoin.RejoinedReplayPlayer;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;

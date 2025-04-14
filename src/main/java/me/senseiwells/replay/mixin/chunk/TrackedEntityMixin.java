@@ -1,8 +1,8 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.ducks.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;

@@ -9,15 +9,17 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.chunk.ChunkArea
-import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
-import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.saver.ReplaySaverType
+import me.senseiwells.replay.recorder.chunk.ChunkArea
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders
+import me.senseiwells.replay.recorder.player.PlayerRecorders
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
+import me.senseiwells.replay.util.ReplayModIO
+import me.senseiwells.replay.util.flashback.FlashbackIO
 import me.senseiwells.replay.viewer.ReplayViewers
+import me.senseiwells.replay.writer.ReplayWriterType
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -30,8 +32,8 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
 
 object ReplayCommand {
@@ -128,7 +130,8 @@ object ReplayCommand {
                     )
                 ).then(
                     Commands.literal("all").then(
-                        Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders())) }
+                        Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, Iterables.concat(
+                            ChunkRecorders.recorders(), PlayerRecorders.recorders())) }
                     ).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders()), true) }
                 )
             ).then(
@@ -192,9 +195,9 @@ object ReplayCommand {
             ).then(
                 Commands.literal("encoding").then(
                     Commands.literal("set").then(
-                        Commands.literal("flashback").executes { this.changeEncoding(it, ReplaySaverType.Flashback) }
+                        Commands.literal("flashback").executes { this.changeEncoding(it, ReplayWriterType.Flashback) }
                     ).then(
-                        Commands.literal("replay-mod").executes { this.changeEncoding(it, ReplaySaverType.ReplayMod) }
+                        Commands.literal("replay-mod").executes { this.changeEncoding(it, ReplayWriterType.ReplayMod) }
                     )
                 )
             )
@@ -397,14 +400,7 @@ object ReplayCommand {
         }
 
         context.source.sendSuccess({
-            var message = "Generating replay status..."
-            val accumulator = { time: Long, recorder: ReplayRecorder -> time + recorder.getTotalRecordingTime() }
-            var time = PlayerRecorders.recorders().fold(0L, accumulator)
-            time += ChunkRecorders.recorders().fold(0L, accumulator)
-            if (ServerReplay.config.includeCompressedReplaySizeInStatus && TimeUnit.MILLISECONDS.toMinutes(time) > 30) {
-                message += "\nCalculating compressed sizes of replays (this may take a while)"
-            }
-            Component.literal(message)
+            Component.literal("Generating replay status...")
         }, true)
         return 1
     }
@@ -423,7 +419,10 @@ object ReplayCommand {
         }
 
         val replayName = StringArgumentType.getString(context, "replay")
-        val replayPath = path.resolve("${replayName}.mcpr")
+        var replayPath = path.resolve("${replayName}.mcpr")
+        if (replayPath.notExists()) {
+            replayPath = path.resolve("${replayName}.zip")
+        }
 
         if (replayPath.exists()) {
             ReplayViewers.start(replayPath, player)
@@ -513,9 +512,9 @@ object ReplayCommand {
         return listOf(CompletableFuture.completedFuture("Not Currently Recording $type"))
     }
 
-    private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplaySaverType): Int {
+    private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplayWriterType): Int {
         ServerReplay.config.saverType = type
-        if (type == ReplaySaverType.Flashback) {
+        if (type == ReplayWriterType.Flashback) {
             context.source.sendSystemMessage(
                 Component.literal("Flashback support is currently experimental: you may encounter issues with your recordings, including issues that may cause recordings to be corrupt, you have been warned!")
             )
@@ -593,7 +592,7 @@ object ReplayCommand {
             val name = StringArgumentType.getString(c, "name")
             val playerPath = ServerReplay.config.playerRecordingPath.resolve(name)
             val names = playerPath.streamDirectoryEntriesOrEmpty()
-                .filter { !it.isDirectory() && it.extension == "mcpr" }
+                .filter(this::isReplayFile)
                 .map { "\"${it.nameWithoutExtension}\"" }
             SharedSuggestionProvider.suggest(names, b)
         }
@@ -604,9 +603,13 @@ object ReplayCommand {
             val areaName = StringArgumentType.getString(c, "area")
             val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
             val names = chunkPath.streamDirectoryEntriesOrEmpty()
-                .filter { !it.isDirectory() && it.extension == "mcpr" }
+                .filter(this::isReplayFile)
                 .map { "\"${it.nameWithoutExtension}\"" }
             SharedSuggestionProvider.suggest(names, b)
         }
+    }
+
+    private fun isReplayFile(path: Path): Boolean {
+        return !path.isDirectory() && (ReplayModIO.isReplayFile(path) || FlashbackIO.isFlashbackFile(path))
     }
 }

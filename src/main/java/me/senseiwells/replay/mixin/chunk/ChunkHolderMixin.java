@@ -1,8 +1,8 @@
 package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;

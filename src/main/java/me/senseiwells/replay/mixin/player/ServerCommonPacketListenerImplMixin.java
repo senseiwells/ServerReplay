@@ -2,8 +2,8 @@ package me.senseiwells.replay.mixin.player;
 
 import com.mojang.authlib.GameProfile;
 import me.senseiwells.replay.ducks.ReplayViewable;
-import me.senseiwells.replay.player.PlayerRecorder;
-import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.player.PlayerRecorder;
+import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.PacketSendListener;

@@ -208,7 +208,7 @@ object ReplayViewerCommands {
             return 0
         }
         val component = Component.empty()
-        val iter = viewer.getMarkers().iterator()
+        val iter = markers.iterator()
         for (marker in iter) {
             val time = marker.timestamp.formatHHMMSS()
             component.append(Component.literal(time).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))

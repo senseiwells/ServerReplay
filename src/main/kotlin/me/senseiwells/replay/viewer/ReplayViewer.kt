@@ -30,6 +30,7 @@ import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerBossEvent
 import net.minecraft.server.level.ServerPlayer
@@ -228,6 +229,7 @@ class ReplayViewer internal constructor(
         this.teleported = false
         this.target = Duration.ZERO
 
+        this.sendViewerPlayerInfo()
         if (this.bossbar.isVisible) {
             this.send(ClientboundBossEventPacket.createAddPacket(this.bossbar))
         }
@@ -442,6 +444,26 @@ class ReplayViewer internal constructor(
         }
     }
 
+    private fun sendViewerPlayerInfo() {
+        this.players.add(this.player.uuid)
+
+        val entry = ClientboundPlayerInfoUpdatePacket.Entry(
+            this.player.uuid,
+            this.player.gameProfile,
+            false,
+            0,
+            GameType.SPECTATOR,
+            null,
+            true,
+            0,
+            null
+        )
+        this.send(ReplayViewerUtils.createClientboundPlayerInfoUpdatePacket(
+            EnumSet.of(Action.ADD_PLAYER, Action.UPDATE_GAME_MODE),
+            listOf(entry)
+        ))
+    }
+
     private fun shouldSendPacket(packet: Packet<*>, time: Duration): Boolean {
         return when (packet) {
             is ClientboundGameEventPacket -> packet.event != CHANGE_GAME_MODE
@@ -515,7 +537,7 @@ class ReplayViewer internal constructor(
         }
         if (packet is ClientboundPlayerInfoUpdatePacket) {
             val copy = ArrayList(packet.entries())
-            if (packet.actions().contains(ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT)) {
+            if (packet.actions().contains(Action.INITIALIZE_CHAT)) {
                 val iter = copy.listIterator()
                 while (iter.hasNext()) {
                     val entry = iter.next()

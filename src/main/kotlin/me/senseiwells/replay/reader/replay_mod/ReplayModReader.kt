@@ -1,8 +1,8 @@
 package me.senseiwells.replay.reader.replay_mod
 
+import com.google.common.collect.HashMultimap
 import com.google.common.collect.ImmutableMultimap
 import com.google.common.collect.Multimap
-import com.google.common.collect.TreeMultimap
 import com.replaymod.replaystudio.PacketData
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -76,11 +76,7 @@ class ReplayModReader(
             return ImmutableMultimap.of()
         }
 
-        // TODO: Move this to ReplayViewer?
-        val multimap = TreeMultimap.create<String?, ReplayMarker>(
-            Comparator.nullsFirst<String?>(Comparator.naturalOrder()),
-            Comparator.comparingLong { it.timestamp.inWholeMilliseconds }
-        )
+        val multimap = HashMultimap.create<String?, ReplayMarker>()
         for (marker in markers) {
             val instance = ReplayMarker(
                 marker.name,

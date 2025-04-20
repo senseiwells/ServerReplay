@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.0.1"
+val modVersion = "2.1.0"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -123,32 +123,7 @@ tasks {
             """
             # ServerReplay $modVersion
             
-            This is quite a big update to ServerReplay with lots of internal
-            changes. ServerReplay now supports recording to the flashback
-            format! This support is experimental, and usage may result in 
-            corrupted recordings, please report any bugs you encounter to the github.
-            
-            Replay mod support will still be maintained for the foreseeable future,
-            and remains the default recording method.
-            
-            To change the format to flashback you can run the `/replay encoding set flashback`,
-            to change back to replay mod you can run `/replay encoding set replay-mod`.
-            
-            There are some features of flashback that aren't currently available:
-            - No flashback voicechat support
-            - No viewing flashback replays server-side
-            - Flashback will not save resource packs, this is a limitation of flashback itself,
-            resource packs in replays will still be loaded if the packs are still being hosted externally
-            
-            **Other changes this update:**
-            - Fixed an issue where you couldn't use ServerReplay in Singleplayer
-            - Fixed compatability with servux
-            - Added config option `"ignore_custom_payloads"` which ignores custom payload
-            packets, this may resolve compatability issues with some mods, but will break others
-            - Deprecated `"max_file_size"` and `"include_compressed_in_status"`, for longer replays
-            these options are just too expensive to feasibly use, these options do not work for the
-            new flashback format and will eventually be removed for replay mod replays. It's advised
-            to use `"max_duration"` instead.
+            Added support to view flashback replays
             """.trimIndent()
         )
         type = BETA

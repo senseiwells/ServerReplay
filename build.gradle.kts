@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.1.0"
+val modVersion = "2.2.0-beta.1"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -121,7 +121,7 @@ tasks {
             """
             # ServerReplay $modVersion
             
-            Added support to view flashback replays
+            Update to 1.21.5
             """.trimIndent()
         )
         type = BETA

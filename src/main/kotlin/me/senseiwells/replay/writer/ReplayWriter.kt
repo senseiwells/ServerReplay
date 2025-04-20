@@ -132,8 +132,8 @@ interface ReplayWriter {
                     val output = this.getOutputPath()
                     size = output.fileSize()
 
-                    val click = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, this.recorder.getViewingCommand())
-                    val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to view replay"))
+                    val click = ClickEvent.SuggestCommand(this.recorder.getViewingCommand())
+                    val hover = HoverEvent.ShowText(Component.literal("Click to view replay"))
                     additional.append(" and saved to ")
                         .append(Component.literal(output.toString()).withStyle {
                             it.withClickEvent(click).withHoverEvent(hover).withColor(ChatFormatting.GREEN)
@@ -152,7 +152,7 @@ interface ReplayWriter {
                 }
             } catch (exception: Exception) {
                 val message = "Failed to write replay ${this.name}"
-                val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(exception.stackTraceToString()))
+                val hover = HoverEvent.ShowText(Component.literal(exception.stackTraceToString()))
                 this.broadcastToOps(Component.literal(message).withStyle {
                     it.withHoverEvent(hover)
                 })

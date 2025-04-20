@@ -53,8 +53,6 @@ dependencies {
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
     modCompileOnly(explosion.fabric(libs.c2me))
-    modCompileOnly(libs.servux)
-    modCompileOnly(libs.syncmatica)
     modCompileOnly(libs.voicechat)
     modCompileOnly(libs.polymer.core)
     compileOnly(libs.voicechat.api)

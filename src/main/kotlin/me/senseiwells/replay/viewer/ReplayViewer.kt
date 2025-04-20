@@ -55,6 +55,7 @@ import kotlin.io.path.nameWithoutExtension
 import kotlin.math.abs
 import kotlin.time.Duration
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ReplayViewer internal constructor(
     private val path: Path,
     val connection: ServerGamePacketListenerImpl
@@ -65,7 +66,7 @@ class ReplayViewer internal constructor(
     private var started = false
     private var teleported = false
 
-    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
+    @OptIn(DelicateCoroutinesApi::class)
     private val coroutineContext = newSingleThreadContext("replay-viewer")
     private val coroutineScope = CoroutineScope(this.coroutineContext + Job())
 

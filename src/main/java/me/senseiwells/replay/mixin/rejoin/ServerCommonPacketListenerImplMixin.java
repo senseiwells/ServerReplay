@@ -38,10 +38,9 @@ public class ServerCommonPacketListenerImplMixin implements PackTracker {
 			this.replay$packs.put(resources.id(), resources);
 			return;
 		}
-		if (packet instanceof ClientboundResourcePackPopPacket resources) {
-			Optional<UUID> uuid = resources.id();
-			if (uuid.isPresent()) {
-				this.replay$packs.remove(uuid.get());
+		if (packet instanceof ClientboundResourcePackPopPacket(Optional<UUID> id)) {
+            if (id.isPresent()) {
+				this.replay$packs.remove(id.get());
 			} else {
 				this.replay$packs.clear();
 			}

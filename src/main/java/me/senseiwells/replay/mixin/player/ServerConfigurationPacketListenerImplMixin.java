@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ServerConfigurationPacketListenerImplMixin {
 	@Shadow @Final private GameProfile gameProfile;
 
-	@Inject(
+    @Inject(
 		method = "handleConfigurationFinished",
 		at = @At(
 			value = "INVOKE",
@@ -24,6 +24,7 @@ public class ServerConfigurationPacketListenerImplMixin {
 			shift = At.Shift.BEFORE
 		)
 	)
+	@SuppressWarnings("DiscouragedShift")
 	private void beforePlacePlayer(
 		ServerboundFinishConfigurationPacket serverboundFinishConfigurationPacket,
 		CallbackInfo ci

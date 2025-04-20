@@ -25,15 +25,13 @@ import java.util.Collection;
 public class RaidMixin {
 	@Shadow private BlockPos center;
 
-	@Shadow @Final private ServerLevel level;
-
 	@Shadow @Final private ServerBossEvent raidEvent;
 
 	@Inject(
 		method = "updatePlayers",
 		at = @At("TAIL")
 	)
-	private void onUpdate(CallbackInfo ci) {
+	private void onUpdate(ServerLevel level, CallbackInfo ci) {
 		int raidRange = 96;
 		int centerX = this.center.getX();
 		int centerY = this.center.getY();
@@ -43,14 +41,14 @@ public class RaidMixin {
 			centerX + raidRange, centerY + raidRange, centerZ + raidRange
 		);
 
-		ChunkRecorders.updateRecordable((ChunkRecordable) this.raidEvent, this.level.dimension(), box);
+		ChunkRecorders.updateRecordable((ChunkRecordable) this.raidEvent, level.dimension(), box);
 	}
 
 	@Inject(
 		method = "playSound",
 		at = @At("TAIL")
 	)
-	private void onPlayerSound(BlockPos pos, CallbackInfo ci, @Local(ordinal = 0) long seed) {
+	private void onPlayerSound(ServerLevel level, BlockPos pos, CallbackInfo ci, @Local(ordinal = 0) long seed) {
 		Collection<ChunkRecorder> recorders = ((ChunkRecordable) this.raidEvent).getRecorders();
 		if (!recorders.isEmpty()) {
 			ClientboundSoundPacket packet = new ClientboundSoundPacket(

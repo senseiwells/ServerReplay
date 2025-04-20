@@ -31,6 +31,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	@Nullable
 	private RemoteChatSession chatSession;
 
+	@Shadow private int nextChatIndex;
 	@Unique
 	private ReplayViewer replay$viewer = null;
 
@@ -136,6 +137,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	@Override
 	public void replay$stopViewingReplay() {
 		if (this.replay$viewer != null) {
+			this.nextChatIndex = 0;
 			this.lastSeenMessages = new LastSeenMessagesValidator(20);
 			this.replay$viewer = null;
 			// Reset chat session

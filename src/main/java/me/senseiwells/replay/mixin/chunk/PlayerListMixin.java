@@ -7,11 +7,9 @@ import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MessageSignatureCache;
 import net.minecraft.network.chat.PlayerChatMessage;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -115,15 +113,11 @@ public class PlayerListMixin {
 				));
 				continue;
 			}
-			recorder.record(new ClientboundPlayerChatPacket(
-				message.link().sender(),
-				message.link().index(),
-				message.signature(),
-				message.signedBody().pack(MessageSignatureCache.createDefault()),
-				message.unsignedContent(),
-				message.filterMask(),
-				boundChatType
-			));
+			Component content = message.unsignedContent();
+			if (content == null) {
+				content = Component.literal(message.signedBody().content());
+			}
+			recorder.record(new ClientboundSystemChatPacket(boundChatType.decorate(content), false));
 		}
 	}
 }

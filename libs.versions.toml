@@ -1,25 +1,23 @@
 [versions]
-minecraft     = "1.21.4"
-fabric-loader = "0.16.9"
-parchment     = "1.21:2024.07.28"
-fabric-api    = "0.110.5+1.21.4"
-fabric-kotlin = "1.11.0+kotlin.2.0.0"
+minecraft     = "1.21.5"
+fabric-loader = "0.16.13"
+parchment     = "1.21.5:2025.04.19"
+fabric-api    = "0.120.0+1.21.5"
+fabric-kotlin = "1.13.2+kotlin.2.1.20"
 permissions   = "0.3.3"
 inject        = "3.1.3"
 
 # Compatability depdendencies
-carpet        = "1.4.160"
-voicechat     = "fabric-1.21.4-2.5.26"
-voicechat-api = "2.5.0"
-vmp           = "0.2.0+beta.7.191+1.21.4"
-c2me          = "0.3.2+alpha.0.41+1.21.4"
-servux        = "1.21.3-0.4.0-sakura.2"
-syncmatica    = "1.21.3-sakura.10"
-polymer       = "0.11.8+1.21.4"
+carpet        = "1.4.169"
+voicechat     = "fabric-1.21.5-2.5.30"
+voicechat-api = "2.5.27"
+vmp           = "0.2.0+beta.7.198+1.21.5"
+c2me          = "0.3.2+rc.1.0+1.21.5"
+polymer       = "0.12.3+1.21.5"
 replay-studio = "aa5ab3a302"
 
 # Plugins
-fabric-loom   = "1.9-SNAPSHOT"
+fabric-loom   = "1.10-SNAPSHOT"
 mod-publish   = "0.8.1"
 shadow        = "8.3.5"
 explosion     = "0.3.1"
@@ -41,8 +39,6 @@ voicechat     = { module = "maven.modrinth:simple-voice-chat"    , version.ref =
 voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api", version.ref = "voicechat-api" }
 vmp           = { module = "maven.modrinth:vmp-fabric"           , version.ref = "vmp" }
 c2me          = { module = "maven.modrinth:c2me-fabric"          , version.ref = "c2me" }
-servux        = { module = "com.github.sakura-ryoko:servux"      , version.ref = "servux" }
-syncmatica    = { module = "com.github.sakura-ryoko:syncmatica"  , version.ref = "syncmatica" }
 polymer-core  = { module = "eu.pb4:polymer-core"                 , version.ref = "polymer" }
 
 [plugins]

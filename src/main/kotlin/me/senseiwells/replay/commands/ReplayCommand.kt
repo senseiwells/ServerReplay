@@ -30,6 +30,7 @@ import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
+import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -458,7 +459,7 @@ object ReplayCommand {
         val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
         val here = Component.literal("[here]")
             .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
-            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url)) }
+            .withStyle { it.withClickEvent(ClickEvent.OpenUrl(URI.create(url))) }
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)
         return 1

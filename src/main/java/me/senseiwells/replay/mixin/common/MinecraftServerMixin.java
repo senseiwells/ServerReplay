@@ -26,10 +26,11 @@ public class MinecraftServerMixin {
 		)
 	)
 	private void onServerLoaded(CallbackInfo ci) {
-		RecorderRecoverer.tryRecover((MinecraftServer) (Object) this);
+		MinecraftServer instance = (MinecraftServer) (Object) this;
+		RecorderRecoverer.tryRecover(instance);
 
 		if (ServerReplay.getConfig().getEnabled()) {
-			ServerReplay.getConfig().startChunks((MinecraftServer) (Object) this);
+			ServerReplay.getConfig().startChunks(instance);
 		}
 	}
 

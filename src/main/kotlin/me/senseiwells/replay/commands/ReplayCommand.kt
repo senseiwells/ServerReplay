@@ -513,11 +513,9 @@ object ReplayCommand {
     }
 
     private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplayWriterType): Int {
-        ServerReplay.config.saverType = type
-        if (type == ReplayWriterType.Flashback) {
-            context.source.sendSystemMessage(
-                Component.literal("Flashback support is currently experimental: you may encounter issues with your recordings, including issues that may cause recordings to be corrupt, you have been warned!")
-            )
+        ServerReplay.config.writerType = type
+        type.warn { message ->
+            context.source.sendSystemMessage(Component.literal(message))
         }
         context.source.sendSuccess({
             Component.literal("Successfully changed encoding type to ${type.name}")

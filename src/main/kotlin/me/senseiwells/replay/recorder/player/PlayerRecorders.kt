@@ -49,7 +49,7 @@ object PlayerRecorders {
         val recorder = PlayerRecorder(
             server,
             profile,
-            ServerReplay.config.saverType.create(path)
+            ServerReplay.config.writerType.create(path)
         )
         players[profile.id] = recorder
         RecorderRecoverer.add(recorder)

@@ -53,7 +53,7 @@ object ChunkRecorders {
         val recorder = ChunkRecorder(
             area,
             name,
-            ServerReplay.config.saverType.create(path)
+            ServerReplay.config.writerType.create(path)
         )
         chunks[area] = recorder
         chunksByName[name] = recorder

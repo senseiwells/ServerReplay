@@ -11,6 +11,7 @@ import me.senseiwells.replay.recorder.chunk.ChunkRecorder
 import me.senseiwells.replay.recorder.chunk.ChunkRecorders
 import me.senseiwells.replay.recorder.player.PlayerRecorder
 import me.senseiwells.replay.recorder.player.PlayerRecorders
+import me.senseiwells.replay.util.FileSize
 import me.senseiwells.replay.util.processor.RecorderFixerUpper
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
@@ -61,7 +62,7 @@ object ServerReplay: ModInitializer {
         }
 
         RecorderFixerUpper.tryFixingUp()
-        this.warnDeprecatedConfig()
+        this.outputWarnings(this.logger::warn)
     }
 
     fun getIp(server: MinecraftServer): String {
@@ -80,29 +81,33 @@ object ServerReplay: ModInitializer {
             .associateBy({ it.metadata.id }, { it.metadata.version.friendlyString })
     }
 
-    internal fun warnDeprecatedConfig(recorder: ReplayRecorder) {
-        if (this.warned) {
-            return
-        }
-        this.warned = true
-        if (this.config.maxFileSize.bytes > 0) {
-            recorder.server.playerList.players.filter {
+    internal fun outputWarnings(recorder: ReplayRecorder) {
+        if (!this.warned) {
+            this.warned = true
+            val operators = recorder.server.playerList.players.filter {
                 recorder.server.playerList.isOp(it.gameProfile)
-            }.forEach {
-                it.sendSystemMessage(Component.literal("\"max_file_size\" is configured in your config"))
-                it.sendSystemMessage(Component.literal("This option is deprecated and will be removed soon"))
-                it.sendSystemMessage(Component.literal("Consider using \"max_duration\" instead"))
+            }
+            this.outputWarnings { message ->
+                val component = Component.literal(message)
+                for (operator in operators) {
+                    operator.sendSystemMessage(component)
+                }
             }
         }
     }
 
-    private fun warnDeprecatedConfig() {
+    @Suppress("DEPRECATION")
+    private fun outputWarnings(consumer: (String) -> Unit) {
         if (this.config.includeCompressedReplaySizeInStatus) {
-            this.logger.warn("\"include_compressed_in_status\" is enabled in your config, this option is deprecated and will be removed soon")
+            consumer.invoke("\"include_compressed_in_status\" is enabled in your config, this option no longer functions, disabling")
+            this.config.includeCompressedReplaySizeInStatus = false
         }
         if (this.config.maxFileSize.bytes > 0) {
-            this.logger.warn("\"max_file_size\" is configured in your config, this option is deprecated and will be removed soon")
-            this.logger.warn("consider using \"max_duration\" instead")
+            consumer.invoke("\"max_file_size\" is configured in your config, this option no longer functions, disabling")
+            consumer.invoke("consider using \"max_duration\" instead")
+            this.config.maxFileSize = FileSize("0GB")
         }
+
+        this.config.writerType.warn(consumer)
     }
 }

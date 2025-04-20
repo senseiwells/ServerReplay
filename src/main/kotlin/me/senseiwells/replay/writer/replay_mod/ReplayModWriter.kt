@@ -284,17 +284,15 @@ class ReplayModWriter(
         meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
         meta.mcVersion = SharedConstants.getCurrentVersion().name
+        meta.fileFormatVersion = ReplayMetaData.CURRENT_FILE_FORMAT_VERSION
+        meta.setProtocolVersion(SharedConstants.getProtocolVersion())
         return meta
     }
 
     @OptIn(ExperimentalSerializationApi::class)
     private fun saveMeta() {
-        val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-        val registry = PacketTypeRegistry.get(version, State.LOGIN)
-
         this.executor.execute {
-            // When updating before ReplayStudio ensure to write the correct meta
-            this.replay.writeMetaData(registry, this.meta)
+            this.replay.writeMetaData(null, this.meta)
 
             this.replay.write(ReplayWriter.ENTRY_SERVER_REPLAY_META).use {
                 val meta = HashMap<String, Any>()

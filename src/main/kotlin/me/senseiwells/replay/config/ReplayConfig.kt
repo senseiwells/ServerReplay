@@ -39,7 +39,7 @@ data class ReplayConfig(
     var debug: Boolean = false,
     @SerialName("encoding")
     @EncodeDefault(Mode.NEVER)
-    var saverType: ReplayWriterType = ReplayWriterType.ReplayMod,
+    var writerType: ReplayWriterType = ReplayWriterType.ReplayMod,
     @SerialName("async_thread_pool_size")
     @EncodeDefault(Mode.NEVER)
     var asyncThreadPoolSize: Int? = 1,
@@ -56,6 +56,7 @@ data class ReplayConfig(
     @SerialName("player_recording_name")
     var playerRecordingName: String = "{uuid}",
     @SerialName("max_file_size")
+    @Deprecated("This is no longer used")
     var maxFileSize: FileSize = FileSize("0GB"),
     @SerialName("restart_after_max_file_size")
     var restartAfterMaxFileSize: Boolean = false,
@@ -66,7 +67,9 @@ data class ReplayConfig(
     var restartAfterMaxDuration: Boolean = false,
     @SerialName("recover_unsaved_replays")
     var recoverUnsavedReplays: Boolean = true,
+    @EncodeDefault(Mode.NEVER)
     @SerialName("include_compressed_in_status")
+    @Deprecated("This is no longer used")
     var includeCompressedReplaySizeInStatus: Boolean = false,
     @SerialName("fixed_daylight_cycle")
     var fixedDaylightCycle: Long = -1L,

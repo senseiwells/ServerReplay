@@ -14,7 +14,7 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.config.serialization.PathSerializer
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.util.ReplayFileUtils
+import me.senseiwells.replay.util.ReplayModIO
 import net.minecraft.server.MinecraftServer
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.io.EOFException
@@ -121,7 +121,7 @@ object RecorderRecoverer {
             try {
                 replay.saveTo(recording.parent.resolve(recording.name + ".mcpr").toFile())
                 replay.close()
-                ReplayFileUtils.deleteCaches(recording)
+                ReplayModIO.deleteCaches(recording)
                 ServerReplay.logger.info("Successfully recovered recording $recording")
             } catch (e: IOException) {
                 ServerReplay.logger.error("Failed to write unfinished replay $recording")

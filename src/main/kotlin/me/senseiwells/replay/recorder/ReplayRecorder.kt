@@ -4,15 +4,13 @@ import com.mojang.authlib.GameProfile
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.network.RecordablePayload
-import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.player.PlayerRecorder
-import me.senseiwells.replay.saver.ReplaySaver
-import me.senseiwells.replay.saver.ReplaySaver.Companion.broadcastToOpsAndConsole
-import me.senseiwells.replay.util.DebugPacketData
-import me.senseiwells.replay.util.FileUtils
-import me.senseiwells.replay.util.ReplayOptimizerUtils
-import me.senseiwells.replay.util.getDebugName
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorder
+import me.senseiwells.replay.util.*
+import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
+import me.senseiwells.replay.writer.ReplayWriter
+import me.senseiwells.replay.writer.ReplayWriter.Companion.broadcastToOpsAndConsole
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.RegistryFriendlyByteBuf
@@ -35,6 +33,7 @@ import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import kotlin.io.path.pathString
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -51,14 +50,14 @@ import kotlin.time.Duration.Companion.milliseconds
 abstract class ReplayRecorder(
     val server: MinecraftServer,
     val profile: GameProfile,
-    provider: (ReplayRecorder) -> ReplaySaver
+    provider: (ReplayRecorder) -> ReplayWriter
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
 
     private var start: Long = 0
 
     private var protocol: ProtocolInfo<*> = LoginProtocols.CLIENTBOUND
-    private var lastPacket = 0L
+    private var lastPacket = Duration.ZERO
 
     internal var started = false
         private set
@@ -223,7 +222,7 @@ abstract class ReplayRecorder(
         }
 
         // We only save if the player has actually logged in...
-        val future = this.saver.close(this.lastPacket.toInt(), save && this.protocol.id() == ConnectionProtocol.PLAY)
+        val future = this.saver.close(this.lastPacket, save && this.protocol.id() == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
     }
@@ -236,14 +235,23 @@ abstract class ReplayRecorder(
      * @param rotation The marked rotation.
      * @param timestamp The timestamp of the marker (milliseconds).
      */
-    @JvmOverloads
     fun addMarker(
         name: String? = null,
         position: Vec3 = this.position,
         rotation: Vec2 = this.rotation,
-        timestamp: Int = this.getTimestamp().toInt()
+        timestamp: Duration = this.getTimestamp(),
+        color: Int = 0xFF0000
     ) {
-        this.saver.writeMarker(name, position, rotation, timestamp)
+        this.addMarker(ReplayMarker(name, position, rotation, timestamp, color))
+    }
+
+    /**
+     * Adds a marker to the replay file.
+     *
+     * @param marker The marker to add.
+     */
+    fun addMarker(marker: ReplayMarker) {
+        this.saver.writeMarker(marker)
     }
 
     /**
@@ -254,8 +262,8 @@ abstract class ReplayRecorder(
      * @return The total amount of time (in milliseconds) that has
      *     elapsed since the start of the recording.
      */
-    fun getTotalRecordingTime(): Long {
-        return System.currentTimeMillis() - this.start
+    fun getTotalRecordingTime(): Duration {
+        return (System.currentTimeMillis() - this.start).milliseconds
     }
 
     /**
@@ -268,36 +276,8 @@ abstract class ReplayRecorder(
     }
 
     /**
-     * This returns a future which will provide the compressed file
-     * size of the replay in bytes.
-     *
-     * Be careful when calling this function - to calculate the compressed
-     * file size, we must zip the entire raw replay which can be very
-     * expensive.
-     *
-     * This will not always be accurate since if you do not force compress,
-     * then it may return the last compressed size if it predicts that
-     * the current size is likely very similar to the last size it calculated.
-     * Further, these futures may take extremely long to complete (can be tens
-     * of minutes, depending on the raw file size), and by the time the compression
-     * is complete the replay size may have already changed significantly.
-     *
-     * @param force Whether to force compress (which yields a more up-to-date value), `false` by default.
-     * @return A future which will complete after the compression is complete, providing the
-     *     compressed file size in bytes.
-     * @see getRawRecordingSize
-     */
-    @Deprecated("Getting the compressed recording size is computationally expensive")
-    fun getCompressedRecordingSize(force: Boolean = false): CompletableFuture<Long> {
-        @Suppress("DEPRECATION")
-        return this.saver.getCompressedRecordingSize(force)
-    }
-
-    /**
      * This creates a future which will provide the status of the
      * replay recorder as a formatted string.
-     * The status may include the compressed file size which is
-     * this method provides a future, see [getCompressedRecordingSize].
      *
      * @return A future that will provide the status of the replay recorder.
      */
@@ -308,24 +288,14 @@ abstract class ReplayRecorder(
             isUseClassName = false
             isUseIdentityHashCode = false
         })
-        val seconds = this.getTotalRecordingTime() / 1000
-        val hours = seconds / 3600
-        val minutes = seconds % 3600 / 60
-        val secs = seconds % 60
-        val time = "%02d:%02d:%02d".format(hours, minutes, secs)
+
+        val time = this.getTotalRecordingTime().formatHHMMSS()
         builder.append("name", this.getName())
         builder.append("time", time)
 
         this.appendToStatus(builder)
 
         builder.append("raw_size", FileUtils.formatSize(this.getRawRecordingSize()))
-        if (ServerReplay.config.includeCompressedReplaySizeInStatus) {
-            @Suppress("DEPRECATION")
-            val compressed = this.getCompressedRecordingSize()
-            return compressed.thenApply {
-                "${builder.append("compressed_size", FileUtils.formatSize(it))}"
-            }
-        }
         return CompletableFuture.completedFuture(builder.toString())
     }
 
@@ -337,7 +307,7 @@ abstract class ReplayRecorder(
      *
      * @return The timestamp of the recording (in milliseconds).
      */
-    open fun getTimestamp(): Long {
+    open fun getTimestamp(): Duration {
         return this.getTotalRecordingTime()
     }
 
@@ -505,7 +475,7 @@ abstract class ReplayRecorder(
             return
         }
 
-        if (this.getTimestamp().milliseconds > maxDuration) {
+        if (this.getTimestamp() > maxDuration) {
             this.stop(true)
             this.saver.broadcastToOpsAndConsole(
                 "Stopped recording replay for ${this.getName()}, past duration limit ${maxDuration}!"

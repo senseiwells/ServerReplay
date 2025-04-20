@@ -1,9 +1,9 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.chunk.ChunkRecorders;
-import me.senseiwells.replay.player.PlayerRecorder;
-import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
+import me.senseiwells.replay.recorder.player.PlayerRecorder;
+import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;

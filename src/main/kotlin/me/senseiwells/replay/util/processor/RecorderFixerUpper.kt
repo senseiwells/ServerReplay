@@ -4,7 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.util.ReplayFileUtils
+import me.senseiwells.replay.util.ReplayModIO
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.Path
@@ -67,7 +67,7 @@ object RecorderFixerUpper {
                 ServerReplay.logger.info("Successfully fixed up replay '$path'")
             }
             replay.close()
-            ReplayFileUtils.deleteCaches(path)
+            ReplayModIO.deleteCaches(path)
         } catch (e: IOException) {
             ServerReplay.logger.error("Failed to fix up replay file '$path'", e)
         }

@@ -2,9 +2,9 @@ package me.senseiwells.replay.mixin.compat.vmp;
 
 import com.ishland.vmp.common.playerwatching.NearbyEntityTracking;
 import com.llamalad7.mixinextras.sugar.Local;
-import me.senseiwells.replay.chunk.ChunkRecordable;
-import me.senseiwells.replay.chunk.ChunkRecorders;
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor;
+import me.senseiwells.replay.recorder.chunk.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;

@@ -8,16 +8,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.config.chunk.ChunkAreaConfig
 import me.senseiwells.replay.config.predicates.NonePredicate
 import me.senseiwells.replay.config.predicates.ReplayPlayerContext
 import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.config.serialization.DurationSerializer
 import me.senseiwells.replay.config.serialization.PathSerializer
-import me.senseiwells.replay.player.PlayerRecorders
-import me.senseiwells.replay.saver.ReplaySaverType
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders
+import me.senseiwells.replay.recorder.player.PlayerRecorders
 import me.senseiwells.replay.util.FileSize
+import me.senseiwells.replay.writer.ReplayWriterType
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.MinecraftServer
 import org.apache.commons.lang3.SerializationException
@@ -39,7 +39,7 @@ data class ReplayConfig(
     var debug: Boolean = false,
     @SerialName("encoding")
     @EncodeDefault(Mode.NEVER)
-    var saverType: ReplaySaverType = ReplaySaverType.ReplayMod,
+    var saverType: ReplayWriterType = ReplayWriterType.ReplayMod,
     @SerialName("async_thread_pool_size")
     @EncodeDefault(Mode.NEVER)
     var asyncThreadPoolSize: Int? = 1,

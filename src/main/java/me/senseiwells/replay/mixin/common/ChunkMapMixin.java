@@ -1,7 +1,7 @@
 package me.senseiwells.replay.mixin.common;
 
-import me.senseiwells.replay.player.PlayerRecorder;
-import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.player.PlayerRecorder;
+import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerPlayer;

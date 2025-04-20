@@ -1,8 +1,8 @@
 package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
 import net.minecraft.server.level.ServerBossEvent;

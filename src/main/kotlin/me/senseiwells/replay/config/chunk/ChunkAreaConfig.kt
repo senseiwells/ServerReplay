@@ -2,8 +2,8 @@ package me.senseiwells.replay.config.chunk
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.config.serialization.ResourceLocationSerializer
+import me.senseiwells.replay.recorder.chunk.ChunkArea
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation

@@ -1,16 +1,16 @@
 package me.senseiwells.replay
 
 import me.senseiwells.replay.api.ServerReplayPluginManager
-import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.commands.PackCommand
 import me.senseiwells.replay.commands.ReplayCommand
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
-import me.senseiwells.replay.player.PlayerRecorder
-import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders
+import me.senseiwells.replay.recorder.player.PlayerRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorders
 import me.senseiwells.replay.util.processor.RecorderFixerUpper
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback

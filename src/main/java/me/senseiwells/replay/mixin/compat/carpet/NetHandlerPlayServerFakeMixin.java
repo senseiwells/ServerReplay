@@ -1,8 +1,8 @@
 package me.senseiwells.replay.mixin.compat.carpet;
 
 import carpet.patches.NetHandlerPlayServerFake;
-import me.senseiwells.replay.player.PlayerRecorder;
-import me.senseiwells.replay.player.PlayerRecorders;
+import me.senseiwells.replay.recorder.player.PlayerRecorder;
+import me.senseiwells.replay.recorder.player.PlayerRecorders;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.MinecraftServer;

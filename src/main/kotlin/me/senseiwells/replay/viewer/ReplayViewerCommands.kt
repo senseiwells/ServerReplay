@@ -21,6 +21,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
 import java.util.function.Consumer
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 object ReplayViewerCommands {
@@ -130,7 +131,7 @@ object ReplayViewerCommands {
 
     private fun restartViewingReplay(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
-        viewer.restart()
+        viewer.jumpTo(Duration.ZERO)
         context.source.sendSuccess({
             Component.literal("Successfully restarted replay")
         }, false)
@@ -207,9 +208,9 @@ object ReplayViewerCommands {
             return 0
         }
         val component = Component.empty()
-        val iter = viewer.getMarkers().iterator()
+        val iter = markers.iterator()
         for (marker in iter) {
-            val time = marker.time.milliseconds.formatHHMMSS()
+            val time = marker.timestamp.formatHHMMSS()
             component.append(Component.literal(time).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
             component.append(": ")
             component.append(Component.literal(marker.name ?: "Unnamed").withStyle(ChatFormatting.GREEN))

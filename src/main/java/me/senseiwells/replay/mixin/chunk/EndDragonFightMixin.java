@@ -1,7 +1,7 @@
 package me.senseiwells.replay.mixin.chunk;
 
-import me.senseiwells.replay.chunk.ChunkRecordable;
-import me.senseiwells.replay.chunk.ChunkRecorders;
+import me.senseiwells.replay.recorder.chunk.ChunkRecordable;
+import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
 import me.senseiwells.replay.util.MathUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerBossEvent;

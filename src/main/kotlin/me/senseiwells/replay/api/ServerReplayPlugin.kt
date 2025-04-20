@@ -1,7 +1,7 @@
 package me.senseiwells.replay.api
 
-import me.senseiwells.replay.chunk.ChunkRecorder
-import me.senseiwells.replay.player.PlayerRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorder
 
 /**
  * This interface can be implemented to send additional packets

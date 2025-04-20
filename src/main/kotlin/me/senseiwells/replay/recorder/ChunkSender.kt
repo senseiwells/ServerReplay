@@ -3,10 +3,10 @@ package me.senseiwells.replay.recorder
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.mixin.rejoin.TrackedEntityAccessor
-import me.senseiwells.replay.player.PlayerRecorder
+import me.senseiwells.replay.recorder.chunk.ChunkRecorder
+import me.senseiwells.replay.recorder.player.PlayerRecorder
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.server.level.ChunkMap

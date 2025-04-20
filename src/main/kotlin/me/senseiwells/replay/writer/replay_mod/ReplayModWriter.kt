@@ -17,18 +17,12 @@ import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.*
 import me.senseiwells.replay.writer.ReplayWriter
-import me.senseiwells.replay.writer.ReplayWriter.Companion.broadcastToOps
-import me.senseiwells.replay.writer.ReplayWriter.Companion.broadcastToOpsAndConsole
+import me.senseiwells.replay.writer.ReplayWriter.Companion.closeWithFeedback
 import me.senseiwells.replay.writer.ReplayWriter.Companion.encodePacket
-import me.senseiwells.replay.writer.ReplayWriter.Companion.name
-import net.minecraft.ChatFormatting
 import net.minecraft.SharedConstants
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.ProtocolInfo
-import net.minecraft.network.chat.ClickEvent
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
@@ -118,47 +112,24 @@ class ReplayModWriter(
         return this.replay.getRawFileSize()
     }
 
+    override fun getOutputPath(): Path {
+        return this.path.parent.resolve(this.path.name + ".mcpr")
+    }
+
     override fun close(duration: Duration, save: Boolean): CompletableFuture<Long> {
         if (save) {
             this.meta.duration = duration.inWholeMilliseconds.toInt()
             this.saveMeta()
         }
         val future = CompletableFuture.supplyAsync({
-            var size = 0L
-            try {
-                val path = this.recording()
-                this.output.close()
-
-                val additional = Component.empty()
-                if (save) {
-                    this.broadcastToOpsAndConsole("Starting to save replay ${this.name}, please do not stop the server!")
-
-                    this.replay.saveTo(path.toFile())
-                    size = path.fileSize()
-                    val click = ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, this.recorder.getViewingCommand())
-                    val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to view replay"))
-                    additional.append(" and saved to ")
-                        .append(Component.literal(path.toString()).withStyle {
-                            it.withClickEvent(click).withHoverEvent(hover).withColor(ChatFormatting.GREEN)
-                        })
-                        .append(", compressed to ${FileUtils.formatSize(size)}")
-                }
-
+            fun write() {
+                this.replay.saveTo(this.getOutputPath().toFile())
+            }
+            fun close() {
                 this.replay.close()
                 ReplayModIO.deleteCaches(this.path)
-                this.broadcastToOpsAndConsole(
-                    Component.literal("Successfully closed replay ${this.name}").append(additional)
-                )
-            } catch (exception: Exception) {
-                val message = "Failed to write replay ${this.name}"
-                val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(exception.stackTraceToString()))
-                this.broadcastToOps(Component.literal(message).withStyle {
-                    it.withHoverEvent(hover)
-                })
-                ServerReplay.logger.error(message, exception)
-                throw exception
             }
-            size
+            this.closeWithFeedback(save, ::write, ::close)
         }, this.executor)
 
         this.executor.shutdown()
@@ -305,10 +276,6 @@ class ReplayModWriter(
                 Json.encodeToStream(this.packs, it)
             }
         }
-    }
-
-    private fun recording(): Path {
-        return this.path.parent.resolve(this.path.name + ".mcpr")
     }
 
     companion object {

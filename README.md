@@ -227,12 +227,10 @@ After you boot the server a new file will be generated in the path
   "chunk_recording_path": "./recordings/chunks",
   "player_recording_path": "./recordings/players",
   "player_recording_name": "{uuid}",
-  "max_file_size": "0GB",
   "restart_after_max_file_size": false,
   "max_duration": "0s",
   "restart_after_max_duration": false,
   "recover_unsaved_replays": true,
-  "include_compressed_in_status": true,
   "fixed_daylight_cycle": -1,
   "chunk_recorder_load_radius": -1,
   "pause_unloaded_chunks": false,
@@ -266,12 +264,10 @@ After you boot the server a new file will be generated in the path
 | `"player_recording_path"`        | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `"chunk_recording_path"`         | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `"player_recording_name"`        | <p> This determines the name of each specific player's recording directory. By default is set to `"{uuid}"` which uses the player's uuid. You can also insert the player's name with `"{username}"`. You could for example have: `"Recordings for: {username} ({uuid})"`. </p>                                                                                                                                                                                                                                                                                                                      |
-| `"max_file_size"`                | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. This is only approximate, expect the real file size to be slightly larger. Set this to `0` to not have a limit. </p> <p> Be warned that this may impact server performance if your max file size is large, in order to check whether a file is too big (`>5GB`) it must be compressed which can be very expensive. You may check the time until the next file size check by running `/replay status`. </p> |
 | `"restart_after_max_file_size"`  | <p> If the `max_file_size` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `"max_duration"`                 | <p> Sets the maximum duration for a replay, once the replay has recorded for the specified amount of time it will stop, this is any number followed by units (you may also have multiple units), e.g. `4h 35m 2.1s`. Set this to `0` to not have a max duration limit. Note: if a recorder is paused it's duration does not increase. </p>                                                                                                                                                                                                                                                          |
 | `"restart_after_max_duration"`   | <p> If the `max_duration` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `"recover_unsaved_replays"`      | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p>                                                                                                                                                                                                                                                                                                                                       |
-| `"include_compressed_in_status"` | <p> Includes the compressed file size of the replays when you do `/replay status`, for long replays this may cause the status message to take a while to be displayed, so you can disable it. </p>                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `"fixed_daylight_cycle"`         | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>                                                                                                                                                                                                                                                                                                                                           |
 | `"chunk_recorder_load_radius"`   | <p> This sets the default chunk recorder loading radius, this is useful when you want to record a very large area and you don't want all of the recorded chunks to be loaded at once. </p> <p> For example if you are recording a 13x13 chunk area, you could set the radius to 3, so the center-most 7x7 would be initially loaded, the rest of the chunks will then be recorded whenever they're 'naturally' loaded. </p> <p> Set this to `-1` to load all chunks. </p>                                                                                                                           |
 | `"pause_unloaded_chunks"`        | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p>                                                                                                                                                                                                                                                                                                                                         |
@@ -452,85 +448,6 @@ You can do this with the `is_fake` predicate:
       "type": "is_fake"
     }
   }
-}
-```
-
-## Developers
-
-If you want more control over, when players are recorded, you can implement this into your own mod.
-
-To implement the API into your project, you can add the
-following to your `build.gradle.kts`
-
-```kts
-repositories {
-    maven("https://maven.supersanta.me/snapshots")
-}
-
-dependencies {
-    modImplementation("me.senseiwells:server-replay:2.0.1+1.21.4")
-}
-```
-
-Here's a basic example of what you can do:
-```kt
-class ExampleMod: ModInitializer {
-    override fun onInitialize() {
-        ServerPlayConnectionEvents.JOIN.register { connection, _, _ ->
-            val player = connection.player
-            if (!PlayerRecorders.has(player)) {
-                if (player.level().dimension() == Level.END) {
-                    val recorder = PlayerRecorders.create(player)
-                    recorder.start(log = true)
-                }
-            } else {
-                val existing = PlayerRecorders.get(player)!!
-                existing.getCompressedRecordingSize().thenAccept { size ->
-                    println("Replay is $size bytes")
-                }
-                existing.stop(save = false)
-            }
-        }
-
-        ServerLifecycleEvents.SERVER_STARTED.register { server ->
-            val recorder = ChunkRecorders.create(
-                server.overworld(),
-                ChunkPos.ZERO,
-                ChunkPos(5, 5),
-                "Named"
-            )
-            recorder.start(log = false)
-        }
-    }
-}
-```
-
-If you want to add support to your mod for ServerReplay you can create a plugin:
-```kotlin
-class MyServerReplayPlugin: ServerReplayPlugin {
-    override fun onPlayerReplayStart(recorder: PlayerRecorder) {
-        // Send any additional packets for players here
-    }
-
-  
-    override fun onChunkReplayStart(recorder: ChunkRecorder) {
-        // Send any additional packets for chunks here
-    }
-}
-```
-Then you simply register this in your `fabric.mod.json`:
-```json5
-{
-  // ...
-  "entrypoints": {
-    "main": [
-      // ...
-    ],
-    "server_replay": [
-      "com.example.MyServerReplayPlugin"
-    ]
-  }
-  // ...
 }
 ```
 

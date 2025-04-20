@@ -14,14 +14,11 @@ import me.senseiwells.replay.util.flashback.FlashbackAction
 import me.senseiwells.replay.util.flashback.FlashbackIO
 import me.senseiwells.replay.util.flashback.FlashbackMarker.Location
 import me.senseiwells.replay.writer.ReplayWriter
-import me.senseiwells.replay.writer.ReplayWriter.Companion.broadcastToOps
-import me.senseiwells.replay.writer.ReplayWriter.Companion.broadcastToOpsAndConsole
-import me.senseiwells.replay.writer.ReplayWriter.Companion.name
+import me.senseiwells.replay.writer.ReplayWriter.Companion.closeWithFeedback
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
@@ -35,7 +32,6 @@ import org.apache.commons.io.file.PathUtils
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
-import kotlin.io.path.fileSize
 import kotlin.io.path.name
 import kotlin.io.path.writer
 import kotlin.time.Duration
@@ -193,43 +189,18 @@ class FlashbackWriter(
         return PathUtils.sizeOf(this.path)
     }
 
+    override fun getOutputPath(): Path {
+        return this.path.parent.resolve(this.path.name + ".zip")
+    }
+
     override fun close(duration: Duration, save: Boolean): CompletableFuture<Long> {
         val future = CompletableFuture.supplyAsync({
-            var size = 0L
-            try {
-                val additional = Component.empty()
-                if (save) {
-                    this.writer.endChunk(this.ticks)
-                    this.writeCustomMeta()
-                    val path = this.recording()
-                    this.broadcastToOpsAndConsole("Staring to save replay ${this.name}, please do not stop the server!")
-                    FileUtils.zip(this.path, path)
-                    size = path.fileSize()
-
-                    additional.append(" and saved to ")
-                        .append(path.toString())
-                        .append(", compressed to ${FileUtils.formatSize(size)}")
-                }
-                try {
-                    this.writer.close()
-                    this.broadcastToOpsAndConsole(
-                        Component.literal("Successfully closed replay ${this.name}").append(additional)
-                    )
-                } catch (exception: Exception) {
-                    val message = "Failed to close replay writer"
-                    this.broadcastToOps(Component.literal(message).append(additional))
-                    ServerReplay.logger.error(message, exception)
-                }
-            } catch (exception: Exception) {
-                val message = "Failed to write replay ${this.name}"
-                val hover = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(exception.stackTraceToString()))
-                this.broadcastToOps(Component.literal(message).withStyle {
-                    it.withHoverEvent(hover)
-                })
-                ServerReplay.logger.error(message, exception)
-                throw exception
+            fun write() {
+                this.writer.endChunk(this.ticks)
+                this.writeCustomMeta()
+                FileUtils.zip(this.path, this.getOutputPath())
             }
-            size
+            this.closeWithFeedback(save, ::write, this.writer::close)
         }, this.executor)
         this.executor.shutdown()
         return future
@@ -321,10 +292,6 @@ class FlashbackWriter(
             this.movement.put(level.dimension(), EntityMovement(id, position, rotation, headRot, onGround))
         }
         return CompletableFuture.completedFuture(EntityMovement.size())
-    }
-
-    private fun recording(): Path {
-        return this.path.parent.resolve(this.path.name + ".zip")
     }
 
     companion object {

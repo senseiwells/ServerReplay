@@ -267,7 +267,7 @@ class ReplayViewer internal constructor(
                     delay((time - lastTime) / this.speedMultiplier.toDouble())
                 }
 
-                while (this.paused) {
+                while (this.paused || this.server.isPaused) {
                     delay(50)
                 }
 

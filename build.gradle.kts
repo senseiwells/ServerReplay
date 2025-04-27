@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.2.0-beta.1"
+val modVersion = "2.2.0-beta.2"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -121,7 +121,7 @@ tasks {
             """
             # ServerReplay $modVersion
             
-            Update to 1.21.5
+            Fixed a bug where viewing replays don't pause when paused in singleplayer
             """.trimIndent()
         )
         type = BETA

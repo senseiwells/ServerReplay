@@ -2,6 +2,7 @@ package me.senseiwells.replay.mixin.rejoin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.ducks.PackTracker;
+import me.senseiwells.replay.recorder.rejoin.RejoinConfigurationPacketListener;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,5 +32,16 @@ public class ServerConfigurationPacketListenerImplMixin {
 		// Merge the packs into the GamePacketListener
 		Collection<ClientboundResourcePackPushPacket> packs = ((PackTracker) this).replay$getPacks();
 		((PackTracker) serverPlayer.connection).replay$addPacks(packs);
+	}
+
+	@Inject(
+		method = "startNextTask",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void onStartNextTask(CallbackInfo ci) {
+		if ((Object) this instanceof RejoinConfigurationPacketListener) {
+			ci.cancel();
+		}
 	}
 }

@@ -11,4 +11,7 @@ import java.util.Queue;
 public interface ServerConfigurationPacketListenerImplAccessor {
 	@Accessor("configurationTasks")
 	Queue<ConfigurationTask> tasks();
+
+	@Accessor("currentTask")
+	void setCurrentTask(ConfigurationTask task);
 }

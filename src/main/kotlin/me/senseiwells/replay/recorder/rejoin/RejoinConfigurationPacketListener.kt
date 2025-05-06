@@ -38,6 +38,8 @@ class RejoinConfigurationPacketListener(
     fun runConfigurationTasks() {
         // We do not have to wait for the client to respond
         for (task in this.tasks) {
+            @Suppress("CAST_NEVER_SUCCEEDS")
+            (this as ServerConfigurationPacketListenerImplAccessor).setCurrentTask(task)
             task.start(this::send)
             if (task is SynchronizeRegistriesTask) {
                 task.handleResponse(listOf(), this::send)

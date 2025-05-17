@@ -14,7 +14,7 @@ voicechat-api = "2.5.27"
 vmp           = "0.2.0+beta.7.198+1.21.5"
 c2me          = "0.3.2+rc.1.0+1.21.5"
 polymer       = "0.12.3+1.21.5"
-replay-studio = "aa5ab3a302"
+replay-studio = "d23e0ec824"
 
 # Plugins
 fabric-loom   = "1.10-SNAPSHOT"

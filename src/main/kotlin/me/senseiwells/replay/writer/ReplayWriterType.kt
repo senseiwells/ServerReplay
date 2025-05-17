@@ -8,7 +8,7 @@ import java.nio.file.Path
 
 enum class ReplayWriterType(val stable: Boolean) {
     @SerialName("replay_mod")
-    ReplayMod(false),
+    ReplayMod(true),
     @SerialName("flashback")
     Flashback(true);
 

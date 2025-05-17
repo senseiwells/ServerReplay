@@ -37,8 +37,6 @@
     "rejoin.ServerPlayerMixin",
     "rejoin.TrackedEntityAccessor",
     "studio.CustomViaPlatformMixin",
-    "studio.PacketTypeRegistryAccessor",
-    "studio.PacketTypeRegistryMixin",
     "studio.ZipReplayFileAccessor",
     "viewer.ClientboundPlayerInfoUpdatePacketAccessor",
     "viewer.EntityInvoker",

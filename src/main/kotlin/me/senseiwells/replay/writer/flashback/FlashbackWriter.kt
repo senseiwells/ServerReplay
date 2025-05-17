@@ -18,7 +18,6 @@ import me.senseiwells.replay.writer.ReplayWriter.Companion.closeWithFeedback
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.ProtocolInfo
 import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.chat.Component
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
@@ -119,10 +118,6 @@ class FlashbackWriter(
         val replacement = when (packet) {
             is ClientboundLevelChunkWithLightPacket -> return this.writeCachedChunk(packet, protocol)
             is ClientboundMoveEntityPacket -> return this.writeMovement(packet)
-            is ClientboundPlayerChatPacket -> {
-                val content = packet.unsignedContent ?: Component.literal(packet.body.content)
-                ClientboundSystemChatPacket(packet.chatType.decorate(content), false)
-            }
             else -> packet
         }
 

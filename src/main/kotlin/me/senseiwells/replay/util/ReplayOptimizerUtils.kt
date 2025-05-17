@@ -2,6 +2,7 @@ package me.senseiwells.replay.util
 
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.recorder.ReplayRecorder
+import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.*
 import net.minecraft.network.protocol.cookie.ClientboundCookieRequestPacket
@@ -125,6 +126,12 @@ object ReplayOptimizerUtils {
             if (!(packet is ClientboundSystemChatPacket && packet.overlay)) {
                 return true
             }
+        }
+        if (packet is ClientboundPlayerChatPacket) {
+            val content = packet.unsignedContent ?: Component.literal(packet.body.content)
+            val replacement = ClientboundSystemChatPacket(packet.chatType.decorate(content), false)
+            recorder.record(replacement)
+            return true
         }
         if (ServerReplay.config.ignoreActionBarPackets) {
             if (packet is ClientboundSystemChatPacket && packet.overlay || packet is ClientboundSetActionBarTextPacket) {

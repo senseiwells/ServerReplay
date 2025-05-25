@@ -99,7 +99,7 @@ interface ChunkSender {
      */
     @NonExtendable
     fun sendChunksAndEntities(unloaded: (ChunkPos) -> Boolean = { false }) {
-        val seen = IntOpenHashSet()
+        val seen = SeenEntities.mutable()
         this.sendChunkViewDistance()
         this.sendChunks(seen, unloaded)
         this.sendChunkEntities(seen)
@@ -122,7 +122,7 @@ interface ChunkSender {
      * @param seen The [IntSet] of entity ids that have already been seen.
      */
     @Internal
-    fun sendChunks(seen: IntSet, unloaded: (ChunkPos) -> Boolean = { false }) {
+    fun sendChunks(seen: SeenEntities, unloaded: (ChunkPos) -> Boolean = { false }) {
         val source = this.level.chunkSource
         val chunks = source.chunkMap
         this.forEachChunk { pos ->
@@ -151,7 +151,7 @@ interface ChunkSender {
     fun sendChunk(
         chunks: ChunkMap,
         chunk: LevelChunk,
-        seen: IntSet,
+        seen: SeenEntities,
     ) {
         chunks as ChunkMapAccessor
 
@@ -171,7 +171,7 @@ interface ChunkSender {
         for (tracked in chunks.entityMap.values) {
             val entity = (tracked as TrackedEntityAccessor).entity
             if (entity.chunkPosition() == chunk.pos) {
-                if (!seen.contains(entity.id)) {
+                if (!seen.has(entity.id)) {
                     val range = min(tracked.getRange(), viewDistance * 16).toDouble()
                     if (this.shouldTrackEntity(entity, range)) {
                         this.addTrackedEntity(WrappedTrackedEntity(tracked))
@@ -204,7 +204,7 @@ interface ChunkSender {
      * @param seen The [IntSet] of entity ids that have already been seen.
      */
     @Internal
-    fun sendChunkEntities(seen: IntSet) {
+    fun sendChunkEntities(seen: SeenEntities) {
         val chunks = this.level.chunkSource.chunkMap
         val entities = (chunks as ChunkMapAccessor).entityMap
         val viewDistance = this.level.server.playerList.viewDistance
@@ -242,6 +242,44 @@ interface ChunkSender {
          */
         fun getServerEntity(): ServerEntity {
             return (this.tracked as TrackedEntityAccessor).serverEntity
+        }
+    }
+
+    interface SeenEntities {
+        fun has(id: Int): Boolean
+
+        fun add(id: Int): Boolean
+
+        private object All: SeenEntities {
+            override fun has(id: Int): Boolean {
+                return true
+            }
+
+            override fun add(id: Int): Boolean {
+                return false
+            }
+        }
+
+        private class Mutable: SeenEntities {
+            val seen = IntOpenHashSet()
+
+            override fun has(id: Int): Boolean {
+                return this.seen.contains(id)
+            }
+
+            override fun add(id: Int): Boolean {
+                return this.seen.add(id)
+            }
+        }
+
+        companion object {
+            fun all(): SeenEntities {
+                return All
+            }
+
+            fun mutable(): SeenEntities {
+                return Mutable()
+            }
         }
     }
 }

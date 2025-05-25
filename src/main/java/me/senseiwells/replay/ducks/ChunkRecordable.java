@@ -20,6 +20,11 @@ public interface ChunkRecordable extends me.senseiwells.replay.recorder.chunk.Ch
 	}
 
 	@Override
+	default void resendPackets(@NotNull ChunkRecorder recorder) {
+		this.replay$resendPackets(recorder);
+	}
+
+	@Override
 	default void removeRecorder(@NotNull ChunkRecorder recorder) {
 		this.replay$removeRecorder(recorder);
 	}
@@ -32,6 +37,8 @@ public interface ChunkRecordable extends me.senseiwells.replay.recorder.chunk.Ch
 	Collection<ChunkRecorder> replay$getRecorders();
 
 	void replay$addRecorder(ChunkRecorder recorder);
+
+	void replay$resendPackets(ChunkRecorder recorder);
 
 	void replay$removeRecorder(ChunkRecorder recorder);
 

@@ -86,6 +86,13 @@ public abstract class ServerBossEventMixin extends BossEvent implements ChunkRec
 	}
 
 	@Override
+	public void replay$resendPackets(ChunkRecorder recorder) {
+		if (this.visible) {
+			recorder.record(ClientboundBossEventPacket.createAddPacket(this));
+		}
+	}
+
+	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder) && this.visible) {
 			recorder.record(ClientboundBossEventPacket.createRemovePacket(this.getId()));

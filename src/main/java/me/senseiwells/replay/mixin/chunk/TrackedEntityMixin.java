@@ -77,6 +77,13 @@ public class TrackedEntityMixin implements ChunkRecordable {
 	}
 
 	@Override
+	public void replay$resendPackets(ChunkRecorder recorder) {
+		List<Packet<? super ClientGamePacketListener>> list = new ArrayList<>();
+		this.serverEntity.sendPairingData(recorder.getDummyPlayer(), list::add);
+		recorder.record(new ClientboundBundlePacket(list));
+	}
+
+	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$chunks.remove(recorder)) {
 			recorder.onEntityUntracked(this.entity);

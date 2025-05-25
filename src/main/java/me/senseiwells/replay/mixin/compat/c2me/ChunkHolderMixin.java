@@ -77,6 +77,11 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 	}
 
 	@Override
+	public void replay$resendPackets(ChunkRecorder recorder) {
+
+	}
+
+	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder)) {
 			ChunkResult<LevelChunk> chunk = this.getFullChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK);

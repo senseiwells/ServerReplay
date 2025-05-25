@@ -1,6 +1,5 @@
 package me.senseiwells.replay.recorder.chunk
 
-import it.unimi.dsi.fastutil.ints.IntArraySet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.ServerReplayPluginManager
@@ -316,7 +315,11 @@ class ChunkRecorder internal constructor(
 
     override fun takeSnapshot() {
         RejoinedReplayPlayer.rejoin(this.dummy, this)
-        this.sendChunksAndEntities { pos -> this.saver.writeCachedChunk(pos) }
+        this.sendChunkViewDistance()
+        this.sendChunks(ChunkSender.SeenEntities.all()) { pos -> this.saver.writeCachedChunk(pos) }
+        for (recordable in this.recordables) {
+            recordable.resendPackets(this)
+        }
     }
 
     /**
@@ -368,7 +371,7 @@ class ChunkRecorder internal constructor(
         this.loadedChunks.add(chunk.pos.toLong())
 
         if (!this.sentChunks.contains(chunk.pos.toLong())) {
-            this.sendChunk(this.level.chunkSource.chunkMap, chunk, IntArraySet())
+            this.sendChunk(this.level.chunkSource.chunkMap, chunk, ChunkSender.SeenEntities.mutable())
         }
     }
 

@@ -54,6 +54,13 @@ interface ChunkRecordable {
     fun addRecorder(recorder: ChunkRecorder)
 
     /**
+     * Re-sends the packets to the given chunk recorder.
+     *
+     * @param recorder The recorder to resend the packets to.
+     */
+    fun resendPackets(recorder: ChunkRecorder)
+
+    /**
      * Removes a [ChunkRecorder] from recording packets
      * produced by this object.
      *

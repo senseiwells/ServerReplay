@@ -398,6 +398,10 @@ abstract class ReplayRecorder(
             if (payload is RecordablePayload && !payload.shouldRecord()) {
                 return false
             }
+            // FIXME: Add distant horizons support?
+            if (payload.type().id.namespace == "distant_horizons") {
+                return false
+            }
         }
         return true
     }

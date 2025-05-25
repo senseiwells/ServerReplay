@@ -1,7 +1,6 @@
 package me.senseiwells.replay.mixin.common;
 
 import me.senseiwells.replay.ServerReplay;
-import me.senseiwells.replay.config.ReplayConfig;
 import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
 import me.senseiwells.replay.recorder.chunk.ChunkRecorders;
 import me.senseiwells.replay.recorder.player.PlayerRecorder;
@@ -13,7 +12,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MinecraftServer.class)
 public class MinecraftServerMixin {
@@ -32,19 +30,6 @@ public class MinecraftServerMixin {
 		if (ServerReplay.getConfig().getEnabled()) {
 			ServerReplay.getConfig().startChunks(instance);
 		}
-	}
-
-	@Inject(
-		method = "saveAllChunks",
-		at = @At("TAIL")
-	)
-	private void onSave(
-		boolean suppressLog,
-		boolean flush,
-		boolean forced,
-		CallbackInfoReturnable<Boolean> cir
-	) {
-		ReplayConfig.write(ServerReplay.getConfig());
 	}
 
 	@Inject(

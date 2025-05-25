@@ -11,8 +11,8 @@ import me.senseiwells.replay.recorder.chunk.ChunkRecorder
 import me.senseiwells.replay.recorder.chunk.ChunkRecorders
 import me.senseiwells.replay.recorder.player.PlayerRecorder
 import me.senseiwells.replay.recorder.player.PlayerRecorders
-import me.senseiwells.replay.util.FileSize
 import me.senseiwells.replay.util.processor.RecorderFixerUpper
+import me.senseiwells.replay.util.processor.ReplayCleanerUpper
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
@@ -42,7 +42,7 @@ object ServerReplay: ModInitializer {
         private set
 
     override fun onInitialize() {
-        this.config = ReplayConfig.read()
+        this.update { ReplayConfig.read() }
 
         InjectFabric.INSTANCE.registerInjector(DownloadPacksHttpInjector)
         InjectFabric.INSTANCE.registerInjector(DownloadReplaysHttpInjector)
@@ -61,6 +61,7 @@ object ServerReplay: ModInitializer {
             ChunkRecorders.recorders().forEach(ChunkRecorder::tick)
         }
 
+        ReplayCleanerUpper.run()
         RecorderFixerUpper.tryFixingUp()
         this.outputWarnings(this.logger::warn)
     }
@@ -72,6 +73,11 @@ object ServerReplay: ModInitializer {
 
     fun reload() {
         this.config = ReplayConfig.read()
+    }
+
+    fun update(mutator: (ReplayConfig) -> ReplayConfig) {
+        this.config = mutator.invoke(this.config)
+        ReplayConfig.write(this.config)
     }
 
     internal fun getLoadedMods(): Map<String, String> {
@@ -96,18 +102,7 @@ object ServerReplay: ModInitializer {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun outputWarnings(consumer: (String) -> Unit) {
-        if (this.config.includeCompressedReplaySizeInStatus) {
-            consumer.invoke("\"include_compressed_in_status\" is enabled in your config, this option no longer functions, disabling")
-            this.config.includeCompressedReplaySizeInStatus = false
-        }
-        if (this.config.maxFileSize.bytes > 0) {
-            consumer.invoke("\"max_file_size\" is configured in your config, this option no longer functions, disabling")
-            consumer.invoke("consider using \"max_duration\" instead")
-            this.config.maxFileSize = FileSize("0GB")
-        }
-
         this.config.writerType.warn(consumer)
     }
 }

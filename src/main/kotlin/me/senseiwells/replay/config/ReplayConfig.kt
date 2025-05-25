@@ -16,7 +16,6 @@ import me.senseiwells.replay.config.serialization.DurationSerializer
 import me.senseiwells.replay.config.serialization.PathSerializer
 import me.senseiwells.replay.recorder.chunk.ChunkRecorders
 import me.senseiwells.replay.recorder.player.PlayerRecorders
-import me.senseiwells.replay.util.FileSize
 import me.senseiwells.replay.writer.ReplayWriterType
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.server.MinecraftServer
@@ -33,83 +32,82 @@ import kotlin.time.Duration
 @OptIn(ExperimentalSerializationApi::class)
 data class ReplayConfig(
     @SerialName("enabled")
-    var enabled: Boolean = false,
+    val enabled: Boolean = false,
     @SerialName("debug")
     @EncodeDefault(Mode.NEVER)
-    var debug: Boolean = false,
+    val debug: Boolean = false,
     @SerialName("encoding")
     @EncodeDefault(Mode.NEVER)
-    var writerType: ReplayWriterType = ReplayWriterType.ReplayMod,
+    val writerType: ReplayWriterType = ReplayWriterType.ReplayMod,
     @SerialName("async_thread_pool_size")
     @EncodeDefault(Mode.NEVER)
-    var asyncThreadPoolSize: Int? = 1,
+    val asyncThreadPoolSize: Int? = 1,
     @SerialName("world_name")
-    var worldName: String = "World",
+    val worldName: String = "World",
     @SerialName("server_name")
-    var serverName: String = "Server",
+    val serverName: String = "Server",
     @SerialName("chunk_recording_path")
     @Serializable(with = PathSerializer::class)
-    var chunkRecordingPath: Path = recordings.resolve("chunks"),
+    val chunkRecordingPath: Path = recordings.resolve("chunks"),
     @SerialName("player_recording_path")
     @Serializable(with = PathSerializer::class)
-    var playerRecordingPath: Path = recordings.resolve("players"),
+    val playerRecordingPath: Path = recordings.resolve("players"),
     @SerialName("player_recording_name")
-    var playerRecordingName: String = "{uuid}",
-    @SerialName("max_file_size")
-    @Deprecated("This is no longer used")
-    var maxFileSize: FileSize = FileSize("0GB"),
+    val playerRecordingName: String = "{uuid}",
     @SerialName("restart_after_max_file_size")
-    var restartAfterMaxFileSize: Boolean = false,
+    val restartAfterMaxFileSize: Boolean = false,
     @SerialName("max_duration")
     @Serializable(with = DurationSerializer::class)
-    var maxDuration: Duration = Duration.ZERO,
+    val maxDuration: Duration = Duration.ZERO,
     @SerialName("restart_after_max_duration")
-    var restartAfterMaxDuration: Boolean = false,
+    val restartAfterMaxDuration: Boolean = false,
     @SerialName("recover_unsaved_replays")
-    var recoverUnsavedReplays: Boolean = true,
+    val recoverUnsavedReplays: Boolean = true,
+    @SerialName("delete_replays_after_duration")
+    @Serializable(with = DurationSerializer::class)
+    val deleteReplaysAfterDuration: Duration = Duration.ZERO,
+    @SerialName("log_deleted_replays")
+    val logDeletedReplays: Boolean = true,
     @EncodeDefault(Mode.NEVER)
-    @SerialName("include_compressed_in_status")
-    @Deprecated("This is no longer used")
-    var includeCompressedReplaySizeInStatus: Boolean = false,
     @SerialName("fixed_daylight_cycle")
-    var fixedDaylightCycle: Long = -1L,
+    val fixedDaylightCycle: Long = -1L,
     @SerialName("chunk_recorder_load_radius")
-    var chunkRecorderLoadRadius: Int = -1,
+    val chunkRecorderLoadRadius: Int = -1,
     @SerialName("pause_unloaded_chunks")
-    var skipWhenChunksUnloaded: Boolean = false,
+    val skipWhenChunksUnloaded: Boolean = false,
     @SerialName("pause_notify_players")
-    var notifyPlayersLoadingChunks: Boolean = true,
+    val notifyPlayersLoadingChunks: Boolean = true,
     @SerialName("notify_admins_of_status")
-    var notifyAdminsOfStatus: Boolean = true,
+    val notifyAdminsOfStatus: Boolean = true,
     @SerialName("fix_carpet_bot_view_distance")
-    var fixCarpetBotViewDistance: Boolean = false,
+    val fixCarpetBotViewDistance: Boolean = false,
     @SerialName("include_resource_packs")
-    var includeResourcePacks: Boolean = true,
+    val includeResourcePacks: Boolean = true,
     @SerialName("ignore_custom_payloads")
-    var ignoreCustomPayloads: Boolean = false,
+    val ignoreCustomPayloads: Boolean = false,
     @SerialName("ignore_sound_packets")
-    var ignoreSoundPackets: Boolean = false,
+    val ignoreSoundPackets: Boolean = false,
     @SerialName("ignore_light_packets")
-    var ignoreLightPackets: Boolean = true,
+    val ignoreLightPackets: Boolean = true,
     @SerialName("ignore_chat_packets")
-    var ignoreChatPackets: Boolean = false,
+    val ignoreChatPackets: Boolean = false,
     @SerialName("ignore_action_bar_packets")
-    var ignoreActionBarPackets: Boolean = false,
+    val ignoreActionBarPackets: Boolean = false,
     @SerialName("ignore_scoreboard_packets")
-    var ignoreScoreboardPackets: Boolean = false,
+    val ignoreScoreboardPackets: Boolean = false,
     @SerialName("optimize_explosion_packets")
-    var optimizeExplosionPackets: Boolean = true,
+    val optimizeExplosionPackets: Boolean = true,
     @SerialName("optimize_entity_packets")
-    var optimizeEntityPackets: Boolean = false,
+    val optimizeEntityPackets: Boolean = false,
     @SerialName("record_voice_chat")
-    var recordVoiceChat: Boolean = false,
+    val recordVoiceChat: Boolean = false,
     @JsonNames("replay_viewer_pack_ip")
     @SerialName("replay_server_ip")
-    var replayServerIp: String? = null,
+    val replayServerIp: String? = null,
     @SerialName("allow_downloading_replays")
-    var allowDownloadingReplays: Boolean = false,
+    val allowDownloadingReplays: Boolean = false,
     @SerialName("player_predicate")
-    private var playerPredicate: ReplayPlayerPredicate = NonePredicate,
+    private val playerPredicate: ReplayPlayerPredicate = NonePredicate,
     @SerialName("chunks")
     private val chunks: List<ChunkAreaConfig> = listOf(),
 ) {
@@ -122,6 +120,10 @@ data class ReplayConfig(
 
     fun shouldRecordPlayer(context: ReplayPlayerContext): Boolean {
         return this.playerPredicate.shouldRecord(context)
+    }
+
+    fun getRootRecordingPaths(): List<Path> {
+        return listOf(this.playerRecordingPath, this.chunkRecordingPath)
     }
 
     @JvmOverloads

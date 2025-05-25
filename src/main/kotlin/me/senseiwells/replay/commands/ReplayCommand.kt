@@ -210,7 +210,7 @@ object ReplayCommand {
             context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
             return 0
         }
-        ServerReplay.config.enabled = true
+        ServerReplay.update { config -> config.copy(enabled = true) }
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
         ServerReplay.config.startPlayers(context.source.server)
@@ -224,7 +224,7 @@ object ReplayCommand {
             context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
             return 0
         }
-        ServerReplay.config.enabled = false
+        ServerReplay.update { config -> config.copy(enabled = false) }
         for (recorders in PlayerRecorders.recorders()) {
             recorders.stop()
         }
@@ -514,7 +514,7 @@ object ReplayCommand {
     }
 
     private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplayWriterType): Int {
-        ServerReplay.config.writerType = type
+        ServerReplay.update { config -> config.copy(writerType = type) }
         type.warn { message ->
             context.source.sendSystemMessage(Component.literal(message))
         }

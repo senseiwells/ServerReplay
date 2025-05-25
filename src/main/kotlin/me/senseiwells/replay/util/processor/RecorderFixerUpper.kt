@@ -15,15 +15,13 @@ import kotlin.io.path.*
 object RecorderFixerUpper {
     private var future: CompletableFuture<Void>? = null
 
-    @OptIn(ExperimentalPathApi::class)
     fun tryFixingUp() {
         val executor = Executors.newFixedThreadPool(
             ServerReplay.config.asyncThreadPoolSize ?: (Runtime.getRuntime().availableProcessors() / 3 + 1),
             ThreadFactoryBuilder().setNameFormat("replay-fixer-upper-%d").build()
         )
         val futures = ArrayList<CompletableFuture<Void>>()
-        val paths = listOf(ServerReplay.config.playerRecordingPath, ServerReplay.config.chunkRecordingPath)
-        for (path in paths) {
+        for (path in ServerReplay.config.getRootRecordingPaths()) {
             if (path.isDirectory()) {
                 path.visitFileTree {
                     onVisitFile { path, _ ->

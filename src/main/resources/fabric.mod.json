@@ -4,6 +4,7 @@
   "version": "${version}",
   "name": "Server Replay Mod",
   "description": "Record replays for replay mod and flashback on the server-side!",
+  "icon": "assets/server-replay/icon.png",
   "authors": [
     "Sensei"
   ],

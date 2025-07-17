@@ -127,7 +127,7 @@ interface ReplayWriter {
             try {
                 val additional = Component.empty()
                 if (save) {
-                    this.broadcastToOpsAndConsole("Staring to save replay ${this.name}, please do not stop the server!")
+                    this.broadcastToOpsAndConsole("Starting to save replay ${this.name}, please do not stop the server!")
                     writer.invoke()
                     val output = this.getOutputPath()
                     size = output.fileSize()

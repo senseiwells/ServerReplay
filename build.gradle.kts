@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.3.0"
+val modVersion = "2.3.1"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -121,12 +121,7 @@ tasks {
             """
             # ServerReplay $modVersion
             
-            - Implemented proper ReplayMod support for 1.21.5
-            - Implemented `delete_replays_after_duration` and `log_deleted_replays` config options
-            - Fixed a bug that caused signed chat messages to be recorded as signed
-            - Fixed an incompatibility with krypton
-            - Fixed an incompatibility with distant horizons
-            - Fixed a bug with the flashback encoding not recording entity snapshots properly
+            - Updated to 1.21.6
             """.trimIndent()
         )
         type = STABLE

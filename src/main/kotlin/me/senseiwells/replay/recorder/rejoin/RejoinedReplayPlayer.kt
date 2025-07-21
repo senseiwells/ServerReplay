@@ -3,7 +3,6 @@ package me.senseiwells.replay.recorder.rejoin
 import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewerUtils
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action
@@ -19,7 +18,7 @@ import java.util.*
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,
     val recorder: ReplayRecorder
-): ServerPlayer(original.server, original.serverLevel(), original.gameProfile, original.clientInformation()) {
+): ServerPlayer(original.server!!, original.level(), original.gameProfile, original.clientInformation()) {
     init {
         this.id = this.original.id
     }
@@ -51,7 +50,7 @@ class RejoinedReplayPlayer private constructor(
             config.runConfigurationTasks()
             recorder.afterConfigure()
 
-            rejoined.load(player.saveWithoutId(CompoundTag()))
+            rejoined.restoreFrom(player)
             place(rejoined, RejoinGamePacketListener(rejoined, connection, cookies), player) {
                 recorder.shouldHidePlayerFromTabList(it)
             }
@@ -64,9 +63,9 @@ class RejoinedReplayPlayer private constructor(
             afterLogin: () -> Unit = {},
             shouldHidePlayer: (ServerPlayer) -> Boolean = { false }
         ) {
-            val server = player.server
+            val server = player.level().server
             val players = server.playerList
-            val level = player.serverLevel()
+            val level = player.level()
             val levelData = level.levelData
             val rules = level.gameRules
             listener.send(ClientboundLoginPacket(

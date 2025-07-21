@@ -130,7 +130,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
 
         val connection = event.senderConnection ?: return
         val player = connection.getServerPlayer() ?: return
-        val server = player.server
+        val server = player.level().server
         val converter = event.voicechat.audioConverter
         val inGroup = connection.isInGroup
 
@@ -224,7 +224,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         packet: () -> Packet<ClientCommonPacketListener>
     ) {
         val player = event.receiverConnection?.getServerPlayer() ?: return
-        player.server.execute {
+        player.server!!.execute {
             val recorder = PlayerRecorders.get(player)
             recorder?.record(packet())
         }

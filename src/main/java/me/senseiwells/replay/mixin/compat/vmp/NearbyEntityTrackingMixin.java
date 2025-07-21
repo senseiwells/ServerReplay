@@ -28,7 +28,7 @@ public class NearbyEntityTrackingMixin {
         @Local boolean positionUpdated
     ) {
         if (positionUpdated) {
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
             ChunkMap map = level.getChunkSource().chunkMap;
             ChunkMap.TrackedEntity tracked = ((ChunkMapAccessor) map).getEntityMap().get(player.getId());
             ChunkRecorders.updateRecordable((ChunkRecordable) tracked, level.dimension(), player.chunkPosition());

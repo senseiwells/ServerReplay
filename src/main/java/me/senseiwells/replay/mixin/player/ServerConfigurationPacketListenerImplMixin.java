@@ -20,7 +20,7 @@ public class ServerConfigurationPacketListenerImplMixin {
 		method = "handleConfigurationFinished",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/players/PlayerList;getPlayerForLogin(Lcom/mojang/authlib/GameProfile;Lnet/minecraft/server/level/ClientInformation;)Lnet/minecraft/server/level/ServerPlayer;",
+			target = "Lnet/minecraft/server/players/PlayerList;placeNewPlayer(Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/server/network/CommonListenerCookie;)V",
 			shift = At.Shift.BEFORE
 		)
 	)

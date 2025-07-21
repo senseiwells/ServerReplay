@@ -18,16 +18,16 @@ data class FlashbackMeta(
     @EncodeDefault(Mode.ALWAYS)
     val name: String = "Unnamed",
     @EncodeDefault(Mode.ALWAYS)
-    val version: String = SharedConstants.getCurrentVersion().name,
+    val version: String = SharedConstants.getCurrentVersion().name(),
     @SerialName("world_name")
     @EncodeDefault(Mode.ALWAYS)
     val worldName: String = ServerReplay.config.worldName,
     @SerialName("data_version")
     @EncodeDefault(Mode.ALWAYS)
-    val dataVersion: Int = SharedConstants.getCurrentVersion().dataVersion.version,
+    val dataVersion: Int = SharedConstants.getCurrentVersion().dataVersion().version,
     @SerialName("protocol_version")
     @EncodeDefault(Mode.ALWAYS)
-    val protocolVersion: Int = SharedConstants.getCurrentVersion().protocolVersion,
+    val protocolVersion: Int = SharedConstants.getCurrentVersion().protocolVersion(),
     @SerialName("total_ticks")
     @EncodeDefault(Mode.ALWAYS)
     val totalTicks: Int = 0,

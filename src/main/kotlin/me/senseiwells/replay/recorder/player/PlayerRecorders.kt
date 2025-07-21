@@ -28,7 +28,7 @@ object PlayerRecorders {
         if (player is RejoinedReplayPlayer) {
             throw IllegalArgumentException("Cannot create a replay for a rejoining player")
         }
-        return create(player.server, player.gameProfile)
+        return create(player.server!!, player.gameProfile)
     }
 
     /**

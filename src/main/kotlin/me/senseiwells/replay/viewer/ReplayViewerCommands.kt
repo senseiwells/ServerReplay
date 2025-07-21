@@ -6,20 +6,23 @@ import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
-import com.mojang.brigadier.tree.RootCommandNode
+import com.mojang.brigadier.tree.ArgumentCommandNode
+import com.mojang.brigadier.tree.CommandNode
 import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSource
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.TimeArgument
+import net.minecraft.commands.synchronization.SuggestionProviders
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket.NodeInspector
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
+import net.minecraft.resources.ResourceLocation
 import java.util.function.Consumer
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -35,9 +38,8 @@ object ReplayViewerCommands {
         // In vanilla, we would check whether the source has
         // access to the commands, see Commands#fillUsableCommands.
         // Here we just assume all the commands are accessible
-        @Suppress("UNCHECKED_CAST")
         consumer.accept(
-            ClientboundCommandsPacket(this.dispatcher.root as RootCommandNode<SharedSuggestionProvider>)
+            ClientboundCommandsPacket(this.dispatcher.root, ReplayViewerNodeInspector)
         )
     }
 
@@ -45,7 +47,7 @@ object ReplayViewerCommands {
         val player = viewer.player
         val source = player.createCommandSourceStack().withSource(ReplayViewerCommandSource(viewer))
         val result = this.dispatcher.parse(command, source)
-        player.server.commands.performCommand(result, command)
+        player.server!!.commands.performCommand(result, command)
     }
 
     private fun registerReplayViewCommand() {
@@ -243,6 +245,21 @@ object ReplayViewerCommands {
 
         override fun shouldInformAdmins(): Boolean {
             return true
+        }
+    }
+
+    private object ReplayViewerNodeInspector: NodeInspector<CommandSourceStack> {
+        override fun suggestionId(node: ArgumentCommandNode<CommandSourceStack, *>): ResourceLocation? {
+            val suggestions = node.customSuggestions
+            return if (suggestions != null) SuggestionProviders.getName(suggestions) else null
+        }
+
+        override fun isExecutable(node: CommandNode<CommandSourceStack>): Boolean {
+            return node.command != null
+        }
+
+        override fun isRestricted(node: CommandNode<CommandSourceStack>): Boolean {
+            return false
         }
     }
 }

@@ -1,7 +1,7 @@
 package me.senseiwells.replay.recorder.chunk
 
+import io.netty.channel.ChannelFutureListener
 import me.senseiwells.replay.recorder.rejoin.RejoinConnection
-import net.minecraft.network.PacketSendListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.CommonListenerCookie
@@ -16,7 +16,7 @@ class ChunkGamePacketPacketListener(
     player,
     CommonListenerCookie.createInitial(recorder.profile, false)
 ) {
-    override fun send(packet: Packet<*>, listener: PacketSendListener?) {
+    override fun send(packet: Packet<*>, sendListener: ChannelFutureListener?) {
         this.recorder.record(packet)
     }
 }

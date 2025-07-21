@@ -24,7 +24,7 @@ data class ReplayPlayerContext(
 
     companion object {
         fun of(player: ServerPlayer): ReplayPlayerContext {
-            return ReplayPlayerContext(player.server, player.gameProfile, player)
+            return ReplayPlayerContext(player.server!!, player.gameProfile, player)
         }
     }
 }

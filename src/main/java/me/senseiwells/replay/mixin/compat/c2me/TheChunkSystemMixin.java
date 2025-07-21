@@ -1,9 +1,9 @@
 package me.senseiwells.replay.mixin.compat.c2me;
 
 import com.ishland.c2me.rewrites.chunksystem.common.*;
-import com.ishland.flowsched.scheduler.DaemonizedStatusAdvancingScheduler;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.ItemStatus;
+import com.ishland.flowsched.scheduler.StatusAdvancingScheduler;
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor;
 import me.senseiwells.replay.recorder.chunk.ChunkRecordable;
 import me.senseiwells.replay.recorder.chunk.ChunkRecorder;
@@ -19,17 +19,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.concurrent.ThreadFactory;
-
 @Mixin(value = TheChunkSystem.class, remap = false)
-public abstract class TheChunkSystemMixin extends DaemonizedStatusAdvancingScheduler<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> {
+public abstract class TheChunkSystemMixin extends StatusAdvancingScheduler<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> {
     @Shadow @Final private ChunkMap tacs;
 
     @Shadow protected abstract ItemStatus<ChunkPos, ChunkState, ChunkLoadingContext> getUnloadedStatus();
-
-    protected TheChunkSystemMixin(ThreadFactory threadFactory) {
-        super(threadFactory);
-    }
 
     @Inject(
         method = "onItemUpgrade",

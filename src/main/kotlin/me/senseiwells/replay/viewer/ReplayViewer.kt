@@ -93,7 +93,7 @@ class ReplayViewer internal constructor(
     )
 
     val server: MinecraftServer
-        get() = this.player.server
+        get() = this.player.server!!
 
     val player: ServerPlayer
         get() = this.connection.player
@@ -346,9 +346,9 @@ class ReplayViewer internal constructor(
 
     private fun addBackToServer() {
         val player = this.player
-        val server = player.server
+        val server = player.server!!
         val playerList = server.playerList
-        val level = player.serverLevel()
+        val level = player.level()
 
         playerList.broadcastAll(
             ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(player))
@@ -381,15 +381,15 @@ class ReplayViewer internal constructor(
 
     private fun removeFromServer() {
         val player = this.player
-        val playerList = player.server.playerList
+        val playerList = player.server!!.playerList
         playerList.broadcastAll(ClientboundPlayerInfoRemovePacket(listOf(player.uuid)))
-        player.serverLevel().removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
+        player.level().removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
         playerList.players.remove(player)
     }
 
     private fun removeServerState() {
         val player = this.player
-        val server = player.server
+        val server = player.server!!
         this.send(ClientboundPlayerInfoRemovePacket(server.playerList.players.map { it.uuid }))
         player.chunkTrackingView.forEach {
             this.send(ClientboundForgetLevelChunkPacket(it))
@@ -605,7 +605,7 @@ class ReplayViewer internal constructor(
 
     private fun synchronizeClientLevel() {
         this.send(ClientboundRespawnPacket(
-            this.player.createCommonSpawnInfo(this.player.serverLevel()),
+            this.player.createCommonSpawnInfo(this.player.level()),
             ClientboundRespawnPacket.KEEP_ALL_DATA
         ))
     }

@@ -1,9 +1,9 @@
 package me.senseiwells.replay.recorder.rejoin
 
+import io.netty.channel.ChannelFutureListener
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.mixin.rejoin.ServerConfigurationPacketListenerImplAccessor
 import net.minecraft.network.Connection
-import net.minecraft.network.PacketSendListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ServerboundPongPacket
 import net.minecraft.server.network.CommonListenerCookie
@@ -16,7 +16,7 @@ class RejoinConfigurationPacketListener(
     private val replay: RejoinedReplayPlayer,
     connection: Connection,
     cookies: CommonListenerCookie
-): ServerConfigurationPacketListenerImpl(replay.server, connection, cookies) {
+): ServerConfigurationPacketListenerImpl(replay.server!!, connection, cookies) {
     @Suppress("CAST_NEVER_SUCCEEDS")
     private val tasks: Queue<ConfigurationTask>
         get() = (this as ServerConfigurationPacketListenerImplAccessor).tasks()
@@ -47,7 +47,7 @@ class RejoinConfigurationPacketListener(
         }
     }
 
-    override fun send(packet: Packet<*>, packetSendListener: PacketSendListener?) {
+    override fun send(packet: Packet<*>, sendListener: ChannelFutureListener?) {
         try {
             this.replay.recorder.record(packet)
         } catch (e: Exception) {

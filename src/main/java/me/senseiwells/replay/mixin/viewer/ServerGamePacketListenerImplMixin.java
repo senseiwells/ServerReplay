@@ -1,10 +1,10 @@
 package me.senseiwells.replay.mixin.viewer;
 
+import io.netty.channel.ChannelFutureListener;
 import me.senseiwells.replay.ducks.ReplayViewable;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import me.senseiwells.replay.viewer.ReplayViewerPackets;
 import net.minecraft.network.Connection;
-import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.LastSeenMessagesValidator;
 import net.minecraft.network.chat.RemoteChatSession;
 import net.minecraft.network.protocol.Packet;
@@ -156,9 +156,9 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	}
 
 	@Override
-	public void send(Packet<?> packet, @Nullable PacketSendListener packetSendListener) {
+	public void send(Packet<?> packet, @Nullable ChannelFutureListener sendListener) {
 		if (this.replay$viewer == null || ReplayViewerPackets.clientboundBypass(packet)) {
-			super.send(packet, packetSendListener);
+			super.send(packet, sendListener);
 		}
 	}
 }

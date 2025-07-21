@@ -254,7 +254,7 @@ class ReplayModWriter(
         meta.customServerName = ServerReplay.config.serverName
         meta.generator = "ServerReplay v${ServerReplay.version}"
         meta.date = System.currentTimeMillis()
-        meta.mcVersion = SharedConstants.getCurrentVersion().name
+        meta.mcVersion = SharedConstants.getCurrentVersion().name()
         meta.fileFormatVersion = ReplayMetaData.CURRENT_FILE_FORMAT_VERSION
         meta.setProtocolVersion(SharedConstants.getProtocolVersion())
         return meta

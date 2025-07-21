@@ -1,12 +1,11 @@
 package me.senseiwells.replay.mixin.rejoin;
 
+import io.netty.channel.ChannelFutureListener;
 import me.senseiwells.replay.ducks.PackTracker;
-import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,12 +25,12 @@ public class ServerCommonPacketListenerImplMixin implements PackTracker {
 	@Unique private final Map<UUID, ClientboundResourcePackPushPacket> replay$packs = new ConcurrentHashMap<>();
 
 	@Inject(
-		method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+		method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;)V",
 		at = @At("HEAD")
 	)
 	private void onSendPacket(
 		Packet<?> packet,
-		@Nullable PacketSendListener packetSendListener,
+		ChannelFutureListener sendListener,
 		CallbackInfo ci
 	) {
 		if (packet instanceof ClientboundResourcePackPushPacket resources) {

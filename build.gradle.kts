@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "2.3.1"
+val modVersion = "2.3.2"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -121,7 +121,7 @@ tasks {
             """
             # ServerReplay $modVersion
             
-            - Updated to 1.21.6
+            - No longer recording waypoint packets, fixes replay playback on the client
             """.trimIndent()
         )
         type = STABLE

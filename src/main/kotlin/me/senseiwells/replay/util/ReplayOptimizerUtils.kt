@@ -57,6 +57,9 @@ object ReplayOptimizerUtils {
         ClientboundMerchantOffersPacket::class.java,
         ClientboundChunkBatchStartPacket::class.java,
         ClientboundChunkBatchFinishedPacket::class.java,
+        ClientboundClearDialogPacket::class.java,
+        ClientboundShowDialogPacket::class.java,
+        ClientboundTrackedWaypointPacket::class.java
     )
     // Set of all chat related packs
     private val CHAT = setOf<Class<out Packet<*>>>(

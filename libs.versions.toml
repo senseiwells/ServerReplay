@@ -1,14 +1,14 @@
 [versions]
-minecraft     = "1.21.6"
-fabric-loader = "0.16.13"
-parchment     = "1.21.6:2025.06.29"
-fabric-api    = "0.128.2+1.21.6"
-fabric-kotlin = "1.13.2+kotlin.2.1.20"
+minecraft     = "1.21.8"
+fabric-loader = "0.17.2"
+parchment     = "1.21.8:2025.07.20"
+fabric-api    = "0.132.0+1.21.8"
+fabric-kotlin = "1.13.4+kotlin.2.2.0"
 permissions   = "0.4.0"
 inject        = "3.1.4"
 
 # Compatability depdendencies
-carpet        = "1.4.176"
+carpet        = "1.4.177"
 voicechat     = "fabric-1.21.7-2.5.33"
 voicechat-api = "2.5.27"
 vmp           = "0.2.0+beta.7.200+1.21.6"

@@ -15,8 +15,6 @@ import me.senseiwells.replay.recorder.chunk.ChunkArea
 import me.senseiwells.replay.recorder.chunk.ChunkRecorder
 import me.senseiwells.replay.recorder.chunk.ChunkRecorders
 import me.senseiwells.replay.recorder.player.PlayerRecorders
-import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
-import me.senseiwells.replay.util.ReplayModIO
 import me.senseiwells.replay.util.flashback.FlashbackIO
 import me.senseiwells.replay.viewer.ReplayViewers
 import me.senseiwells.replay.writer.ReplayWriterType
@@ -210,7 +208,7 @@ object ReplayCommand {
             context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
             return 0
         }
-        ServerReplay.update { config -> config.copy(enabled = true) }
+        ServerReplay.updateConfig { config -> config.copy(enabled = true) }
         context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
 
         ServerReplay.config.startPlayers(context.source.server)
@@ -224,7 +222,7 @@ object ReplayCommand {
             context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
             return 0
         }
-        ServerReplay.update { config -> config.copy(enabled = false) }
+        ServerReplay.updateConfig { config -> config.copy(enabled = false) }
         for (recorders in PlayerRecorders.recorders()) {
             recorders.stop()
         }
@@ -514,7 +512,7 @@ object ReplayCommand {
     }
 
     private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplayWriterType): Int {
-        ServerReplay.update { config -> config.copy(writerType = type) }
+        ServerReplay.updateConfig { config -> config.copy(writerType = type) }
         type.warn { message ->
             context.source.sendSystemMessage(Component.literal(message))
         }

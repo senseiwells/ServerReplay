@@ -1,4 +1,4 @@
-package me.senseiwells.replay.util.processor
+package me.senseiwells.replay.processor
 
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -6,8 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.io.IOException
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.util.ReplayModIO
-import me.senseiwells.replay.util.flashback.FlashbackIO
+import net.casual.arcade.replay.io.ReplayFormat
 import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import kotlin.io.path.deleteIfExists
@@ -44,9 +43,7 @@ object ReplayCleanerUpper {
     }
 
     private fun cleanUpFile(path: Path, duration: Duration) {
-        if (!FlashbackIO.isFlashbackFile(path) && !ReplayModIO.isReplayFile(path)) {
-            return
-        }
+        ReplayFormat.formatOf(path) ?: return
 
         val delta = (System.currentTimeMillis() - path.getLastModifiedTime().toMillis()).milliseconds
         if (delta >= duration) {

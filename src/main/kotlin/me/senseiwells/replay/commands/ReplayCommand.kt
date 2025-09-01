@@ -46,14 +46,6 @@ object ReplayCommand: CommandTree {
     override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
         return CommandTree.buildLiteral("replay") {
             requires { Permissions.check(it, "server-replay.commands.replay", 4) }
-            literal("automatic-recording") {
-                literal("enable") {
-                    executes(::enableAutomaticRecording)
-                }
-                literal("disable") {
-                    executes(::disableAutomaticRecording)
-                }
-            }
             literal("start") {
                 literal("players") {
                     argument("players", EntityArgument.players()) {
@@ -195,23 +187,6 @@ object ReplayCommand: CommandTree {
         }
     }
 
-    private fun enableAutomaticRecording(context: CommandContext<CommandSourceStack>): Int {
-        if (ServerReplay.config.automaticallyRecord) {
-            return context.source.fail("Already automatically set to record")
-        }
-        ServerReplay.updateConfig { config -> config.copy(automaticallyRecord = true) }
-        context.source.success("Players will now be automatically recorded when they join if they meet the predicate defined in the config")
-        return context.source.success("Chunks recordings will also now automatically start when the server restarts based on the config")
-    }
-
-    private fun disableAutomaticRecording(context: CommandContext<CommandSourceStack>): Int {
-        if (!ServerReplay.config.automaticallyRecord) {
-            return context.source.fail("Already not automatically set to record")
-        }
-        ServerReplay.updateConfig { config -> config.copy(automaticallyRecord = false) }
-        return context.source.success("Players and chunks recordings will no longer start automatically")
-    }
-
     private fun startPlayerRecorders(context: CommandContext<CommandSourceStack>): Int {
         val players = EntityArgument.getPlayers(context, "players")
         val format = ServerReplay.config.defaultReplayFormat
@@ -220,7 +195,7 @@ object ReplayCommand: CommandTree {
         val successes = players.count { player ->
             val exists = ReplayPlayerRecorders.has(player.uuid, format)
             val path = ServerReplay.config.getPlayerRecordingLocation(player.gameProfile)
-            exists && ReplayPlayerRecorders.create(player, path, format, settings).start()
+            !exists && ReplayPlayerRecorders.create(player, path, format, settings).start()
         }
         if (successes > 0) {
             return context.source.success("Successfully started $successes recordings", true)
@@ -245,11 +220,10 @@ object ReplayCommand: CommandTree {
         level: ServerLevel = DimensionArgument.getDimension(context, "dimension"),
         name: String? = StringArgumentType.getString(context, "name")
     ): Int {
-        val x = IntegerArgumentType.getInteger(context, "x")
-        val z = IntegerArgumentType.getInteger(context, "z")
+        val pos = ChunkPosArgument.getPosition(context, "chunk")
         val radius = IntegerArgumentType.getInteger(context, "radius")
 
-        val area = ChunkArea.of(level, x, z, radius)
+        val area = ChunkArea.of(level, pos.x, pos.z, radius)
         return this.startChunks(context, area, name)
     }
 
@@ -259,7 +233,7 @@ object ReplayCommand: CommandTree {
         name: String?
     ): Int {
         val id = if (name != null) name else ReplayChunkRecorders.createNameFor(area)
-        if (!ReplayChunkRecorders.has(id)) {
+        if (ReplayChunkRecorders.has(id)) {
             return context.source.fail("Failed to start chunk recorder, already exists")
         }
         val format = ServerReplay.config.defaultReplayFormat
@@ -484,7 +458,7 @@ object ReplayCommand: CommandTree {
         context: CommandContext<CommandSourceStack>,
         builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
-        val areaName = StringArgumentType.getString(context, "area")
+        val areaName = StringArgumentType.getString(context, "name")
         val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
         val names = chunkPath.streamDirectoryEntriesOrEmpty()
             .filter(this::isReplayFile)

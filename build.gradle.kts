@@ -7,13 +7,9 @@ plugins {
     kotlin("plugin.serialization").version(jvmVersion)
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
-    alias(libs.plugins.shadow)
-    alias(libs.plugins.explosion)
     `maven-publish`
     java
 }
-
-val shade: Configuration by configurations.creating
 
 repositories {
     mavenLocal()
@@ -53,8 +49,6 @@ dependencies {
 }
 
 loom {
-    accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
-
     runs {
         getByName("server") {
             runDir = "run/${libs.versions.minecraft.get()}"
@@ -76,32 +70,6 @@ tasks {
         filesMatching("fabric.mod.json") {
             expand(mutableMapOf("version" to modVersion))
         }
-    }
-
-    remapJar {
-        inputFile.set(shadowJar.get().archiveFile)
-    }
-
-    shadowJar {
-        destinationDirectory.set(File("./build/devlibs"))
-        isZip64 = true
-
-        from("LICENSE")
-
-        // For compatability with viaversion
-        relocate("assets/viaversion", "assets/replay-viaversion")
-
-        relocate("com.github.steveice10.netty", "io.netty")
-        exclude("com/github/steveice10/netty/**")
-
-        exclude("it/unimi/dsi/**")
-        exclude("org/apache/commons/**")
-        exclude("org/xbill/DNS/**")
-        exclude("com/google/**")
-
-        configurations = listOf(shade)
-
-        archiveClassifier = "shaded"
     }
 
     publishMods {

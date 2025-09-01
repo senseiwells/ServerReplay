@@ -71,6 +71,7 @@ data class ReplayConfig(
     val fixedDaylightCycle: Long = -1L,
     @SerialName("chunk_recorder_load_radius")
     val chunkRecorderLoadRadius: Int = -1,
+    @Contextual
     @SerialName("chunk_recording_strategy")
     val chunkRecordingStrategy: ChunkRecordingStrategy = ChunkRecordingStrategy.Always,
     @SerialName("pause_notify_players")
@@ -158,7 +159,7 @@ data class ReplayConfig(
     }
 
     companion object {
-        private val recordings: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
+        private val recordings = FabricLoader.getInstance().configDir.resolveSibling("recordings")
 
         private val root = FabricLoader.getInstance().configDir.resolve("server-replay")
         private val config = this.root.resolve("config.json")
@@ -170,6 +171,7 @@ data class ReplayConfig(
             ignoreUnknownKeys = true
 
             serializersModule = CodecSerializersModule {
+                contextual(FileSize.CODEC)
                 contextual(ReplayFormat.CODEC)
                 contextual(ResourceLocation.CODEC)
                 contextual(ChunkRecordingStrategy.CODEC)
@@ -218,10 +220,10 @@ data class ReplayConfig(
         @Deprecated("Temporary function to migrate old configs")
         @OptIn(ExperimentalPathApi::class)
         internal fun migrateOldConfigs() {
-            val oldPath = this.config.resolveSibling("ServerReplay")
+            val oldPath = this.root.resolveSibling("ServerReplay")
             try {
                 if (oldPath.isDirectory()) {
-                    oldPath.copyToRecursively(this.config, overwrite = false, followLinks = true)
+                    oldPath.copyToRecursively(this.root, overwrite = false, followLinks = true)
                     oldPath.deleteRecursively()
                 }
             } catch (e: IOException) {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "server-replay",
   "version": "${version}",
-  "name": "Server Replay Mod",
+  "name": "Server Replay",
   "description": "Record replays for replay mod and flashback on the server-side!",
   "icon": "assets/server-replay/icon.png",
   "authors": [
@@ -19,23 +19,14 @@
         "adapter": "kotlin",
         "value": "me.senseiwells.replay.ServerReplay"
       }
-    ],
-    "voicechat": [
-      {
-        "adapter": "kotlin",
-        "value": "me.senseiwells.replay.compat.voicechat.ReplayVoicechatPlugin"
-      }
     ]
   },
-  "accessWidener": "serverreplay.accesswidener",
   "mixins": [
-    "serverreplay.mixins.json"
+
   ],
   "depends": {
-    "fabricloader": ">=0.14.12",
     "fabric-api": "*",
     "minecraft": "1.21.x",
-    "java": ">=21",
     "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0"
   }
 }

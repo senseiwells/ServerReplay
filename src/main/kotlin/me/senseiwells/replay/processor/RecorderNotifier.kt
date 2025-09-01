@@ -1,6 +1,7 @@
 package me.senseiwells.replay.processor
 
 import me.senseiwells.replay.ServerReplay
+import net.casual.arcade.commands.singleUseFunction
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.replay.events.ReplayRecorderCloseEvent
@@ -10,14 +11,18 @@ import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderLoadedResumeEvent
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderUnloadedPauseEvent
 import net.casual.arcade.replay.events.player.ReplayRecorderFileSizeLimitEvent
+import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.util.FileUtils
+import net.casual.arcade.replay.viewer.ReplayViewers
 import net.casual.arcade.utils.ComponentUtils.hover
 import net.casual.arcade.utils.ComponentUtils.lime
-import net.casual.arcade.utils.ComponentUtils.suggestCommand
 import net.casual.arcade.utils.PlayerUtils.broadcastToOps
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import java.nio.file.Path
 import kotlin.io.path.fileSize
+import kotlin.io.path.isReadable
 
 object RecorderNotifier {
     internal fun registerEvents() {
@@ -67,10 +72,10 @@ object RecorderNotifier {
 
     private fun onReplayRecorderSaved(event: ReplayRecorderSaveEvent) {
         val recorder = event.recorder
-        // TODO: Click to view replay
-        val clickable = Component.literal("${event.output}").lime()
+        val output = event.output
+        val clickable = Component.literal("$output").lime()
             .hover(Component.literal("Click to view replay"))
-            .suggestCommand("/todo")
+            .singleUseFunction { this.tryViewReplay(it.player, output) }
 
         val message = Component.empty()
             .append("Successfully saved replay ${recorder.getName()} to ")
@@ -98,6 +103,20 @@ object RecorderNotifier {
         recorder.server.broadcastToOpsAndConsole(
             "Stopped recording replay ${recorder.getName()}, past raw file size limit $limit"
         )
+    }
+
+    private fun tryViewReplay(player: ServerPlayer, path: Path) {
+        val format = ReplayFormat.formatOf(path)
+        if (format == null || !path.isReadable()) {
+            player.sendSystemMessage(Component.literal("Replay is no longer valid for viewing!"))
+            return
+        }
+
+        try {
+            ReplayViewers.create(path, player).start()
+        } catch (exception: Exception) {
+            ServerReplay.logger.error("Failed to start viewing replay at $path", exception)
+        }
     }
 
     private fun MinecraftServer.broadcastToOps(message: Component) {

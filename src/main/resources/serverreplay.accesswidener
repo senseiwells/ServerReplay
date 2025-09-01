@@ -1,3 +1,0 @@
-accessWidener v1 named
-accessible class net/minecraft/server/level/ChunkMap$TrackedEntity
-accessible class net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData$BlockEntityInfo

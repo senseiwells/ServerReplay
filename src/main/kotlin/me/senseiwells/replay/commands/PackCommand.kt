@@ -1,14 +1,17 @@
 package me.senseiwells.replay.commands
 
 import com.mojang.brigadier.Command
-import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import me.senseiwells.replay.ducks.PackTracker
+import net.casual.arcade.commands.CommandTree
+import net.casual.arcade.commands.argument
+import net.casual.arcade.commands.literal
+import net.casual.arcade.replay.ducks.PackTracker
+import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.UuidArgument
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket
@@ -16,21 +19,24 @@ import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-object PackCommand {
-    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(
-            Commands.literal("resource-pack").then(
-                Commands.literal("push").then(
-                    Commands.argument("url", StringArgumentType.string()).then(
-                        Commands.argument("uuid", UuidArgument.uuid()).executes(this::pushPack)
-                    ).executes { this.pushPackSimple(it) }
-                )
-            ).then(
-                Commands.literal("pop").then(
-                    Commands.argument("uuid", UuidArgument.uuid()).suggests(this::suggestPacks).executes(this::popPack)
-                )
-            )
-        )
+object PackCommand: CommandTree {
+    override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
+        return CommandTree.buildLiteral("resource-pack") {
+            literal("push") {
+                argument("url", StringArgumentType.string()) {
+                    executes(::pushPackSimple)
+                    argument("uuid", UuidArgument.uuid()) {
+                        executes(::pushPack)
+                    }
+                }
+            }
+            literal("pop") {
+                argument("uuid", UuidArgument.uuid()) {
+                    suggests(::suggestPacks)
+                    executes(::popPack)
+                }
+            }
+        }
     }
 
     private fun pushPackSimple(context: CommandContext<CommandSourceStack>): Int {
@@ -60,6 +66,7 @@ object PackCommand {
         return Command.SINGLE_SUCCESS
     }
 
+    @Suppress("UnstableApiUsage")
     private fun suggestPacks(
         context: CommandContext<CommandSourceStack>,
         builder: SuggestionsBuilder

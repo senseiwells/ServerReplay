@@ -1,10 +1,12 @@
 package me.senseiwells.replay
 
 import com.google.gson.JsonObject
+import me.senseiwells.replay.commands.PackCommand
+import me.senseiwells.replay.commands.ReplayCommand
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.processor.*
+import net.casual.arcade.commands.register
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerRegisterCommandEvent
@@ -16,6 +18,7 @@ import net.mcbrawls.inject.fabric.InjectFabric
 import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration
 
 object ServerReplay: ModInitializer {
     const val MOD_ID = "server-replay"
@@ -35,7 +38,6 @@ object ServerReplay: ModInitializer {
         ReplayConfig.migrateOldConfigs()
         ReplayConfig.read()
 
-        InjectFabric.INSTANCE.registerInjector(DownloadPacksHttpInjector)
         InjectFabric.INSTANCE.registerInjector(DownloadReplaysHttpInjector)
 
         AutomaticRecorders.registerEvents()
@@ -43,8 +45,10 @@ object ServerReplay: ModInitializer {
         RecorderRecoverer.registerEvents()
 
         GlobalEventHandler.Server.register<ServerRegisterCommandEvent> {
-//            it.register(ReplayCommand)
-            // PackCommand
+            it.register(ReplayCommand)
+            if (this.config.debug) {
+                it.register(PackCommand)
+            }
         }
         GlobalEventHandler.Server.register<ReplayRecorderStartEvent> { (recorder) ->
             recorder.addMetadataProvider(this::addMetadata)

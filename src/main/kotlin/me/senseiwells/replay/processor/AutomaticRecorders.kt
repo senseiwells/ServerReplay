@@ -10,7 +10,6 @@ import net.casual.arcade.events.server.player.PlayerLoginEvent
 import net.casual.arcade.replay.recorder.chunk.ChunkArea
 import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
-import net.casual.arcade.replay.recorder.settings.SimpleRecorderSettings
 import net.casual.arcade.utils.toKey
 import net.minecraft.core.registries.Registries
 import net.minecraft.server.MinecraftServer
@@ -47,7 +46,7 @@ object AutomaticRecorders {
 
             val path = ServerReplay.config.chunkRecordingPath.resolve(chunks.name)
             val format = ServerReplay.config.defaultReplayFormat
-            val settings = SimpleRecorderSettings()
+            val settings = ServerReplay.config.createSettings()
             val recorder = ReplayChunkRecorders.create(area, path, format, settings, chunks.name)
             recorder.start()
         }
@@ -59,7 +58,7 @@ object AutomaticRecorders {
         if (ServerReplay.config.playerPredicate.shouldRecord(context)) {
             val path = ServerReplay.config.getPlayerRecordingLocation(profile)
             val format = ServerReplay.config.defaultReplayFormat
-            val settings = SimpleRecorderSettings.DEFAULT
+            val settings = ServerReplay.config.createSettings()
             val recorder = ReplayPlayerRecorders.create(server, profile, path, format, settings)
             recorder.onStart()
             recorder.afterLogin()

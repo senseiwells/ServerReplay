@@ -1,269 +1,246 @@
 package me.senseiwells.replay.commands
 
-import com.google.common.collect.Iterables
-import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.Command
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.ArgumentBuilder
+import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
+import com.mojang.brigadier.suggestion.Suggestions
+import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.http.DownloadReplaysHttpInjector
-import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.recorder.chunk.ChunkArea
-import me.senseiwells.replay.recorder.chunk.ChunkRecorder
-import me.senseiwells.replay.recorder.chunk.ChunkRecorders
-import me.senseiwells.replay.recorder.player.PlayerRecorders
-import me.senseiwells.replay.util.flashback.FlashbackIO
-import me.senseiwells.replay.viewer.ReplayViewers
-import me.senseiwells.replay.writer.ReplayWriterType
-import net.minecraft.ChatFormatting
+import me.senseiwells.replay.processor.RecorderWarner
+import net.casual.arcade.commands.*
+import net.casual.arcade.commands.arguments.ChunkPosArgument
+import net.casual.arcade.commands.arguments.EnumArgument
+import net.casual.arcade.replay.io.FlashbackIO
+import net.casual.arcade.replay.io.ReplayFormat
+import net.casual.arcade.replay.io.ReplayModIO
+import net.casual.arcade.replay.recorder.ReplayRecorder
+import net.casual.arcade.replay.recorder.chunk.ChunkArea
+import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
+import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
+import net.casual.arcade.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
+import net.casual.arcade.replay.viewer.ReplayViewers
+import net.casual.arcade.utils.ComponentUtils.bold
+import net.casual.arcade.utils.ComponentUtils.link
+import net.casual.arcade.utils.ComponentUtils.yellow
+import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
-import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.level.ChunkPos
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import kotlin.io.path.*
 
-object ReplayCommand {
-    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(
-            Commands.literal("replay").requires {
-                Permissions.check(it, "replay.commands.replay", 4)
-            }.then(
-                Commands.literal("enable").executes(this::onEnable)
-            ).then(
-                Commands.literal("disable").executes(this::onDisable)
-            ).then(
-                Commands.literal("start").then(
-                    Commands.literal("players").then(
-                        Commands.argument("players", EntityArgument.players()).executes(this::onStartPlayer)
-                    )
-                ).then(
-                    Commands.literal("chunks").then(
-                        Commands.literal("from").then(
-                            Commands.argument("fromX", IntegerArgumentType.integer()).suggests(this.suggestChunkX()).then(
-                                Commands.argument("fromZ", IntegerArgumentType.integer()).suggests(this.suggestChunkZ()).then(
-                                    Commands.literal("to").then(
-                                        Commands.argument("toX", IntegerArgumentType.integer()).suggests(this.suggestChunkX()).then(
-                                            Commands.argument("toZ", IntegerArgumentType.integer()).suggests(this.suggestChunkZ()).then(
-                                                Commands.literal("in").then(
-                                                    Commands.argument("dimension", DimensionArgument.dimension()).then(
-                                                        Commands.literal("named").then(
-                                                            Commands.argument("name", StringArgumentType.greedyString()).executes(this::onStartChunks)
-                                                        )
-                                                    ).executes { this.onStartChunks(it, name = null) }
-                                                )
-                                            ).executes { this.onStartChunks(it, it.source.level, null) }
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ).then(
-                        Commands.literal("around").then(
-                            Commands.argument("x", IntegerArgumentType.integer()).suggests(this.suggestChunkX()).then(
-                                Commands.argument("z", IntegerArgumentType.integer()).suggests(this.suggestChunkZ()).then(
-                                    Commands.literal("radius").then(
-                                        Commands.argument("radius", IntegerArgumentType.integer(1)).then(
-                                            Commands.literal("in").then(
-                                                Commands.argument("dimension", DimensionArgument.dimension()).then(
-                                                    Commands.literal("named").then(
-                                                        Commands.argument("name", StringArgumentType.greedyString()).executes(this::onStartChunksAround)
-                                                    )
-                                                ).executes { this.onStartChunksAround(it, name = null) }
-                                            )
-                                        ).executes { this.onStartChunksAround(it, it.source.level, null) }
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            ).then(
-                Commands.literal("stop").then(
-                    Commands.literal("players").then(
-                        Commands.argument("players", EntityArgument.players()).then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopPlayers)
-                        ).executes { this.onStopPlayers(it, true) }
-                    )
-                ).then(
-                    Commands.literal("chunks").then(
-                        Commands.literal("from").then(
-                            Commands.argument("fromX", IntegerArgumentType.integer()).suggests(this.suggestExistingFromChunkX()).then(
-                                Commands.argument("fromZ", IntegerArgumentType.integer()).suggests(this.suggestExistingFromChunkZ()).then(
-                                    Commands.literal("to").then(
-                                        Commands.argument("toX", IntegerArgumentType.integer()).suggests(this.suggestExistingToChunkX()).then(
-                                            Commands.argument("toZ", IntegerArgumentType.integer()).suggests(this.suggestExistingToChunkZ()).then(
-                                                Commands.literal("in").then(
-                                                    Commands.argument("dimension", DimensionArgument.dimension()).then(
-                                                        Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopChunks)
-                                                    ).executes { this.onStopChunks(it, save = true) }
-                                                )
-                                            ).executes { this.onStopChunks(it, it.source.level, true) }
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ).then(
-                        Commands.literal("named").then(
-                            Commands.argument("name", StringArgumentType.string()).suggests(this.suggestExistingName()).then(
-                                Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopChunksNamed)
-                            ).executes { this.onStopChunksNamed(it, true) }
-                        )
-                    ).then(
-                        Commands.literal("all").then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, ChunkRecorders.recorders()) }
-                        ).executes { this.onStopAll(it, ChunkRecorders.recorders(), true) }
-                    )
-                ).then(
-                    Commands.literal("all").then(
-                        Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, Iterables.concat(
-                            ChunkRecorders.recorders(), PlayerRecorders.recorders())) }
-                    ).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders()), true) }
-                )
-            ).then(
-                Commands.literal("reload").executes(this::onReload)
-            ).then(
-                Commands.literal("status").executes(this::status)
-            ).then(
-                Commands.literal("view").then(
-                    Commands.literal("players").then(
-                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
-                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
-                                this.viewReplay(it, true)
+object ReplayCommand: CommandTree {
+    override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
+        return CommandTree.buildLiteral("replay") {
+            requires { Permissions.check(it, "server-replay.commands.replay", 4) }
+            literal("automatic-recording") {
+                literal("enable") {
+                    executes(::enableAutomaticRecording)
+                }
+                literal("disable") {
+                    executes(::disableAutomaticRecording)
+                }
+            }
+            literal("start") {
+                literal("players") {
+                    argument("players", EntityArgument.players()) {
+                        executes(::startPlayerRecorders)
+                    }
+                }
+                literal("chunks") {
+                    literal("from") {
+                        argument("from", ChunkPosArgument.position()) {
+                            literal("to") {
+                                argument("to", ChunkPosArgument.position()) {
+                                    executes { startChunkRecorder(it, it.source.level, null) }
+                                    literal("in") {
+                                        argument("dimension", DimensionArgument.dimension()) {
+                                            executes { startChunkRecorder(it, name = null) }
+                                            literal("named") {
+                                                argument("named", StringArgumentType.greedyString()) {
+                                                    executes(::startChunkRecorder)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                        )
-                    )
-                ).then(
-                    Commands.literal("chunks").then(
-                        Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
-                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
-                                this.viewReplay(it, false)
+                        }
+                    }
+                    literal("around") {
+                        argument("chunk", ChunkPosArgument.position()) {
+                            literal("radius") {
+                                argument("radius", IntegerArgumentType.integer(1)) {
+                                    executes { startChunkRecorderAround(it, it.source.level, null) }
+                                    literal("in") {
+                                        argument("dimension", DimensionArgument.dimension()) {
+                                            executes { startChunkRecorderAround(it, name = null) }
+                                            literal("named") {
+                                                argument("named", StringArgumentType.greedyString()) {
+                                                    executes(::startChunkRecorderAround)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                        )
-                    )
-                )
-            ).then(
-                Commands.literal("download").then(
-                    Commands.literal("players").then(
-                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
-                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
-                                this.downloadReplay(it, true)
+                        }
+                    }
+                }
+            }
+            literal("stop") {
+                literal("players") {
+                    argument("players", EntityArgument.players()) {
+                        executes { stopPlayerRecorders(it, save = true) }
+                        argument("save", BoolArgumentType.bool()) {
+                            executes(::stopPlayerRecorders)
+                        }
+                    }
+                }
+                literal("chunks") {
+                    literal("named") {
+                        argument("name", StringArgumentType.string()) {
+                            suggests { _ -> getChunkRecorderNames() }
+                            executes { stopChunkRecorder(it, save = true) }
+                            argument("save", BoolArgumentType.bool()) {
+                                executes(::stopChunkRecorder)
                             }
-                        )
-                    )
-                ).then(
-                    Commands.literal("chunks").then(
-                        Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
-                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
-                                this.downloadReplay(it, false)
+                        }
+                    }
+                    literal("all") {
+                        executes { stopRecorders(it, ReplayChunkRecorders.recorders(), save = true) }
+                        argument("save", BoolArgumentType.bool()) {
+                            executes { stopRecorders(it, ReplayChunkRecorders.recorders()) }
+                        }
+                    }
+                }
+                literal("all") {
+                    executes { stopRecorders(it, recorders(), save = true) }
+                    argument("save", BoolArgumentType.bool()) {
+                        executes { stopRecorders(it, recorders()) }
+                    }
+                }
+            }
+            literal("status") {
+                executes(::queryStatuses)
+            }
+            literal("reload") {
+                executes(::reload)
+            }
+            literal("download") {
+                savedReplayTree(::downloadReplay)
+            }
+            literal("view") {
+                savedReplayTree(::viewReplay)
+            }
+            literal("marker") {
+                literal("add") {
+                    literal("players") {
+                        argument("players", EntityArgument.players()) {
+                            executes { addMarkerToPlayerRecorder(it, name = null) }
+                            argument("marker", StringArgumentType.string()) {
+                                executes(::addMarkerToPlayerRecorder)
                             }
-                        )
-                    )
-                )
-            ).then(
-                Commands.literal("marker").then(
-                    Commands.literal("add").then(
-                        Commands.literal("players").then(
-                            Commands.argument("players", EntityArgument.players()).then(
-                                Commands.argument("marker", StringArgumentType.string()).executes(this::addPlayerMarker)
-                            ).executes { this.addPlayerMarker(it, null) }
-                        )
-                    ).then(
-                        Commands.literal("chunks").then(
-                            Commands.literal("named").then(
-                                Commands.argument("name", StringArgumentType.string()).suggests(this.suggestExistingName()).then(
-                                    Commands.argument("marker", StringArgumentType.string()).executes(this::addChunkMarker)
-                                ).executes { this.addChunkMarker(it, null) }
-                            )
-                        )
-                    )
-                )
-            ).then(
-                Commands.literal("encoding").then(
-                    Commands.literal("set").then(
-                        Commands.literal("flashback").executes { this.changeEncoding(it, ReplayWriterType.Flashback) }
-                    ).then(
-                        Commands.literal("replay-mod").executes { this.changeEncoding(it, ReplayWriterType.ReplayMod) }
-                    )
-                )
-            )
-        )
-    }
-
-    private fun onEnable(context: CommandContext<CommandSourceStack>): Int {
-        if (ServerReplay.config.enabled) {
-            context.source.sendFailure(Component.literal("ServerReplay is already enabled!"))
-            return 0
-        }
-        ServerReplay.updateConfig { config -> config.copy(enabled = true) }
-        context.source.sendSuccess({ Component.literal("ServerReplay is now enabled!") }, true)
-
-        ServerReplay.config.startPlayers(context.source.server)
-        ServerReplay.config.startChunks(context.source.server)
-
-        return 1
-    }
-
-    private fun onDisable(context: CommandContext<CommandSourceStack>): Int {
-        if (!ServerReplay.config.enabled) {
-            context.source.sendFailure(Component.literal("ServerReplay is already disabled!"))
-            return 0
-        }
-        ServerReplay.updateConfig { config -> config.copy(enabled = false) }
-        for (recorders in PlayerRecorders.recorders()) {
-            recorders.stop()
-        }
-        for (recorders in ChunkRecorders.recorders()) {
-            recorders.stop()
-        }
-        context.source.sendSuccess({ Component.literal("ServerReplay is now disabled! Stopped all recordings.") }, true)
-        return 1
-    }
-
-    private fun onStartPlayer(context: CommandContext<CommandSourceStack>): Int {
-        val players = EntityArgument.getPlayers(context, "players")
-        var i = 0
-        for (player in players) {
-            if (!PlayerRecorders.has(player) && PlayerRecorders.create(player).start()) {
-                i++
+                        }
+                    }
+                    literal("chunks") {
+                        literal("named") {
+                            argument("name", StringArgumentType.string()) {
+                                suggests { _ -> getChunkRecorderNames() }
+                                executes { addMarkerToChunkRecorder(it, marker = null) }
+                                argument("marker", StringArgumentType.string()) {
+                                    executes(::addMarkerToChunkRecorder)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            literal("encoding") {
+                literal("default") {
+                    literal("set") {
+                        argument("encoding", EnumArgument.enumeration<ReplayFormat> { it.id() }) {
+                            executes(::setDefaultEncoding)
+                        }
+                    }
+                }
             }
         }
-        if (i > 0) {
-            context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
-        } else {
-            context.source.sendFailure(Component.literal("Failed to start any recordings"))
-        }
-        return i
     }
 
-    private fun onStartChunks(
+    private fun ArgumentBuilder<CommandSourceStack, *>.savedReplayTree(
+        executor: (CommandContext<CommandSourceStack>, RecorderType) -> Int
+    ) {
+        option<RecorderType, _, _> { type ->
+            argument("name", StringArgumentType.string()) {
+                suggests(type.nameSuggestionProvider)
+                argument("replay", StringArgumentType.string()) {
+                    suggests(type.replaySuggestionProvider)
+                    executes { context -> executor.invoke(context, type) }
+                }
+            }
+        }
+    }
+
+    private fun enableAutomaticRecording(context: CommandContext<CommandSourceStack>): Int {
+        if (ServerReplay.config.automaticallyRecord) {
+            return context.source.fail("Already automatically set to record")
+        }
+        ServerReplay.updateConfig { config -> config.copy(automaticallyRecord = true) }
+        context.source.success("Players will now be automatically recorded when they join if they meet the predicate defined in the config")
+        return context.source.success("Chunks recordings will also now automatically start when the server restarts based on the config")
+    }
+
+    private fun disableAutomaticRecording(context: CommandContext<CommandSourceStack>): Int {
+        if (!ServerReplay.config.automaticallyRecord) {
+            return context.source.fail("Already not automatically set to record")
+        }
+        ServerReplay.updateConfig { config -> config.copy(automaticallyRecord = false) }
+        return context.source.success("Players and chunks recordings will no longer start automatically")
+    }
+
+    private fun startPlayerRecorders(context: CommandContext<CommandSourceStack>): Int {
+        val players = EntityArgument.getPlayers(context, "players")
+        val format = ServerReplay.config.defaultReplayFormat
+        val settings = ServerReplay.config.createSettings()
+        RecorderWarner.output(context.source, format)
+        val successes = players.count { player ->
+            val exists = ReplayPlayerRecorders.has(player.uuid, format)
+            val path = ServerReplay.config.getPlayerRecordingLocation(player.gameProfile)
+            exists && ReplayPlayerRecorders.create(player, path, format, settings).start()
+        }
+        if (successes > 0) {
+            return context.source.success("Successfully started $successes recordings", true)
+        }
+        return context.source.fail("Failed to start any recordings")
+    }
+
+    private fun startChunkRecorder(
         context: CommandContext<CommandSourceStack>,
         level: ServerLevel = DimensionArgument.getDimension(context, "dimension"),
         name: String? = StringArgumentType.getString(context, "name")
     ): Int {
-        val fromX = IntegerArgumentType.getInteger(context, "fromX")
-        val fromZ = IntegerArgumentType.getInteger(context, "fromZ")
-        val toX = IntegerArgumentType.getInteger(context, "toX")
-        val toZ = IntegerArgumentType.getInteger(context, "toZ")
+        val from = ChunkPosArgument.getPosition(context, "from")
+        val to = ChunkPosArgument.getPosition(context, "to")
 
-        val area = ChunkArea(level, ChunkPos(fromX, fromZ), ChunkPos(toX, toZ))
+        val area = ChunkArea(level, from, to)
         return this.startChunks(context, area, name)
     }
 
-    private fun onStartChunksAround(
+    private fun startChunkRecorderAround(
         context: CommandContext<CommandSourceStack>,
         level: ServerLevel = DimensionArgument.getDimension(context, "dimension"),
         name: String? = StringArgumentType.getString(context, "name")
@@ -281,75 +258,49 @@ object ReplayCommand {
         area: ChunkArea,
         name: String?
     ): Int {
-        val id = if (name != null) name else ChunkRecorders.generateName(area)
-        if (!ChunkRecorders.isAvailable(area, id)) {
-            context.source.sendFailure(Component.literal("Failed to start chunk replay, already exists"))
-            return 0
+        val id = if (name != null) name else ReplayChunkRecorders.createNameFor(area)
+        if (!ReplayChunkRecorders.has(id)) {
+            return context.source.fail("Failed to start chunk recorder, already exists")
         }
-        val recorder = ChunkRecorders.create(area, id)
-        recorder.start()
-        context.source.sendSuccess({ Component.literal("Successfully started chunk replay: ${recorder.getName()}") }, true)
-        return 1
+        val format = ServerReplay.config.defaultReplayFormat
+        RecorderWarner.output(context.source, format)
+        val path = ServerReplay.config.chunkRecordingPath.resolve(id)
+        val settings = ServerReplay.config.createSettings()
+        ReplayChunkRecorders.create(area, path, format, settings, id).start()
+        return context.source.success("Successfully started chunk replay: $id", true)
     }
 
-    private fun onStopPlayers(
+    private fun stopPlayerRecorders(
         context: CommandContext<CommandSourceStack>,
         save: Boolean = BoolArgumentType.getBool(context, "save")
     ): Int {
         val players = EntityArgument.getPlayers(context, "players")
-        var i = 0
+        var successes = 0
         for (player in players) {
-            val recorder = PlayerRecorders.get(player)
-            if (recorder != null) {
+            val recorders = ReplayPlayerRecorders.get(player)
+            for (recorder in recorders) {
                 recorder.stop(save)
-                i++
+                successes++
             }
         }
-        if (i > 0) {
-            context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
-        } else {
-            context.source.sendFailure(Component.literal("Failed to stop any recordings"))
+        if (successes > 0) {
+            return context.source.success("Successfully stopped $successes recordings", true)
         }
-        return i
-    }
-
-    private fun onStopChunks(
-        context: CommandContext<CommandSourceStack>,
-        level: ServerLevel = DimensionArgument.getDimension(context, "dimension"),
-        save: Boolean = BoolArgumentType.getBool(context, "save")
-    ): Int {
-        val fromX = IntegerArgumentType.getInteger(context, "fromX")
-        val fromZ = IntegerArgumentType.getInteger(context, "fromZ")
-        val toX = IntegerArgumentType.getInteger(context, "toX")
-        val toZ = IntegerArgumentType.getInteger(context, "toZ")
-
-        val area = ChunkArea(level, ChunkPos(fromX, fromZ), ChunkPos(toX, toZ))
-        return this.stopChunkRecorder(context, ChunkRecorders.get(area), save)
-    }
-
-    private fun onStopChunksNamed(
-        context: CommandContext<CommandSourceStack>,
-        save: Boolean = BoolArgumentType.getBool(context, "save")
-    ): Int {
-        val name = StringArgumentType.getString(context, "name")
-        return this.stopChunkRecorder(context, ChunkRecorders.get(name), save)
+        return context.source.fail("Failed to stop any recordings")
     }
 
     private fun stopChunkRecorder(
         context: CommandContext<CommandSourceStack>,
-        recorder: ChunkRecorder?,
-        save: Boolean
+        save: Boolean = BoolArgumentType.getBool(context, "save")
     ): Int {
-        if (recorder == null) {
-            context.source.sendFailure(Component.literal("No such recorder for that area exists"))
-            return 0
-        }
+        val name = StringArgumentType.getString(context, "name")
+        val recorder = ReplayChunkRecorders.get(name)
+            ?: return context.source.fail("No such recorder with name '$name' exists")
         recorder.stop(save)
-        context.source.sendSuccess({ Component.literal("Successfully stopped recording") }, true)
-        return 1
+        return context.source.success("Successfully stopped chunk recording '$name'", true)
     }
 
-    private fun onStopAll(
+    private fun stopRecorders(
         context: CommandContext<CommandSourceStack>,
         recorders: Iterable<ReplayRecorder>,
         save: Boolean = BoolArgumentType.getBool(context, "save"),
@@ -361,123 +312,98 @@ object ReplayCommand {
         return 1
     }
 
-    private fun onReload(context: CommandContext<CommandSourceStack>): Int {
+    private fun reload(context: CommandContext<CommandSourceStack>): Int {
         ServerReplay.reload()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }
 
-    private fun status(context: CommandContext<CommandSourceStack>): Int {
-        val builder = StringBuilder("ServerReplay is ")
-            .append(if (ServerReplay.config.enabled) "enabled" else "disabled")
-            .append("\n")
+    private fun queryStatuses(context: CommandContext<CommandSourceStack>): Int {
+        val builder = StringBuilder("Replay Status:\n")
 
-        val players = this.getStatusFuture("Players", PlayerRecorders.recorders())
-        val chunks = this.getStatusFuture("Chunks", ChunkRecorders.recorders())
-        val closing = listOf(PlayerRecorders.closing(), ChunkRecorders.closing()).flatten()
+        val players = getStatusFor("Players", ReplayPlayerRecorders.recorders())
+        val chunks = getStatusFor("Chunks", ReplayChunkRecorders.recorders())
+        val closing = listOf(ReplayPlayerRecorders.closing(), ReplayChunkRecorders.closing()).flatten()
 
-        CompletableFuture.runAsync {
-            for (player in players) {
-                builder.append("${player.join()}\n")
-            }
-            for (chunk in chunks) {
-                builder.append("${chunk.join()}\n")
-            }
-            if (closing.isNotEmpty()) {
-                builder.append("Currently Saving:\n")
-                for (saving in closing) {
-                    builder.append("${saving.getName()}\n")
-                }
-            }
-
-            context.source.server.execute {
-                context.source.sendSuccess(
-                    { Component.literal(builder.removeSuffix("\n").toString()) },
-                    true
-                )
+        for (player in players) {
+            builder.append("${player}\n")
+        }
+        for (chunk in chunks) {
+            builder.append("${chunk}\n")
+        }
+        if (closing.isNotEmpty()) {
+            builder.append("Currently Saving:\n")
+            for (saving in closing) {
+                builder.append("${saving.getName()}\n")
             }
         }
 
-        context.source.sendSuccess({
-            Component.literal("Generating replay status...")
-        }, true)
-        return 1
+        return context.source.success(builder.removeSuffix("\n").toString())
     }
 
     private fun viewReplay(
         context: CommandContext<CommandSourceStack>,
-        isPlayer: Boolean
+        type: RecorderType
     ): Int {
         val player = context.source.playerOrException
-        val path = if (isPlayer) {
-            val name = StringArgumentType.getString(context, "name")
-            ServerReplay.config.playerRecordingPath.resolve(name)
-        } else {
-            val area = StringArgumentType.getString(context, "area")
-            ServerReplay.config.chunkRecordingPath.resolve(area)
+
+        val name = StringArgumentType.getString(context, "name")
+        val replay = StringArgumentType.getString(context, "replay")
+        val directory = when (type) {
+            RecorderType.Players -> ServerReplay.config.playerRecordingPath.resolve(name)
+            RecorderType.Chunks -> ServerReplay.config.chunkRecordingPath.resolve(name)
         }
 
-        val replayName = StringArgumentType.getString(context, "replay")
-        var replayPath = path.resolve("${replayName}.mcpr")
-        if (replayPath.notExists()) {
-            replayPath = path.resolve("${replayName}.zip")
+        var path = directory.resolve(ReplayModIO.addFileExtension(replay))
+        if (path.notExists()) {
+            path = directory.resolve(FlashbackIO.addFileExtension(replay))
         }
 
-        if (replayPath.exists()) {
-            ReplayViewers.start(replayPath, player)
-            return 1
+        if (path.exists()) {
+            ReplayViewers.create(path, player).start()
+            return Command.SINGLE_SUCCESS
         }
-
-        context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
-        return 0
+        return context.source.fail("Failed to view replay, replay $name/$replay doesn't exist!")
     }
 
     private fun downloadReplay(
         context: CommandContext<CommandSourceStack>,
-        isPlayer: Boolean
+        type: RecorderType
     ): Int {
         if (!ServerReplay.config.allowDownloadingReplays) {
-            context.source.sendFailure(
-                Component.literal("Downloading replays is disabled, you must enable it in the config")
-            )
-            return 0
+            return context.source.fail("Downloading replays is disabled, you must enable it in the config")
         }
 
-        val root = if (isPlayer) {
-            val name = StringArgumentType.getString(context, "name")
-            "player/${URLEncoder.encode(name, StandardCharsets.UTF_8)}"
-        } else {
-            val area = StringArgumentType.getString(context, "area")
-            "chunk/${URLEncoder.encode(area, StandardCharsets.UTF_8)}"
+        val name = StringArgumentType.getString(context, "name")
+        val replay = StringArgumentType.getString(context, "replay")
+        val root = when (type) {
+            RecorderType.Players -> "player/${URLEncoder.encode(name, StandardCharsets.UTF_8)}"
+            RecorderType.Chunks -> "chunk/${URLEncoder.encode(name, StandardCharsets.UTF_8)}"
         }
 
-        val name = StringArgumentType.getString(context, "replay")
-        val path = "$root/${URLEncoder.encode(name, StandardCharsets.UTF_8)}.mcpr"
-
+        val path = "$root/${URLEncoder.encode(replay, StandardCharsets.UTF_8)}"
         val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
-        val here = Component.literal("[here]")
-            .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
-            .withStyle { it.withClickEvent(ClickEvent.OpenUrl(URI.create(url))) }
+        val here = Component.literal("[here]").yellow().bold().link(url)
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)
-        return 1
+        return Command.SINGLE_SUCCESS
     }
 
-    private fun addPlayerMarker(
+    private fun addMarkerToPlayerRecorder(
         context: CommandContext<CommandSourceStack>,
         name: String? = StringArgumentType.getString(context, "marker")
     ): Int {
         val players = EntityArgument.getPlayers(context, "players")
-        val recorders = players.mapNotNull(PlayerRecorders::get)
+        val recorders = players.flatMap(ReplayPlayerRecorders::get)
         return this.addMarker(context, name, recorders)
     }
 
-    private fun addChunkMarker(
+    private fun addMarkerToChunkRecorder(
         context: CommandContext<CommandSourceStack>,
-        name: String? = StringArgumentType.getString(context, "marker")
+        marker: String? = StringArgumentType.getString(context, "marker")
     ): Int {
-        val area = StringArgumentType.getString(context, "name")
-        return this.addMarker(context, name, listOfNotNull(ChunkRecorders.get(area)))
+        val name = StringArgumentType.getString(context, "name")
+        return this.addMarker(context, marker, listOfNotNull(ReplayChunkRecorders.get(name)))
     }
 
     private fun addMarker(
@@ -485,128 +411,100 @@ object ReplayCommand {
         name: String?,
         recorders: Collection<ReplayRecorder>
     ): Int {
+        if (recorders.isEmpty()) {
+            return context.source.fail("Failed to mark any recordings")
+        }
+
         for (recorder in recorders) {
             recorder.addMarker(name)
         }
-        if (recorders.isNotEmpty()) {
-            context.source.sendSuccess({ Component.literal("Successfully marked ${recorders.size} recordings") }, true)
-        } else {
-            context.source.sendFailure(Component.literal("Failed to mark any recordings"))
-        }
-        return 1
+        return context.source.success("Successfully marked ${recorders.size} recordings", true)
     }
 
-    private fun getStatusFuture(
-        type: String,
-        recorders: Collection<ReplayRecorder>
-    ): List<CompletableFuture<String>> {
-        if (recorders.isNotEmpty()) {
-            val futures = ArrayList<CompletableFuture<String>>()
-            futures.add(CompletableFuture.completedFuture("Currently Recording $type:"))
-            for (recorder in recorders) {
-                futures.add(recorder.getStatusWithSize())
-            }
-            return futures
-        }
-        return listOf(CompletableFuture.completedFuture("Not Currently Recording $type"))
-    }
-
-    private fun changeEncoding(context: CommandContext<CommandSourceStack>, type: ReplayWriterType): Int {
-        ServerReplay.updateConfig { config -> config.copy(writerType = type) }
-        type.warn { message ->
+    private fun setDefaultEncoding(context: CommandContext<CommandSourceStack>): Int {
+        val format = EnumArgument.getEnumeration<ReplayFormat>(context, "encoding")
+        ServerReplay.updateConfig { config -> config.copy(defaultReplayFormat = format) }
+        format.warn { message ->
             context.source.sendSystemMessage(Component.literal(message))
         }
-        context.source.sendSuccess({
-            Component.literal("Successfully changed encoding type to ${type.name}")
-        }, true)
-        return 1
+        return context.source.success("Successfully changed encoding type to ${format.id()}")
     }
 
-    private fun suggestChunkX(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { c, b ->
-            val x = c.source.playerOrException.chunkPosition().x
-            SharedSuggestionProvider.suggest(listOf(x.toString()), b)
+    private fun getStatusFor(type: String, recorders: Collection<ReplayRecorder>): List<String> {
+        if (recorders.isNotEmpty()) {
+            val lines = ArrayList<String>()
+            lines.add("Currently Recording $type:")
+            for (recorder in recorders) {
+                lines.add(recorder.getStatus())
+            }
+            return lines
         }
+        return listOf("Not Currently Recording $type")
     }
 
-    private fun suggestChunkZ(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { c, b ->
-            val x = c.source.playerOrException.chunkPosition().z
-            SharedSuggestionProvider.suggest(listOf(x.toString()), b)
-        }
+    private fun getChunkRecorderNames(): List<String> {
+        return ReplayChunkRecorders.recorders().map { "\"${it.getName()}\"" }
     }
 
-    private fun suggestExistingFromChunkX(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.from.x.toString() }, b)
-        }
+    @Suppress("UNUSED_PARAMETER")
+    private fun suggestSavedPlayerName(
+        context: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder
+    ): CompletableFuture<Suggestions> {
+        val names = ServerReplay.config.playerRecordingPath.streamDirectoryEntriesOrEmpty()
+            .filter { it.isDirectory() }
+            .map { "\"${it.name}\"" }
+        return SharedSuggestionProvider.suggest(names, builder)
     }
 
-    private fun suggestExistingFromChunkZ(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.from.z.toString() }, b)
-        }
+    @Suppress("UNUSED_PARAMETER")
+    private fun suggestSavedChunkArea(
+        context: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder
+    ): CompletableFuture<Suggestions> {
+        val names = ServerReplay.config.chunkRecordingPath.streamDirectoryEntriesOrEmpty()
+            .filter { it.isDirectory() }
+            .map { "\"${it.name}\"" }
+        return SharedSuggestionProvider.suggest(names, builder)
     }
 
-    private fun suggestExistingToChunkX(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.to.x.toString() }, b)
-        }
+    private fun suggestSavedPlayerReplayName(
+        context: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder
+    ): CompletableFuture<Suggestions> {
+        val name = StringArgumentType.getString(context, "name")
+        val playerPath = ServerReplay.config.playerRecordingPath.resolve(name)
+        val names = playerPath.streamDirectoryEntriesOrEmpty()
+            .filter(this::isReplayFile)
+            .map { "\"${it.nameWithoutExtension}\"" }
+        return SharedSuggestionProvider.suggest(names, builder)
     }
 
-    private fun suggestExistingToChunkZ(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { it.chunks.to.z.toString() }, b)
-        }
-    }
-
-    private fun suggestExistingName(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            SharedSuggestionProvider.suggest(ChunkRecorders.recorders().map { "\"${it.getName()}\"" }, b)
-        }
-    }
-
-    private fun suggestSavedChunkArea(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            val names = ServerReplay.config.chunkRecordingPath.streamDirectoryEntriesOrEmpty()
-                .filter { it.isDirectory() }
-                .map { "\"${it.name}\"" }
-            SharedSuggestionProvider.suggest(names, b)
-        }
-    }
-
-    private fun suggestSavedPlayerName(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { _, b ->
-            val names = ServerReplay.config.playerRecordingPath.streamDirectoryEntriesOrEmpty()
-                .filter { it.isDirectory() }
-                .map { "\"${it.name}\"" }
-            SharedSuggestionProvider.suggest(names, b)
-        }
-    }
-
-    private fun suggestSavedPlayerReplayName(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { c, b ->
-            val name = StringArgumentType.getString(c, "name")
-            val playerPath = ServerReplay.config.playerRecordingPath.resolve(name)
-            val names = playerPath.streamDirectoryEntriesOrEmpty()
-                .filter(this::isReplayFile)
-                .map { "\"${it.nameWithoutExtension}\"" }
-            SharedSuggestionProvider.suggest(names, b)
-        }
-    }
-
-    private fun suggestSavedChunkReplayName(): SuggestionProvider<CommandSourceStack> {
-        return SuggestionProvider<CommandSourceStack> { c, b ->
-            val areaName = StringArgumentType.getString(c, "area")
-            val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
-            val names = chunkPath.streamDirectoryEntriesOrEmpty()
-                .filter(this::isReplayFile)
-                .map { "\"${it.nameWithoutExtension}\"" }
-            SharedSuggestionProvider.suggest(names, b)
-        }
+    private fun suggestSavedChunkReplayName(
+        context: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder
+    ): CompletableFuture<Suggestions> {
+        val areaName = StringArgumentType.getString(context, "area")
+        val chunkPath = ServerReplay.config.chunkRecordingPath.resolve(areaName)
+        val names = chunkPath.streamDirectoryEntriesOrEmpty()
+            .filter(this::isReplayFile)
+            .map { "\"${it.nameWithoutExtension}\"" }
+        return SharedSuggestionProvider.suggest(names, builder)
     }
 
     private fun isReplayFile(path: Path): Boolean {
-        return !path.isDirectory() && (ReplayModIO.isReplayFile(path) || FlashbackIO.isFlashbackFile(path))
+        return ReplayFormat.formatOf(path) != null
+    }
+
+    private fun recorders(): List<ReplayRecorder> {
+        return ReplayChunkRecorders.recorders() + ReplayPlayerRecorders.recorders()
+    }
+
+    private enum class RecorderType(
+        val nameSuggestionProvider: SuggestionProvider<CommandSourceStack>,
+        val replaySuggestionProvider: SuggestionProvider<CommandSourceStack>
+    ) {
+        Players(::suggestSavedPlayerName, ::suggestSavedPlayerReplayName),
+        Chunks(::suggestSavedChunkArea, ::suggestSavedChunkReplayName);
     }
 }

@@ -13,6 +13,10 @@ import me.senseiwells.replay.config.predicates.NonePredicate
 import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
 import me.senseiwells.replay.config.serialization.PathSerializer
 import net.casual.arcade.replay.io.ReplayFormat
+import net.casual.arcade.replay.recorder.settings.RecorderSettings
+import net.casual.arcade.replay.recorder.settings.RecorderSettings.ChunkRecordingStrategy
+import net.casual.arcade.replay.recorder.settings.SimpleRecorderSettings
+import net.casual.arcade.replay.util.io.FileSize
 import net.casual.arcade.utils.serialization.codec.ArcadeExtraCodecs
 import net.casual.arcade.utils.serialization.kotlin.CodecSerializersModule
 import net.fabricmc.loader.api.FabricLoader
@@ -45,6 +49,9 @@ data class ReplayConfig(
     val playerRecordingPath: Path = recordings.resolve("players"),
     @SerialName("player_recording_name")
     val playerRecordingName: String = "{uuid}",
+    @Contextual
+    @SerialName("max_file_size")
+    val maxFileSize: FileSize = FileSize(0),
     @SerialName("restart_after_max_file_size")
     val restartAfterMaxFileSize: Boolean = false,
     @Contextual
@@ -64,8 +71,8 @@ data class ReplayConfig(
     val fixedDaylightCycle: Long = -1L,
     @SerialName("chunk_recorder_load_radius")
     val chunkRecorderLoadRadius: Int = -1,
-    @SerialName("pause_unloaded_chunks")
-    val skipWhenChunksUnloaded: Boolean = false,
+    @SerialName("chunk_recording_strategy")
+    val chunkRecordingStrategy: ChunkRecordingStrategy = ChunkRecordingStrategy.Always,
     @SerialName("pause_notify_players")
     val notifyPlayersLoadingChunks: Boolean = true,
     @SerialName("notify_admins_of_status")
@@ -90,6 +97,8 @@ data class ReplayConfig(
     val optimizeExplosionPackets: Boolean = true,
     @SerialName("optimize_entity_packets")
     val optimizeEntityPackets: Boolean = false,
+    @SerialName("record_hotbar")
+    val recordHotbar: Boolean = false,
     @SerialName("record_voice_chat")
     val recordVoiceChat: Boolean = false,
     @JsonNames("replay_viewer_pack_ip")
@@ -116,6 +125,38 @@ data class ReplayConfig(
         return listOf(this.playerRecordingPath, this.chunkRecordingPath)
     }
 
+    fun createSettings(): SimpleRecorderSettings {
+        return SimpleRecorderSettings(
+            this.debug,
+            this.worldName,
+            this.serverName,
+            this.fixedDaylightCycle,
+            this.includeResourcePacks,
+            this.chunkRecorderLoadRadius,
+            this.chunkRecordingStrategy,
+            RecorderSettings.FileLimits(
+                this.maxFileSize,
+                this.restartAfterMaxFileSize,
+                this.maxDuration,
+                this.restartAfterMaxDuration
+            ),
+            RecorderSettings.IgnorePackets(
+                this.ignoreCustomPayloads,
+                this.ignoreSoundPackets,
+                this.ignoreLightPackets,
+                this.ignoreChatPackets,
+                this.ignoreActionBarPackets,
+                this.ignoreScoreboardPackets
+            ),
+            RecorderSettings.OptimizePackets(
+                this.optimizeExplosionPackets,
+                this.optimizeEntityPackets
+            ),
+            this.recordHotbar,
+            this.recordVoiceChat
+        )
+    }
+
     companion object {
         private val recordings: Path = FabricLoader.getInstance().gameDir.resolve("recordings")
 
@@ -131,6 +172,7 @@ data class ReplayConfig(
             serializersModule = CodecSerializersModule {
                 contextual(ReplayFormat.CODEC)
                 contextual(ResourceLocation.CODEC)
+                contextual(ChunkRecordingStrategy.CODEC)
                 contextual(ArcadeExtraCodecs.DURATION.orElse(Duration.ZERO))
             }
         }

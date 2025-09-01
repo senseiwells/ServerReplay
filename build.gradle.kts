@@ -26,7 +26,7 @@ repositories {
 
 
 val modVersion = "3.0.0-beta.1"
-val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
+val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
 
@@ -48,6 +48,8 @@ dependencies {
     includeModImplementation(libs.arcade.events.server)
     includeModImplementation(libs.arcade.rph)
     includeModImplementation(libs.arcade.utils)
+
+    includeModImplementation(libs.permissions)
 }
 
 loom {
@@ -140,10 +142,8 @@ publishing {
         create<MavenPublication>("ServerReplay") {
             groupId = "me.senseiwells"
             artifactId = "server-replay"
-            version = "${modVersion}+${libs.versions.minecraft.get()}"
+            version = releaseVersion
             from(components["java"])
-
-            updateReadme("./README.md")
         }
     }
 
@@ -168,14 +168,4 @@ publishing {
 private fun DependencyHandler.includeModImplementation(provider: Provider<*>) {
     include(provider)
     modImplementation(provider)
-}
-
-private fun MavenPublication.updateReadme(vararg readmes: String) {
-    val location = "${groupId}:${artifactId}"
-    val regex = Regex("""${Regex.escape(location)}:[\d\.\-a-zA-Z+]+""")
-    val locationWithVersion = "${location}:${version}"
-    for (path in readmes) {
-        val readme = file(path)
-        readme.writeText(readme.readText().replace(regex, locationWithVersion))
-    }
 }

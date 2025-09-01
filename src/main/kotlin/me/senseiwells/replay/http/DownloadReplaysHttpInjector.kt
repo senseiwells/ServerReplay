@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.DefaultFileRegion
 import me.senseiwells.replay.ServerReplay
+import net.casual.arcade.replay.io.FlashbackIO
+import net.casual.arcade.replay.io.ReplayFormat
+import net.casual.arcade.replay.io.ReplayModIO
 import net.mcbrawls.inject.api.InjectorContext
 import net.mcbrawls.inject.http.HttpByteBuf
 import net.mcbrawls.inject.http.HttpInjector
@@ -14,9 +17,7 @@ import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import kotlin.io.path.extension
-import kotlin.io.path.fileSize
-import kotlin.io.path.isReadable
+import kotlin.io.path.*
 
 object DownloadReplaysHttpInjector: HttpInjector() {
     private const val PLAYER = "/player/"
@@ -57,10 +58,19 @@ object DownloadReplaysHttpInjector: HttpInjector() {
     }
 
     private fun download(ctx: ChannelHandlerContext, path: String, prefix: String, recordings: Path): Boolean {
-        val recording = recordings.resolve(path.removePrefix(prefix)).normalize()
-        if (recording.extension != "mcpr" || !recording.isReadable()) {
+        val name = path.removePrefix(prefix)
+        var recording = recordings.resolve(name).normalize()
+        val format = ReplayFormat.formatOf(recording)
+        if (format == null) {
+            recording = recordings.resolve(ReplayModIO.addFileExtension(name)).normalize()
+            if (recording.notExists()) {
+                recording = recordings.resolve(FlashbackIO.addFileExtension(name)).normalize()
+            }
+        }
+        if (!recording.isReadable()) {
             return false
         }
+
         val size = recording.fileSize()
 
         val buf = HttpByteBuf.httpBuf(ctx)
@@ -68,7 +78,7 @@ object DownloadReplaysHttpInjector: HttpInjector() {
         buf.writeHeader("user-agent", "kotlin/replay-download-host")
         buf.writeHeader("content-length", size.toString())
         buf.writeHeader("content-type", "application/octet-stream")
-        buf.writeHeader("content-disposition", "attachment; filename=\"${recording.fileName}\"")
+        buf.writeHeader("content-disposition", "attachment; filename=\"${recording.name}\"")
         buf.writeText("")
         ctx.writeAndFlush(buf.inner())
 

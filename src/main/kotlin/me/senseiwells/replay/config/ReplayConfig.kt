@@ -78,8 +78,6 @@ data class ReplayConfig(
     val notifyPlayersLoadingChunks: Boolean = true,
     @SerialName("notify_admins_of_status")
     val notifyAdminsOfStatus: Boolean = true,
-    @SerialName("fix_carpet_bot_view_distance")
-    val fixCarpetBotViewDistance: Boolean = false,
     @SerialName("include_resource_packs")
     val includeResourcePacks: Boolean = true,
     @SerialName("ignore_custom_payloads")
@@ -171,11 +169,11 @@ data class ReplayConfig(
             ignoreUnknownKeys = true
 
             serializersModule = CodecSerializersModule {
-                contextual(FileSize.CODEC)
-                contextual(ReplayFormat.CODEC)
+                contextual(FileSize.STRING_CODEC)
                 contextual(ResourceLocation.CODEC)
                 contextual(ChunkRecordingStrategy.CODEC)
                 contextual(ArcadeExtraCodecs.DURATION.orElse(Duration.ZERO))
+                contextual(ReplayFormat.CODEC.orElse(ReplayFormat.ReplayMod))
             }
         }
 

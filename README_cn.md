@@ -4,7 +4,7 @@
 
 *译 / tanh_Heng / WorldHim*
 
-> [!WARN] 
+> [!WARNING] 
 > Parts of this documentation are outdated and have not been
 > translated from the English documentation.
 > 

@@ -190,7 +190,7 @@ This will send you a chat message; you can click on the link provided which will
 
 A note for all commands; players must either have op (level 4), alternatively if you
 have a permission mod (for example, [LuckPerms](https://luckperms.net/)) players can
-have the permission `replay.commands.replay` to access these commands.
+have the permission `server-replay.commands.replay` to access these commands.
 
 - `/replay start players <player(s)>` Manually starts recording the replay for some given player(s).
 - `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>` 

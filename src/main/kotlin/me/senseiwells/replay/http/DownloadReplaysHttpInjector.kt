@@ -17,7 +17,10 @@ import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import kotlin.io.path.*
+import kotlin.io.path.fileSize
+import kotlin.io.path.isReadable
+import kotlin.io.path.name
+import kotlin.io.path.notExists
 
 object DownloadReplaysHttpInjector: HttpInjector() {
     private const val PLAYER = "/player/"

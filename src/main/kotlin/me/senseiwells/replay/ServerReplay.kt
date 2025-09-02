@@ -18,7 +18,6 @@ import net.mcbrawls.inject.fabric.InjectFabric
 import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import kotlin.time.Duration
 
 object ServerReplay: ModInitializer {
     const val MOD_ID = "server-replay"

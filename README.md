@@ -17,7 +17,8 @@ server-side has many benefits:
   - The recorded chunks may be unloaded without affecting the replay.
     - No chunk flickering (from unloading and loading the chunks).
     - The chunks will also not be loaded by the recorder (like, for example, [PCRC](https://github.com/Fallen-Breath/PCRC)).
-    - The recorder can skip periods of time that the area is unloaded.
+  - Pause and resume the recorders based on whether the chunks are being loaded or whether
+    there are players in the chunks
 - The ability to record individual players.
   - Players aren't required to install replay mod or flashback.
   - You can record all POVs at once.
@@ -26,9 +27,10 @@ server-side has many benefits:
 
 However, there are also some downsides and known issues:
 - Some features are not recorded by chunk recordings, e.g. custom boss bars.
-- To view the replay, you must download the file from the server.
 - Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/) or [Flashback](https://modrinth.com/mod/flashback).
-- Mod compatability, this mod may conflict with other mods that mess with networking, if you encounter any compatability issues, please submit an issue.
+- ServerReplay isn't really designed for heavily modded servers. 
+  More complex mods that implement their own packets may not be compatible.
+  - If you encounter any compatability issues, please submit an issue.
 
 ## Usage
 
@@ -39,6 +41,10 @@ to follow and record players from their view.
 Alternatively, you can record a static area of chunks.
 
 ### Quick Start
+
+> [!NOTE]
+> This documentation is for the latest version of the mod, for older
+> versions of the mod please see the other branches 
 
 This section of the documentation will briefly guide you through a basic setup. 
 As well as containing some important information.
@@ -55,7 +61,7 @@ To record a player on your server you can run `/replay start players <player(s)>
 Player recorders are tied to the player and will record at the 
 servers view distance.
 
-If the player leaves or the server stops the replay will automatically stop and save.
+If the player leaves or the server stops, the replay will automatically stop and save.
 
 Alternatively if you wish to stop the recording manually you can run `/replay stop players <player(s)> <save?>`, 
 using this command you can also stop a recording without saving it, for example:
@@ -70,11 +76,6 @@ specified in a folder with the player's uuid.
 By default, this will be in `./recordings/players/<uuid>/<date-and-time>.mcpr`.
 
 This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
-
-> [!NOTE]  
-> If you are going to record carpet bots you most likely want to
-> enable `"fix_carpet_bot_view_distance"` in the config otherwise only an area of 2 chunks
-> around the carpet bot will be recorded.
 
 #### Chunks
 
@@ -108,14 +109,8 @@ will need to be loaded 'naturally' to be recorded.
 
 If the server stops, the replay will automatically stop and save.
 
-Alternatively if you wish to stop the recording manually you can run `/replay stop chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> <save?>`,
-using this command you can also stop a recording without saving it, for example:
-```
-/replay stop chunks from 0 0 to 5 5 in minecraft:overworld false
-/replay stop chunks from 54 67 to 109 124
-```
-
-You can also stop the chunks by using their name using `/replay stop chunks named <name> <save?>`, for example:
+Alternatively if you wish to stop the recording manually you can stop a specified
+recorder using its name with `/replay stop chunks named <name> <save?>`, for example:
 ```
 /replay stop chunks named "Perimeter Recorder" false
 /replay stop chunks named MyChunkRecording
@@ -134,9 +129,16 @@ ServerReplay supports flashback (for the more recent versions), as well as repla
 By default, all recordings will be recorded using replay mod's 
 format; however, you can change this by running the following commands in game:
 ```
-/replay encoding set flashback
-/replay encoding set replay-mod
+/replay encoding default set flashback
+/replay encoding default set replay_mod
 ```
+
+> [!NOTE]
+> You can record a player's perspective using both flashback and replay-mod simultaneously.
+> You can do this by setting the default encoding to flashback, starting a recording,
+> then setting the encoding to replay_mod and starting another recording.
+> 
+> The same can be done for chunk recordings, but each recorder must be given a unique name.
 
 > [!WARNING]
 > Currently flashback support is experimental and may result in flashback replays not recording correctly,
@@ -152,11 +154,11 @@ Essentially, this just "runs" another server that sends the client packets. This
 from the main server, so there is little to no impact on performance.
 
 When a replay has finished recording, you can click on the green text in chat to view the
-replay that just finished; this will autocomplete a command in chat for you.
+replay that just finished.
 The command to view chunk replays is: `/replay view chunks <name> <date-time>`, and for players: 
 `/replay view players <uuid> <date-time>`, for example:
 ```
-/replay view player d4fca8c4-e083-4300-9a73-bf438847861c "2024-05-11--19-19-55"
+/replay view player "d4fca8c4-e083-4300-9a73-bf438847861c" "2024-05-11--19-19-55"
 /replay view chunks "Chunks (183, 166) to (203, 186)" "2024-05-11--19-19-55"
 ```
 
@@ -169,7 +171,7 @@ You will only have access to a limited set of commands when viewing replays, the
 - `/replay view close` Closes the current replay and brings you back to the server.
 - `/replay view progress <hide|show>` Hides or shows the progress bossbar.
 
-If you disconnect while watching a replay, you will be brought back to the server when you login.
+If you disconnect while watching a replay, you will be brought back to the server when you log in.
 
 #### Downloading
 
@@ -190,10 +192,6 @@ A note for all commands; players must either have op (level 4), alternatively if
 have a permission mod (for example, [LuckPerms](https://luckperms.net/)) players can
 have the permission `replay.commands.replay` to access these commands.
 
-- `/replay enable` Enables the replay mod to automatically recording players that should
-  be recorded based on the given predicate (more details in the [Predicates](#predicates-config) section).
-- `/replay disable` Disables the replay mod from automatically recording players, this will
-  also stop any current recording players and chunks.
 - `/replay start players <player(s)>` Manually starts recording the replay for some given player(s).
 - `/replay start chunks from <chunkFromX> <chunkFromZ> to <chunkToX> <chunkToZ> in <dimension?> named <name?>` 
   Manually starts recording the replay for the given chunk area, if no dimension is specified the command user's
@@ -212,33 +210,32 @@ have the permission `replay.commands.replay` to access these commands.
 - `/replay status` Sends a status message of whether replay is enabled and a list of all the
   players and chunks that are currently being recorded, how long they've been recorded for, and their file sizes.
 - `/replay reload` Reloads the config file for the replay mod.
-- `/replay encoding set <encoding-type>` Sets what type of replay to record, either `flashback` or `replay-mod`
+- `/replay encoding default set <encoding-type>` Sets what type of replay to record, either `flashback` or `replay_mod`
 
 ### Configuring
 
 After you boot the server a new file will be generated in the path 
-``./config/ServerReplay/config.json``, by default, it should look like:
+``./config/server-replay/config.json``, by default, it should look like:
 
 ```json
 {
-  "enabled": false,
+  "default_encoding": "replay_mod",
   "world_name": "World",
   "server_name": "Server",
   "chunk_recording_path": "./recordings/chunks",
   "player_recording_path": "./recordings/players",
   "player_recording_name": "{uuid}",
+  "max_file_size": "0 B",
   "restart_after_max_file_size": false,
   "max_duration": "0s",
   "restart_after_max_duration": false,
   "recover_unsaved_replays": true,
   "delete_replays_after_duration": "0s",
   "log_deleted_replays": true,
-  "fixed_daylight_cycle": -1,
   "chunk_recorder_load_radius": -1,
-  "pause_unloaded_chunks": false,
+  "chunk_recording_strategy": "always",
   "pause_notify_players": true,
   "notify_admins_of_status": true,
-  "fix_carpet_bot_view_distance": false,
   "include_resource_packs": true,
   "ignore_custom_payloads": false,
   "ignore_sound_packets": false,
@@ -248,9 +245,11 @@ After you boot the server a new file will be generated in the path
   "ignore_scoreboard_packets": false,
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
+  "record_hotbar": false,
   "record_voice_chat": false,
   "replay_server_ip": null,
   "allow_downloading_replays": false,
+  "automatically_record": false,
   "player_predicate": {
     "type": "none"
   },
@@ -258,41 +257,42 @@ After you boot the server a new file will be generated in the path
 }
 ```
 
-| Config                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|-----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `"enabled"`                       | <p> By default replay functionality is disabled. You can enable it by by editing the `config.json` and running `/replay reload` or running the `/replay [enable\|disable]` command.</p>                                                                                                                                                                                                                                                                                   |
-| `"encoding"`                      | <p> The encoding to record your replays in, either `"replay-mod"` or `"flashback"`. `"replay-mod"` by default (if not specified). </p>                                                                                                                                                                                                                                                                                                                                    |
-| `"world_name"`                    | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `"server_name"`                   | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `"player_recording_path"`         | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `"chunk_recording_path"`          | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `"player_recording_name"`         | <p> This determines the name of each specific player's recording directory. By default is set to `"{uuid}"` which uses the player's uuid. You can also insert the player's name with `"{username}"`. You could for example have: `"Recordings for: {username} ({uuid})"`. </p>                                                                                                                                                                                            |
-| `"restart_after_max_file_size"`   | <p> If the `max_file_size` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                         |
-| `"max_duration"`                  | <p> Sets the maximum duration for a replay, once the replay has recorded for the specified amount of time it will stop, this is any number followed by units (you may also have multiple units), e.g. `"4h 35m 2.1s"`. Set this to `"0s"` to not have a max duration limit. Note: if a recorder is paused it's duration does not increase. </p>                                                                                                                           |
-| `"restart_after_max_duration"`    | <p> If the `max_duration` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                          |
-| `"recover_unsaved_replays"`       | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p>                                                                                                                                                                                                             |
-| `"delete_replays_after_duration"` | <p> The duration at which to delete old replay files. This is the duration since the file was last *modified*. The duration is the same format as the `max_duration` option, e.g. `"5d 10h"`. Set this to `"0s"` to disable. </p>                                                                                                                                                                                                                                         |
-| `"log_deleted_replays"`           | <p> Whether to output a server log when a replay is deleted as a result of it being stale. `delete_replays_after_duration` must be enabled for this to work. </p>                                                                                                                                                                                                                                                                                                         |
-| `"fixed_daylight_cycle"`          | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>                                                                                                                                                                                                                 |
-| `"chunk_recorder_load_radius"`    | <p> This sets the default chunk recorder loading radius, this is useful when you want to record a very large area and you don't want all of the recorded chunks to be loaded at once. </p> <p> For example if you are recording a 13x13 chunk area, you could set the radius to 3, so the center-most 7x7 would be initially loaded, the rest of the chunks will then be recorded whenever they're 'naturally' loaded. </p> <p> Set this to `-1` to load all chunks. </p> |
-| `"pause_unloaded_chunks"`         | <p> If an area of chunks is being recorded and the area is unloaded and this is set to `true` then the replay will pause the recording until the chunks are loaded again. </p> <p> If set to false the chunks will be recorded as if they were loaded. </p>                                                                                                                                                                                                               |
-| `"pause_notify_players"`          | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                                                                                                                                                                                   |
-| `"notify_admins_of_status"`       | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                                                                                                                                                                                                                                       |
-| `"fix_carpet_bot_view_distance"`  | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                                                                                                                                                                                                                                          |
-| `"include_resource_packs"`        | <p> If enabled all server-side resource packs will be copied in the replay file to ensure correct playback. Disabling this will decrease file size but instead it'll try to download the pack from the original source whenever viewing the replay, there is no guarantee that this will work correctly. </p>                                                                                                                                                             |
-| `"ignore_custom_payloads"`        | <p> If enabled all custom payloads (modded packets) will be ignored, this can be enabled if another mod's packets are causing recordings issues </p>                                                                                                                                                                                                                                                                                                                      |
-| `"ignore_sound_packets"`          | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                                                                                                                                                                                                                                    |
-| `"ignore_light_packets"`          | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                                                                                                                                                                                                                                |
-| `"ignore_chat_packets"`           | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                       |
-| `"ignore_action_bar_packets"`     | <p> Stops action bar packets from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                                                          |
-| `"ignore_scoreboard_packets"`     | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                                                                                                                                                                                                                                   |
-| `"optimize_explosion_packets"`    | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                                                                                                                                                                                                                                          |
-| `"optimize_entity_packets"`       | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                         |
-| `"replay_server_ip"`              | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. This is also required if you want to allow users to download replays. </p> <p> This should contain the public ip address of your server. </p>                                                                                                                                                                    |
-| `"allow_downloading_replays"`     | <p> Determines whether users will be able to download recorded replays. </p>                                                                                                                                                                                                                                                                                                                                                                                              |
-| `"record_voice_chat"`             | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, when watching back the replay you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                      |
-| `"player_predicate"`              | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                             |
-| `"chunks"`                        | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                     |
+| Config                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `"default_encoding"`              | <p> The encoding to record your replays in, either `"replay_mod"` or `"flashback"`. `"replay_mod"` by default (if not specified). </p>                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `"world_name"`                    | <p> The name of the world that will appear on the replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `"server_name"`                   | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `"player_recording_path"`         | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `"chunk_recording_path"`          | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `"player_recording_name"`         | <p> This determines the name of each specific player's recording directory. By default is set to `"{uuid}"` which uses the player's uuid. You can also insert the player's name with `"{username}"`. You could for example have: `"Recordings for: {username} ({uuid})"`. </p>                                                                                                                                                                                                                                                                                        |
+| `"max_file_size"`                 | <p> This specifies a `max_file_size` for the replay, if the limit is reached the the recording will be automatically stopped. This file size refers to the raw recording size and ***not*** the final compressed replay size, typically the final compressed replay size will be much smaller. </p>                                                                                                                                                                                                                                                                   |
+| `"restart_after_max_file_size"`   | <p> If the `max_file_size` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `"max_duration"`                  | <p> Sets the maximum duration for a replay, once the replay has recorded for the specified amount of time it will stop, this is any number followed by units (you may also have multiple units), e.g. `"4h 35m 2.1s"`. Set this to `"0s"` to not have a max duration limit. Note: if a recorder is paused it's duration does not increase. </p>                                                                                                                                                                                                                       |
+| `"restart_after_max_duration"`    | <p> If the `max_duration` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"recover_unsaved_replays"`       | <p> This tries to recover any unsaved replays, for example if your server crashes or stops before a replay is stopped or has finished saving, this does not guarantee that the replay will not be corrupt, but it will try to salvage what is available. </p>                                                                                                                                                                                                                                                                                                         |
+| `"delete_replays_after_duration"` | <p> The duration at which to delete old replay files. This is the duration since the file was last *modified*. The duration is the same format as the `max_duration` option, e.g. `"5d 10h"`. Set this to `"0s"` to disable. </p>                                                                                                                                                                                                                                                                                                                                     |
+| `"log_deleted_replays"`           | <p> Whether to output a server log when a replay is deleted as a result of it being stale. `delete_replays_after_duration` must be enabled for this to work. </p>                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `"fixed_daylight_cycle"`          | <p> This fixes the daylight cycle in the replay if you do not want the constant day-night cycle in long timelapses. This should be set to the time of day in ticks, e.g. `6000` (midday). To disable the fixed daylight cycle set the value to `-1`. </p>                                                                                                                                                                                                                                                                                                             |
+| `"chunk_recorder_load_radius"`    | <p> This sets the default chunk recorder loading radius, this is useful when you want to record a very large area and you don't want all of the recorded chunks to be loaded at once. </p> <p> For example if you are recording a 13x13 chunk area, you could set the radius to 3, so the center-most 7x7 would be initially loaded, the rest of the chunks will then be recorded whenever they're 'naturally' loaded. </p> <p> Set this to `-1` to load all chunks. </p>                                                                                             |
+| `"chunk_recording_strategy"`      | <p> This defines how a chunk recorder will record, there are 4 options: </p> <ul> <li> `"always"` - always records the chunks even when unloaded (as if they were loaded) </li> <li>  `"chunk_loaded"` - only records when any of the chunks in the area are loaded, if all chunks are unloaded it pauses recording </li> <li> `chunk_contains_player` - only records the chunks when a player is within the area (flashback only) </li> <li> `"chunk_contains_non_spectator_player"` - same as above but only for non-spectator players (flashback only) </li> </ul> |
+| `"pause_notify_players"`          | <p> If `chunk_recording_strategy` is set to an option that allows for the recorder to automatically pause and this is enabled then whenever the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                                                                                                                                                                                                           |
+| `"notify_admins_of_status"`       | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `"include_resource_packs"`        | <p> If enabled all server-side resource packs will be copied in the replay file to ensure correct playback. Disabling this will decrease file size but instead it'll try to download the pack from the original source whenever viewing the replay, there is no guarantee that this will work correctly. (replay mod only) </p>                                                                                                                                                                                                                                       |
+| `"ignore_custom_payloads"`        | <p> If enabled all custom payloads (modded packets) will be ignored, this can be enabled if another mod's packets are causing recordings issues </p>                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `"ignore_sound_packets"`          | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `"ignore_light_packets"`          | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `"ignore_chat_packets"`           | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `"ignore_action_bar_packets"`     | <p> Stops action bar packets from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"ignore_scoreboard_packets"`     | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                                                                                                                                                                                                                                                                                                                               |
+| `"optimize_explosion_packets"`    | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"optimize_entity_packets"`       | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                                                                                                                     |
+| `"record_hotbar"`                 | <p> This enables recording the hotbar for player recordings for a better first-person experience. (flashback only) </p>                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `"record_voice_chat"`             | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, this will work out of the box when viewing in flashback but when watching back the replay in replay-mod you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                                        |
+| `"replay_server_ip"`              | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. This is also required if you want to allow users to download replays. </p> <p> This should contain the public ip address of your server. </p>                                                                                                                                                                                                                                                                |
+| `"allow_downloading_replays"`     | <p> Determines whether users will be able to download recorded replays. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `"automatically_record"`          | <p> Whether to automatically record players or chunks based on the `"player_predicate"` and/or `"chunks"` configuration. If enabled any players that meet the predicate defined will be recorded automatically, and any chunks defined will be recorded on server startup. </p>                                                                                                                                                                                                                                                                                       |
+| `"player_predicate"`              | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `"chunks"`                        | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ### Chunks Config
 

@@ -7,30 +7,22 @@ plugins {
     kotlin("plugin.serialization").version(jvmVersion)
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
-    alias(libs.plugins.shadow)
-    alias(libs.plugins.explosion)
     `maven-publish`
     java
 }
 
-val shade: Configuration by configurations.creating
-
 repositories {
+    mavenLocal()
+    maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
-    maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
-    maven("https://repo.viaversion.com")
-    maven("https://api.modrinth.com/maven")
-    maven("https://maven.maxhenkel.de/repository/public")
     maven("https://maven.andante.dev/releases/")
-    maven("https://maven4.bai.lol")
-    maven("https://maven.nucleoid.xyz")
     mavenCentral()
 }
 
 
-val modVersion = "2.3.2"
-val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
+val modVersion = "3.0.0-beta.1"
+val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
 
@@ -46,26 +38,17 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    include(implementation(libs.inject.api.get())!!)
-    include(implementation(libs.inject.http.get())!!)
-    include(modImplementation(libs.inject.fabric.get())!!)
+    includeModImplementation(libs.arcade.replay)
+    includeModImplementation(libs.arcade.commands)
+    includeModImplementation(libs.arcade.event.registry)
+    includeModImplementation(libs.arcade.events.server)
+    includeModImplementation(libs.arcade.rph)
+    includeModImplementation(libs.arcade.utils)
 
-    modCompileOnly(libs.carpet)
-    modCompileOnly(libs.vmp)
-    modCompileOnly(explosion.fabric(libs.c2me))
-    modCompileOnly(libs.voicechat)
-    modCompileOnly(libs.polymer.core)
-    compileOnly(libs.voicechat.api)
-
-    shade(implementation(libs.replay.studio.get())!!)
-    includeModImplementation(libs.permissions) {
-        exclude(libs.fabric.api.get().group)
-    }
+    includeModImplementation(libs.permissions)
 }
 
 loom {
-    accessWidenerPath.set(file("src/main/resources/serverreplay.accesswidener"))
-
     runs {
         getByName("server") {
             runDir = "run/${libs.versions.minecraft.get()}"
@@ -87,32 +70,6 @@ tasks {
         filesMatching("fabric.mod.json") {
             expand(mutableMapOf("version" to modVersion))
         }
-    }
-
-    remapJar {
-        inputFile.set(shadowJar.get().archiveFile)
-    }
-
-    shadowJar {
-        destinationDirectory.set(File("./build/devlibs"))
-        isZip64 = true
-
-        from("LICENSE")
-
-        // For compatability with viaversion
-        relocate("assets/viaversion", "assets/replay-viaversion")
-
-        relocate("com.github.steveice10.netty", "io.netty")
-        exclude("com/github/steveice10/netty/**")
-
-        exclude("it/unimi/dsi/**")
-        exclude("org/apache/commons/**")
-        exclude("org/xbill/DNS/**")
-        exclude("com/google/**")
-
-        configurations = listOf(shade)
-
-        archiveClassifier = "shaded"
     }
 
     publishMods {
@@ -153,10 +110,8 @@ publishing {
         create<MavenPublication>("ServerReplay") {
             groupId = "me.senseiwells"
             artifactId = "server-replay"
-            version = "${modVersion}+${libs.versions.minecraft.get()}"
+            version = releaseVersion
             from(components["java"])
-
-            updateReadme("./README.md")
         }
     }
 
@@ -178,17 +133,7 @@ publishing {
     }
 }
 
-private fun DependencyHandler.includeModImplementation(provider: Provider<*>, action: Action<ExternalModuleDependency>) {
-    include(provider, action)
-    modImplementation(provider, action)
-}
-
-private fun MavenPublication.updateReadme(vararg readmes: String) {
-    val location = "${groupId}:${artifactId}"
-    val regex = Regex("""${Regex.escape(location)}:[\d\.\-a-zA-Z+]+""")
-    val locationWithVersion = "${location}:${version}"
-    for (path in readmes) {
-        val readme = file(path)
-        readme.writeText(readme.readText().replace(regex, locationWithVersion))
-    }
+private fun DependencyHandler.includeModImplementation(provider: Provider<*>) {
+    include(provider)
+    modImplementation(provider)
 }

@@ -11,8 +11,8 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import kotlin.io.path.pathString
 
-object PathSerializer: KSerializer<Path> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
+internal object PathSerializer: KSerializer<Path> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("server-replay.Path", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Path) {
         encoder.encodeString(value.pathString)

@@ -5,44 +5,25 @@ parchment     = "1.21.8:2025.07.20"
 fabric-api    = "0.132.0+1.21.8"
 fabric-kotlin = "1.13.4+kotlin.2.2.0"
 permissions   = "0.4.0"
-inject        = "3.1.4"
-
-# Compatability depdendencies
-carpet        = "1.4.177"
-voicechat     = "fabric-1.21.7-2.5.33"
-voicechat-api = "2.5.27"
-vmp           = "0.2.0+beta.7.200+1.21.6"
-c2me          = "0.3.4+beta.1.0+1.21.7"
-polymer       = "0.13.3+1.21.6"
-replay-studio = "3fdc6c42e3"
+arcade        = "0.6.1-beta.18+1.21.8"
 
 # Plugins
 fabric-loom   = "1.11-SNAPSHOT"
 mod-publish   = "0.8.1"
-shadow        = "8.3.5"
-explosion     = "0.3.1"
 
 [libraries]
-minecraft     = { module = "com.mojang:minecraft"               , version.ref = "minecraft" }
-fabric-loader = { module = "net.fabricmc:fabric-loader"         , version.ref = "fabric-loader" }
-fabric-api    = { module = "net.fabricmc.fabric-api:fabric-api" , version.ref = "fabric-api" }
-fabric-kotlin = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin" }
-permissions   = { module = "me.lucko:fabric-permissions-api"    , version.ref = "permissions" }
-replay-studio = { module = "com.github.ReplayMod:ReplayStudio"  , version.ref = "replay-studio" }
-inject-api    = { module = "net.mcbrawls.inject:api"            , version.ref = "inject" }
-inject-http   = { module = "net.mcbrawls.inject:http"           , version.ref = "inject" }
-inject-fabric = { module = "net.mcbrawls.inject:fabric"         , version.ref = "inject" }
-
-# Compatability depdendencies
-carpet        = { module = "com.github.gnembon:fabric-carpet"    , version.ref = "carpet" }
-voicechat     = { module = "maven.modrinth:simple-voice-chat"    , version.ref = "voicechat" }
-voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api", version.ref = "voicechat-api" }
-vmp           = { module = "maven.modrinth:vmp-fabric"           , version.ref = "vmp" }
-c2me          = { module = "maven.modrinth:c2me-fabric"          , version.ref = "c2me" }
-polymer-core  = { module = "eu.pb4:polymer-core"                 , version.ref = "polymer" }
+minecraft             = { module = "com.mojang:minecraft"                             , version.ref = "minecraft" }
+fabric-loader         = { module = "net.fabricmc:fabric-loader"                       , version.ref = "fabric-loader" }
+fabric-api            = { module = "net.fabricmc.fabric-api:fabric-api"               , version.ref = "fabric-api" }
+fabric-kotlin         = { module = "net.fabricmc:fabric-language-kotlin"              , version.ref = "fabric-kotlin" }
+permissions           = { module = "me.lucko:fabric-permissions-api"                  , version.ref = "permissions" }
+arcade-replay         = { module = "net.casualchampionships:arcade-replay"            , version.ref = "arcade" }
+arcade-commands       = { module = "net.casualchampionships:arcade-commands"          , version.ref = "arcade" }
+arcade-event-registry = { module = "net.casualchampionships:arcade-event-registry"    , version.ref = "arcade" }
+arcade-events-server  = { module = "net.casualchampionships:arcade-events-server"     , version.ref = "arcade" }
+arcade-rph            = { module = "net.casualchampionships:arcade-resource-pack-host", version.ref = "arcade" }
+arcade-utils          = { module = "net.casualchampionships:arcade-utils"             , version.ref = "arcade" }
 
 [plugins]
 fabric-loom = { id = "fabric-loom"                    , version.ref = "fabric-loom" }
 mod-publish = { id = "me.modmuss50.mod-publish-plugin", version.ref = "mod-publish" }
-shadow      = { id = "com.gradleup.shadow"            , version.ref = "shadow" }
-explosion   = { id = "lol.bai.explosion"              , version.ref = "explosion"}

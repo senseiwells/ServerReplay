@@ -25,8 +25,8 @@
 
   ],
   "depends": {
-    "fabric-api": "*",
-    "minecraft": "1.21.x",
-    "fabric-language-kotlin": ">=1.9.0+kotlin.1.8.0"
+    "minecraft": "${minecraft_dependency}",
+    "fabric-api": ">=${fabric_api_dependency}",
+    "fabric-language-kotlin": ">=${fabric_kotlin_dependency}"
   }
 }

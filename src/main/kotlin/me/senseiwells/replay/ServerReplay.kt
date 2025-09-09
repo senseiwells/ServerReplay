@@ -35,7 +35,7 @@ object ServerReplay: ModInitializer {
     override fun onInitialize() {
         @Suppress("DEPRECATION")
         ReplayConfig.migrateOldConfigs()
-        ReplayConfig.read()
+        this.config = ReplayConfig.read()
 
         InjectFabric.INSTANCE.registerInjector(DownloadReplaysHttpInjector)
 

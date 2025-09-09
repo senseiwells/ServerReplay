@@ -26,9 +26,9 @@ import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
 import net.casual.arcade.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
 import net.casual.arcade.replay.viewer.ReplayViewers
-import net.casual.arcade.utils.ComponentUtils.bold
-import net.casual.arcade.utils.ComponentUtils.link
-import net.casual.arcade.utils.ComponentUtils.yellow
+import net.casual.arcade.utils.component.bold
+import net.casual.arcade.utils.component.link
+import net.casual.arcade.utils.component.yellow
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.SharedSuggestionProvider

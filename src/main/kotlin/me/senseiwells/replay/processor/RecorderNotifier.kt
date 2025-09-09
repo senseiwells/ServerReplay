@@ -14,8 +14,8 @@ import net.casual.arcade.replay.events.player.ReplayRecorderFileSizeLimitEvent
 import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.util.FileUtils
 import net.casual.arcade.replay.viewer.ReplayViewers
-import net.casual.arcade.utils.ComponentUtils.hover
-import net.casual.arcade.utils.ComponentUtils.lime
+import net.casual.arcade.utils.component.hover
+import net.casual.arcade.utils.component.lime
 import net.casual.arcade.utils.PlayerUtils.broadcastToOps
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer

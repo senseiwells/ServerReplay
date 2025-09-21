@@ -62,7 +62,7 @@ object ReplayCommand: CommandTree {
                                         argument("dimension", DimensionArgument.dimension()) {
                                             executes { startChunkRecorder(it, name = null) }
                                             literal("named") {
-                                                argument("named", StringArgumentType.greedyString()) {
+                                                argument("name", StringArgumentType.greedyString()) {
                                                     executes(::startChunkRecorder)
                                                 }
                                             }
@@ -81,7 +81,7 @@ object ReplayCommand: CommandTree {
                                         argument("dimension", DimensionArgument.dimension()) {
                                             executes { startChunkRecorderAround(it, name = null) }
                                             literal("named") {
-                                                argument("named", StringArgumentType.greedyString()) {
+                                                argument("name", StringArgumentType.greedyString()) {
                                                     executes(::startChunkRecorderAround)
                                                 }
                                             }

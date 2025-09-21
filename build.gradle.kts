@@ -21,7 +21,7 @@ repositories {
 }
 
 
-val modVersion = "3.0.0-beta.3"
+val modVersion = "3.0.0"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -81,14 +81,10 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - ***Actually*** fixed the voice chat sound quality issues
-            - Fixed a bug where the config wasn't being properly loaded on server startup 
-            - Fixed a bug where out of bounds inventory packets were being recorded
-            - Fixed the initial flashback snapshot not being recorded correctly
-            - Fixed a race condition that could happen with automatic recordings
+            - Fixed an issue where specifying the name of a chunk recorder would cause the command to fail
             """.trimIndent()
         )
-        type = BETA
+        type = STABLE
         modLoaders.add("fabric")
 
         displayName = "ServerReplay $modVersion for ${libs.versions.minecraft.get()}"

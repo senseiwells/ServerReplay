@@ -21,7 +21,7 @@ repositories {
 }
 
 
-val modVersion = "3.0.0"
+val modVersion = "3.0.1"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -81,7 +81,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed an issue where specifying the name of a chunk recorder would cause the command to fail
+            - Fixed an issue with entity command autocompletion
             """.trimIndent()
         )
         type = STABLE

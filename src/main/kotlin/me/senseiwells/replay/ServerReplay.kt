@@ -11,6 +11,7 @@ import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerRegisterCommandEvent
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
+import net.casual.arcade.replay.io.ReplayFormat
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
@@ -33,9 +34,12 @@ object ServerReplay: ModInitializer {
         private set
 
     override fun onInitialize() {
+        this.logger.info("Launching ServerReplay!")
+
         @Suppress("DEPRECATION")
         ReplayConfig.migrateOldConfigs()
         this.config = ReplayConfig.read()
+        this.fixupConfig()
 
         InjectFabric.INSTANCE.registerInjector(DownloadReplaysHttpInjector)
 
@@ -64,11 +68,21 @@ object ServerReplay: ModInitializer {
 
     fun reload() {
         this.config = ReplayConfig.read()
+        this.fixupConfig()
     }
 
     fun updateConfig(mutator: (ReplayConfig) -> ReplayConfig) {
         this.config = mutator.invoke(this.config)
         ReplayConfig.write(this.config)
+    }
+
+    private fun fixupConfig() {
+        val current = this.config.defaultReplayFormat
+        if (!current.supported) {
+            this.logger.warn("Default replay format is currently set to $current, which is not yet supported")
+            this.logger.warn("Falling back onto a supported format!")
+            this.updateConfig { it.copy(defaultReplayFormat = ReplayFormat.Flashback) }
+        }
     }
 
     private fun addMetadata(data: JsonObject) {

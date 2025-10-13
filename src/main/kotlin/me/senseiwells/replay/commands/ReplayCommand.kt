@@ -397,6 +397,10 @@ object ReplayCommand: CommandTree {
 
     private fun setDefaultEncoding(context: CommandContext<CommandSourceStack>): Int {
         val format = EnumArgument.getEnumeration<ReplayFormat>(context, "encoding")
+        if (!format.supported) {
+            return context.source.fail("Encoding ${format.id()} is not yet supported for this version of Minecraft")
+        }
+
         ServerReplay.updateConfig { config -> config.copy(defaultReplayFormat = format) }
         format.warn { message ->
             context.source.sendSystemMessage(Component.literal(message))

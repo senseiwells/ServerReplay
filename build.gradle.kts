@@ -20,8 +20,7 @@ repositories {
     mavenCentral()
 }
 
-
-val modVersion = "3.0.1"
+val modVersion = "3.1.0-beta.1"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -81,10 +80,11 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed an issue with entity command autocompletion
+            - Updated to 1.21.9/1.21.10
+              - Only currently supporting flashback, since replay mod hasn't updated yet
             """.trimIndent()
         )
-        type = STABLE
+        type = BETA
         modLoaders.add("fabric")
 
         displayName = "ServerReplay $modVersion for ${libs.versions.minecraft.get()}"

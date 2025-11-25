@@ -77,6 +77,10 @@ By default, this will be in `./recordings/players/<uuid>/<date-and-time>.mcpr`.
 
 This file can then be put in `./replay_recordings` on your client and be opened with replay mod.
 
+> [!WARNING]
+> Trying to record carpet bots or other non-real players may lead to unexpected behaviour.
+> If you want to record a large chunk area please use a chunk recorder instead!
+
 #### Chunks
 
 > [!NOTE] 
@@ -139,10 +143,6 @@ format; however, you can change this by running the following commands in game:
 > then setting the encoding to replay_mod and starting another recording.
 > 
 > The same can be done for chunk recordings, but each recorder must be given a unique name.
-
-> [!WARNING]
-> Currently flashback support is experimental and may result in flashback replays not recording correctly,
-> use at your own risk.
 
 #### Viewing
 

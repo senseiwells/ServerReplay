@@ -80,7 +80,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Re-added support for ReplayMod
+            - Fix compatibility issue with the Async mod
             """.trimIndent()
         )
         type = STABLE

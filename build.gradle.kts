@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.1.1"
+val modVersion = "3.2.0"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,7 +80,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fix compatibility issue with the Async mod
+            - Update to 1.21.11
             """.trimIndent()
         )
         type = STABLE

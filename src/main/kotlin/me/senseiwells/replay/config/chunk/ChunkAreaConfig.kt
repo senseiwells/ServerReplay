@@ -3,14 +3,14 @@ package me.senseiwells.replay.config.chunk
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 
 @Serializable
 class ChunkAreaConfig(
     val name: String,
     @Contextual
     @SerialName("dimension")
-    val dimension: ResourceLocation,
+    val dimension: Identifier,
     @SerialName("from_x")
     val fromX: Int,
     @SerialName("from_z")

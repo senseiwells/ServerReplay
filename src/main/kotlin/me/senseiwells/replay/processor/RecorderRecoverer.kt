@@ -20,8 +20,8 @@ import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.events.ReplayRecorderStopEvent
 import net.casual.arcade.replay.io.ReplayModIO
 import net.casual.arcade.replay.recorder.ReplayRecorder
-import net.minecraft.Util
 import net.minecraft.server.MinecraftServer
+import net.minecraft.util.Util
 import java.io.EOFException
 import java.io.IOException
 import java.nio.file.Path
@@ -124,7 +124,7 @@ object RecorderRecoverer {
                         } else {
                             break
                         }
-                    } catch (e: EOFException) {
+                    } catch (_: EOFException) {
                         break
                     }
                 }
@@ -140,7 +140,7 @@ object RecorderRecoverer {
             replay.close()
             ReplayModIO.deleteCaches(recording)
             ServerReplay.logger.info("Successfully recovered recording $recording")
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             ServerReplay.logger.error("Failed to write unfinished replay $recording")
         }
     }

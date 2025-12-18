@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile
 import net.casual.arcade.utils.PlayerUtils.server
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.permissions.PermissionSet
 import net.minecraft.server.players.NameAndId
 import net.minecraft.world.scores.Team
 import java.util.*
@@ -16,7 +17,7 @@ data class ReplayPlayerContext(
     val name: String get() = this.profile.name
     val uuid: UUID get() = this.profile.id
     val team: Team? get() = this.server.scoreboard.getPlayersTeam(this.name)
-    val permissions: Int get() = this.server.getProfilePermissions(NameAndId(this.profile))
+    val permissions: PermissionSet get() = this.server.getProfilePermissions(NameAndId(this.profile))
 
     fun isFakePlayer(): Boolean {
         // Technically we could have a fake player join where they

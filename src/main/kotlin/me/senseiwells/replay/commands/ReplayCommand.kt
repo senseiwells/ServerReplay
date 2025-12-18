@@ -36,6 +36,7 @@ import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.permissions.PermissionLevel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -45,7 +46,7 @@ import kotlin.io.path.*
 object ReplayCommand: CommandTree {
     override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
         return CommandTree.buildLiteral("replay") {
-            requires { Permissions.check(it, "server-replay.commands.replay", 4) }
+            requires { Permissions.check(it, "server-replay.commands.replay", PermissionLevel.OWNERS) }
             literal("start") {
                 literal("players") {
                     argument("players", EntityArgument.players()) {

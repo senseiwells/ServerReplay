@@ -21,7 +21,7 @@ internal object PathSerializer: KSerializer<Path> {
     override fun deserialize(decoder: Decoder): Path {
         try {
             return Path.of(decoder.decodeString())
-        } catch (e: InvalidPathException) {
+        } catch (_: InvalidPathException) {
             throw SerializationException("Invalid path")
         }
     }

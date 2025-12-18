@@ -11,6 +11,7 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.chunk.ChunkAreaConfig
 import me.senseiwells.replay.config.predicates.NonePredicate
 import me.senseiwells.replay.config.predicates.ReplayPlayerPredicate
+import me.senseiwells.replay.config.serialization.ExtraCodecs
 import me.senseiwells.replay.config.serialization.PathSerializer
 import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.recorder.settings.RecorderSettings
@@ -20,7 +21,7 @@ import net.casual.arcade.replay.util.io.FileSize
 import net.casual.arcade.utils.serialization.codec.ArcadeExtraCodecs
 import net.casual.arcade.utils.serialization.kotlin.CodecSerializersModule
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import org.apache.commons.lang3.SerializationException
 import java.io.IOException
 import java.nio.file.Path
@@ -170,10 +171,11 @@ data class ReplayConfig(
 
             serializersModule = CodecSerializersModule {
                 contextual(FileSize.STRING_CODEC)
-                contextual(ResourceLocation.CODEC)
+                contextual(Identifier.CODEC)
                 contextual(ChunkRecordingStrategy.CODEC)
                 contextual(ArcadeExtraCodecs.DURATION.orElse(Duration.ZERO))
                 contextual(ReplayFormat.CODEC.orElse(ReplayFormat.ReplayMod))
+                contextual(ExtraCodecs.LENIENT_PERMISSION_LEVEL)
             }
         }
 
@@ -224,7 +226,7 @@ data class ReplayConfig(
                     oldPath.copyToRecursively(this.root, overwrite = false, followLinks = true)
                     oldPath.deleteRecursively()
                 }
-            } catch (e: IOException) {
+            } catch (_: IOException) {
                 ServerReplay.logger.error("Failed to migrate ServerReplay configs!")
             }
         }

@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.2.1"
+val modVersion = "3.2.2"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,7 +80,9 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Update to 1.21.11
+            - Fixed map data not being correctly recorded
+            - Fixed an issue with `chunk_loaded` recording strategy and the `replay_mod` format
+            - Fixed vmp compatibility
             """.trimIndent()
         )
         type = STABLE

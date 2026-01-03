@@ -5,7 +5,7 @@ parchment     = "1.21.10:2025.10.12"
 fabric-api    = "0.140.0+1.21.11"
 fabric-kotlin = "1.13.5+kotlin.2.2.10"
 permissions   = "0.6.1"
-arcade        = "0.8.0-beta.10+1.21.11"
+arcade        = "0.8.0-beta.12+1.21.11"
 
 # Plugins
 fabric-loom   = "1.14-SNAPSHOT"

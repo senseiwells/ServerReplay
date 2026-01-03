@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.2.2"
+val modVersion = "3.2.3"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,9 +80,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed map data not being correctly recorded
-            - Fixed an issue with `chunk_loaded` recording strategy and the `replay_mod` format
-            - Fixed vmp compatibility
+            - Fixed race condition when recording with flashback and with a file size limit set
             """.trimIndent()
         )
         type = STABLE

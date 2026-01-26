@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.2.3"
+val modVersion = "3.2.4"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,7 +80,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed race condition when recording with flashback and with a file size limit set
+            - Fixed race condition when recording with a file size or time limit
             """.trimIndent()
         )
         type = STABLE

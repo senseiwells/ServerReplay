@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.2.5"
+val modVersion = "3.2.7"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,7 +80,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed race condition when recording with a file size or time limit
+            - Fix pausing in the replay viewer in singleplayer
             """.trimIndent()
         )
         type = STABLE

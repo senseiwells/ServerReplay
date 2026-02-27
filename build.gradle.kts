@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.2.7"
+val modVersion = "3.3.0"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -80,7 +80,8 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fix pausing in the replay viewer in singleplayer
+            - Fix an issue with voicechat not playing back in the replay mod format
+            - 
             """.trimIndent()
         )
         type = STABLE

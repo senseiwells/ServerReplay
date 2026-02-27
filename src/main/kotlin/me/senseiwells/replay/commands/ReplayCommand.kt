@@ -12,7 +12,7 @@ import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.http.DownloadReplaysHttpInjector
+import me.senseiwells.replay.http.ReplayDownloaderInterceptor
 import me.senseiwells.replay.processor.RecorderWarner
 import net.casual.arcade.commands.*
 import net.casual.arcade.commands.arguments.ChunkPosArgument
@@ -357,7 +357,7 @@ object ReplayCommand: CommandTree {
         }
 
         val path = "$root/${URLEncoder.encode(replay, StandardCharsets.UTF_8)}"
-        val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
+        val url = ReplayDownloaderInterceptor.createUrl(context.source.server, path)
         val here = Component.literal("[here]").yellow().bold().link(url)
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)

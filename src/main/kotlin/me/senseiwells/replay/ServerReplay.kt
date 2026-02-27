@@ -4,18 +4,18 @@ import com.google.gson.JsonObject
 import me.senseiwells.replay.commands.PackCommand
 import me.senseiwells.replay.commands.ReplayCommand
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.http.DownloadReplaysHttpInjector
+import me.senseiwells.replay.http.ReplayDownloaderInterceptor
 import me.senseiwells.replay.processor.*
 import net.casual.arcade.commands.register
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerRegisterCommandEvent
+import net.casual.arcade.interceptor.ArcadeInterceptors
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.io.ReplayFormat
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
-import net.mcbrawls.inject.fabric.InjectFabric
 import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -41,7 +41,7 @@ object ServerReplay: ModInitializer {
         this.config = ReplayConfig.read()
         this.fixupConfig()
 
-        InjectFabric.INSTANCE.registerInjector(DownloadReplaysHttpInjector)
+        ArcadeInterceptors.register(ReplayDownloaderInterceptor)
 
         AutomaticRecorders.registerEvents()
         RecorderNotifier.registerEvents()

@@ -22,6 +22,7 @@ arcade-commands       = { module = "net.casualchampionships:arcade-commands"    
 arcade-event-registry = { module = "net.casualchampionships:arcade-event-registry"    , version.ref = "arcade" }
 arcade-events-server  = { module = "net.casualchampionships:arcade-events-server"     , version.ref = "arcade" }
 arcade-rph            = { module = "net.casualchampionships:arcade-resource-pack-host", version.ref = "arcade" }
+arcade-interceptor    = { module = "net.casualchampionships:arcade-interceptor"       , version.ref = "arcade" }
 arcade-utils          = { module = "net.casualchampionships:arcade-utils"             , version.ref = "arcade" }
 
 [plugins]

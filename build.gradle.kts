@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.3.0"
+val modVersion = "3.3.1"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -41,6 +41,7 @@ dependencies {
     includeModImplementation(libs.arcade.commands)
     includeModImplementation(libs.arcade.event.registry)
     includeModImplementation(libs.arcade.events.server)
+    includeModImplementation(libs.arcade.interceptor)
     includeModImplementation(libs.arcade.rph)
     includeModImplementation(libs.arcade.utils)
 

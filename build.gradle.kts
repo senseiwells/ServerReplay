@@ -81,7 +81,7 @@ tasks {
         changelog.set(
             """
             - Fix an issue with voicechat not playing back in the replay mod format
-            - 
+            - Fixed a compatibility issue with Raknetify
             """.trimIndent()
         )
         type = STABLE

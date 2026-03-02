@@ -5,6 +5,7 @@ import net.casual.arcade.interceptor.http.resource.HttpResourceInterceptor
 import net.casual.arcade.replay.io.FlashbackIO
 import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.io.ReplayModIO
+import net.casual.arcade.utils.network.ResolvableURL
 import net.minecraft.server.MinecraftServer
 import java.nio.file.Path
 import kotlin.io.path.*
@@ -16,8 +17,8 @@ object ReplayDownloaderInterceptor: HttpResourceInterceptor(
     private const val PLAYER = "player/"
     private const val CHUNK = "chunk/"
 
-    fun createUrl(server: MinecraftServer, path: String): String {
-        return "http://${ServerReplay.getIp(server)}/replay/download/$path"
+    fun createUrl(server: MinecraftServer, path: String): ResolvableURL {
+        return ResolvableURL.local("http", ServerReplay.config.replayServerIp, server.port, "replay/download/$path")
     }
 
     override fun getResource(path: String): HttpResource? {

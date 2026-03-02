@@ -16,7 +16,6 @@ import net.casual.arcade.replay.io.ReplayFormat
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
-import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -59,11 +58,6 @@ object ServerReplay: ModInitializer {
 
         ReplayCleanerUpper.run()
         RecorderWarner.output(this.logger::warn)
-    }
-
-    fun getIp(server: MinecraftServer): String {
-        val ip = this.config.replayServerIp ?: "127.0.0.1"
-        return "${ip}:${server.port}"
     }
 
     fun reload() {

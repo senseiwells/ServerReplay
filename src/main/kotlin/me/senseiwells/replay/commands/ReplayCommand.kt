@@ -358,7 +358,12 @@ object ReplayCommand: CommandTree {
 
         val path = "$root/${URLEncoder.encode(replay, StandardCharsets.UTF_8)}"
         val url = ReplayDownloaderInterceptor.createUrl(context.source.server, path)
-        val here = Component.literal("[here]").yellow().bold().link(url)
+        val resolved = when {
+            context.source.isPlayer -> url.resolve(context.source.playerOrException.connection)
+            else -> url.resolve()
+        }
+
+        val here = Component.literal("[here]").yellow().bold().link(resolved)
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)
         return Command.SINGLE_SUCCESS

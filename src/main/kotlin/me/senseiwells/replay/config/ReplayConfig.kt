@@ -60,6 +60,9 @@ data class ReplayConfig(
     val maxDuration: Duration = Duration.ZERO,
     @SerialName("restart_after_max_duration")
     val restartAfterMaxDuration: Boolean = false,
+    @Contextual
+    @SerialName("system_storage_low_limit")
+    val systemStorageLowLimit: FileSize = FileSize.gb(1),
     @SerialName("recover_unsaved_replays")
     val recoverUnsavedReplays: Boolean = true,
     @Contextual
@@ -138,7 +141,8 @@ data class ReplayConfig(
                 this.maxFileSize,
                 this.restartAfterMaxFileSize,
                 this.maxDuration,
-                this.restartAfterMaxDuration
+                this.restartAfterMaxDuration,
+                this.systemStorageLowLimit
             ),
             RecorderSettings.IgnorePackets(
                 this.ignoreCustomPayloads,

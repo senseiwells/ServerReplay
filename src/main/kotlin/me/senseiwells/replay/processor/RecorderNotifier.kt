@@ -4,19 +4,16 @@ import me.senseiwells.replay.ServerReplay
 import net.casual.arcade.commands.singleUseFunction
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
-import net.casual.arcade.replay.events.ReplayRecorderCloseEvent
-import net.casual.arcade.replay.events.ReplayRecorderDurationLimitEvent
-import net.casual.arcade.replay.events.ReplayRecorderSaveEvent
-import net.casual.arcade.replay.events.ReplayRecorderStartEvent
+import net.casual.arcade.replay.events.*
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderLoadedResumeEvent
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderUnloadedPauseEvent
-import net.casual.arcade.replay.events.player.ReplayRecorderFileSizeLimitEvent
 import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.util.FileUtils
 import net.casual.arcade.replay.viewer.ReplayViewers
 import net.casual.arcade.utils.component.hover
 import net.casual.arcade.utils.component.lime
-import net.casual.arcade.utils.PlayerUtils.broadcastToOps
+import net.casual.arcade.utils.player.broadcast
+import net.casual.arcade.utils.player.ops
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
@@ -34,6 +31,7 @@ object RecorderNotifier {
         GlobalEventHandler.Server.register<ReplayRecorderCloseEvent>(::onReplayRecorderClose)
         GlobalEventHandler.Server.register<ReplayRecorderDurationLimitEvent>(::onReplayRecorderDurationLimit)
         GlobalEventHandler.Server.register<ReplayRecorderFileSizeLimitEvent>(::onReplayRecorderFileSizeLimit)
+        GlobalEventHandler.Server.register<ReplayRecorderSystemStorageLowEvent>(::onReplayRecorderSystemStorageLow)
     }
 
     private fun onReplayRecorderStart(event: ReplayRecorderStartEvent) {
@@ -105,6 +103,13 @@ object RecorderNotifier {
         )
     }
 
+    private fun onReplayRecorderSystemStorageLow(event: ReplayRecorderSystemStorageLowEvent) {
+        val recorder = event.recorder
+        recorder.server.broadcastToOpsAndConsole(
+            "Stopped recording replay ${recorder.getName()}, system storage is too low! Replay may fail to save..."
+        )
+    }
+
     private fun tryViewReplay(player: ServerPlayer, path: Path) {
         val format = ReplayFormat.formatOf(path)
         if (format == null || !path.isReadable()) {
@@ -121,7 +126,7 @@ object RecorderNotifier {
 
     private fun MinecraftServer.broadcastToOps(message: Component) {
         if (ServerReplay.config.notifyAdminsOfStatus) {
-            this.execute { this.playerList.players.broadcastToOps(message) }
+            this.execute { this.playerList.players.ops().broadcast(message) }
         }
     }
 

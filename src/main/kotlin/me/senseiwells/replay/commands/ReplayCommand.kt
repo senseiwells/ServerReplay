@@ -43,7 +43,7 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import kotlin.io.path.*
 
-object ReplayCommand: CommandTree {
+object ReplayCommand: CommandTree<CommandSourceStack> {
     override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
         return CommandTree.buildLiteral("replay") {
             requires { Permissions.check(it, "server-replay.commands.replay", PermissionLevel.OWNERS) }

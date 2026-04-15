@@ -1,7 +1,7 @@
 package me.senseiwells.replay.config.predicates
 
 import com.mojang.authlib.GameProfile
-import net.casual.arcade.utils.PlayerUtils.server
+import net.casual.arcade.utils.player.server
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.permissions.PermissionSet

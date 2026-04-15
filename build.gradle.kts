@@ -16,36 +16,30 @@ repositories {
     maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://jitpack.io")
-    maven("https://maven.andante.dev/releases/")
     mavenCentral()
 }
 
-val modVersion = "3.3.1"
+val modVersion = "3.4.0"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
 
 dependencies {
     minecraft(libs.minecraft)
-    @Suppress("UnstableApiUsage")
-    mappings(loom.layered {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${libs.versions.parchment.get()}@zip")
-    })
 
-    modImplementation(libs.fabric.loader)
-    modImplementation(libs.fabric.api)
-    modImplementation(libs.fabric.kotlin)
+    implementation(libs.fabric.loader)
+    implementation(libs.fabric.api)
+    implementation(libs.fabric.kotlin)
 
-    includeModImplementation(libs.arcade.replay)
-    includeModImplementation(libs.arcade.commands)
-    includeModImplementation(libs.arcade.event.registry)
-    includeModImplementation(libs.arcade.events.server)
-    includeModImplementation(libs.arcade.interceptor)
-    includeModImplementation(libs.arcade.rph)
-    includeModImplementation(libs.arcade.utils)
+    include(implementation(libs.arcade.replay.get())!!)
+    include(implementation(libs.arcade.commands.get())!!)
+    include(implementation(libs.arcade.event.registry.get())!!)
+    include(implementation(libs.arcade.events.server.get())!!)
+    include(implementation(libs.arcade.interceptor.get())!!)
+    include(implementation(libs.arcade.rph.get())!!)
+    include(implementation(libs.arcade.utils.get())!!)
 
-    includeModImplementation(libs.permissions)
+    include(implementation(libs.permissions.get())!!)
 }
 
 loom {
@@ -70,7 +64,7 @@ tasks {
         filesMatching("fabric.mod.json") {
             expand(mutableMapOf(
                 "version" to version,
-                "minecraft_dependency" to libs.versions.minecraft.get().replaceAfterLast('.', "x"),
+                "minecraft_dependency" to "~${libs.versions.minecraft.get()}",
                 "fabric_api_dependency" to libs.versions.fabric.api.get(),
                 "fabric_kotlin_dependency" to libs.versions.fabric.kotlin.get(),
             ))
@@ -78,11 +72,10 @@ tasks {
     }
 
     publishMods {
-        file = remapJar.get().archiveFile
+        file = jar.get().archiveFile
         changelog.set(
             """
-            - Fix an issue with voicechat not playing back in the replay mod format
-            - Fixed a compatibility issue with Raknetify
+            - Updated to 26.1.x
             """.trimIndent()
         )
         type = STABLE
@@ -135,9 +128,4 @@ publishing {
             }
         }
     }
-}
-
-private fun DependencyHandler.includeModImplementation(provider: Provider<*>) {
-    include(provider)
-    modImplementation(provider)
 }

@@ -1,14 +1,14 @@
 [versions]
-minecraft     = "1.21.11"
-fabric-loader = "0.18.3"
+minecraft     = "26.1"
+fabric-loader = "0.18.5"
 parchment     = "1.21.10:2025.10.12"
-fabric-api    = "0.140.0+1.21.11"
-fabric-kotlin = "1.13.5+kotlin.2.2.10"
-permissions   = "0.6.1"
-arcade        = "0.8.1-beta.39+1.21.11"
+fabric-api    = "0.145.3+26.1.1"
+fabric-kotlin = "1.13.9+kotlin.2.3.10"
+permissions   = "0.7.0"
+arcade        = "0.9.0-beta.27+26.1.1"
 
 # Plugins
-fabric-loom   = "1.14-SNAPSHOT"
+fabric-loom   = "1.15-SNAPSHOT"
 mod-publish   = "1.1.0"
 
 [libraries]
@@ -26,5 +26,5 @@ arcade-interceptor    = { module = "net.casualchampionships:arcade-interceptor" 
 arcade-utils          = { module = "net.casualchampionships:arcade-utils"             , version.ref = "arcade" }
 
 [plugins]
-fabric-loom = { id = "fabric-loom"                    , version.ref = "fabric-loom" }
+fabric-loom = { id = "net.fabricmc.fabric-loom"       , version.ref = "fabric-loom" }
 mod-publish = { id = "me.modmuss50.mod-publish-plugin", version.ref = "mod-publish" }

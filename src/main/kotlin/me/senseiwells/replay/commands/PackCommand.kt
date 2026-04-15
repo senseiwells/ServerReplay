@@ -19,7 +19,7 @@ import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-object PackCommand: CommandTree {
+object PackCommand: CommandTree<CommandSourceStack> {
     override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
         return CommandTree.buildLiteral("resource-pack") {
             literal("push") {

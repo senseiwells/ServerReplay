@@ -12,6 +12,7 @@ import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
 import net.casual.arcade.utils.toKey
 import net.minecraft.core.registries.Registries
+import net.minecraft.network.Connection
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.ChunkPos
 
@@ -22,9 +23,9 @@ object AutomaticRecorders {
                 this.startChunks(server)
             }
         }
-        GlobalEventHandler.Server.register<PlayerLoginEvent> { (server, profile) ->
+        GlobalEventHandler.Server.register<PlayerLoginEvent> { (server, profile, connection) ->
             if (ServerReplay.config.automaticallyRecord) {
-                this.startPlayer(server, profile)
+                this.startPlayer(server, profile, connection)
             }
         }
     }
@@ -53,13 +54,13 @@ object AutomaticRecorders {
     }
 
     @Suppress("UnstableApiUsage")
-    private fun startPlayer(server: MinecraftServer, profile: GameProfile) {
+    private fun startPlayer(server: MinecraftServer, profile: GameProfile, connection: Connection) {
         val context = ReplayPlayerContext(server, profile)
         if (ServerReplay.config.playerPredicate.shouldRecord(context)) {
             val path = ServerReplay.config.getPlayerRecordingLocation(profile)
             val format = ServerReplay.config.defaultReplayFormat
             val settings = ServerReplay.config.createSettings()
-            val recorder = ReplayPlayerRecorders.create(server, profile, path, format, settings)
+            val recorder = ReplayPlayerRecorders.create(server, profile, connection, path, format, settings)
             recorder.onStart()
             recorder.afterLogin()
         }

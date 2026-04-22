@@ -75,7 +75,8 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Updated to 26.1.x
+            - Fix crashing when starting a recording
+            - Fix compatibility issue with carpet mod
             """.trimIndent()
         )
         type = STABLE

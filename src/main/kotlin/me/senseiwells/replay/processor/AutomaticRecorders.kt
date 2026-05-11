@@ -1,19 +1,18 @@
 package me.senseiwells.replay.processor
 
-import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.predicates.ReplayPlayerContext
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerStartEvent
-import net.casual.arcade.events.server.player.PlayerLoginEvent
+import net.casual.arcade.events.server.player.PlayerJoinEvent
 import net.casual.arcade.replay.recorder.chunk.ChunkArea
 import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
 import net.casual.arcade.utils.toKey
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.Connection
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 
 object AutomaticRecorders {
@@ -23,9 +22,9 @@ object AutomaticRecorders {
                 this.startChunks(server)
             }
         }
-        GlobalEventHandler.Server.register<PlayerLoginEvent> { (server, profile, connection) ->
+        GlobalEventHandler.Server.register<PlayerJoinEvent> { (player) ->
             if (ServerReplay.config.automaticallyRecord) {
-                this.startPlayer(server, profile, connection)
+                this.startPlayer(player)
             }
         }
     }
@@ -54,15 +53,15 @@ object AutomaticRecorders {
     }
 
     @Suppress("UnstableApiUsage")
-    private fun startPlayer(server: MinecraftServer, profile: GameProfile, connection: Connection) {
+    private fun startPlayer(player: ServerPlayer) {
+        val server = player.level().server
+        val profile = player.gameProfile
         val context = ReplayPlayerContext(server, profile)
         if (ServerReplay.config.playerPredicate.shouldRecord(context)) {
             val path = ServerReplay.config.getPlayerRecordingLocation(profile)
             val format = ServerReplay.config.defaultReplayFormat
             val settings = ServerReplay.config.createSettings()
-            val recorder = ReplayPlayerRecorders.create(server, profile, connection, path, format, settings)
-            recorder.onStart()
-            recorder.afterLogin()
+            ReplayPlayerRecorders.create(player, path, format, settings).start()
         }
     }
 }

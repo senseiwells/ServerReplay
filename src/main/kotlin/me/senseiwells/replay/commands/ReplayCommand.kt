@@ -241,7 +241,7 @@ object ReplayCommand: CommandTree<CommandSourceStack> {
         RecorderWarner.output(context.source, format)
         val path = ServerReplay.config.chunkRecordingPath.resolve(id)
         val settings = ServerReplay.config.createSettings()
-        ReplayChunkRecorders.create(area, path, format, settings, id).start()
+        ReplayChunkRecorders.create(area, path, format, settings, null, id).start()
         return context.source.success("Successfully started chunk replay: $id", true)
     }
 

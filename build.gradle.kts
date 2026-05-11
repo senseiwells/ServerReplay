@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.4.1"
+val modVersion = "3.4.2"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -75,8 +75,7 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Fix crashing when starting a recording
-            - Fix compatibility issue with carpet mod
+            - Fix an issue with automatic recording incorrectly discarding packets
             """.trimIndent()
         )
         type = STABLE

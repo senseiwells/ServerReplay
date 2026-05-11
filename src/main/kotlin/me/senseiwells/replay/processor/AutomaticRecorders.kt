@@ -48,7 +48,7 @@ object AutomaticRecorders {
             val path = ServerReplay.config.chunkRecordingPath.resolve(chunks.name)
             val format = ServerReplay.config.defaultReplayFormat
             val settings = ServerReplay.config.createSettings()
-            val recorder = ReplayChunkRecorders.create(area, path, format, settings, chunks.name)
+            val recorder = ReplayChunkRecorders.create(area, path, format, settings, null, chunks.name)
             recorder.start()
         }
     }

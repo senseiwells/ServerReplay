@@ -321,6 +321,9 @@ object ReplayCommand: CommandTree<CommandSourceStack> {
         type: RecorderType
     ): Int {
         val player = context.source.playerOrException
+        if (ReplayPlayerRecorders.has(player)) {
+            return context.source.fail("Cannot view replay while recording, please stop your player recording before viewing!")
+        }
 
         val name = StringArgumentType.getString(context, "name")
         val replay = StringArgumentType.getString(context, "replay")

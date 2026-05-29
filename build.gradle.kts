@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.4.2"
+val modVersion = "3.4.3"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -75,7 +75,7 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Fix an issue with automatic recording incorrectly discarding packets
+            - Fix an issue with flashback replays not writing properly on some systems
             """.trimIndent()
         )
         type = STABLE

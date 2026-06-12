@@ -4,6 +4,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
+import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.SetSerializer
 import kotlinx.serialization.json.Json
@@ -18,27 +19,30 @@ import net.casual.arcade.events.server.ServerStartEvent
 import net.casual.arcade.events.server.ServerStopEvent
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.events.ReplayRecorderStopEvent
+import net.casual.arcade.replay.io.FlashbackIO
 import net.casual.arcade.replay.io.ReplayModIO
 import net.casual.arcade.replay.recorder.ReplayRecorder
-import net.minecraft.server.MinecraftServer
-import net.minecraft.util.Util
+import net.casual.arcade.replay.util.FileUtils
+import net.casual.arcade.utils.coroutine.getCoroutineScope
 import java.io.EOFException
 import java.io.IOException
 import java.nio.file.Path
-import java.util.concurrent.CompletableFuture
 import kotlin.io.path.*
 
 @OptIn(ExperimentalSerializationApi::class)
 object RecorderRecoverer {
     private val path = ReplayConfig.resolve("recordings.json")
-
     private val recordings = this.read()
 
-    private var future: CompletableFuture<Void>? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() +  CoroutineExceptionHandler { _, throwable ->
+        ServerReplay.logger.error("Uncaught exception while trying to recover replay", throwable)
+    })
+    private val recovering = ArrayList<Pair<Path, Job>>()
 
     internal fun registerEvents() {
-        GlobalEventHandler.Server.register<ServerStartEvent> { (server) ->
-            this.tryRecover(server)
+        GlobalEventHandler.Server.register<ServerStartEvent> {
+            it.server.getCoroutineScope()
+            this.tryRecoverReplays()
         }
         GlobalEventHandler.Server.register<ServerStopEvent>(phase = ServerStopEvent.PHASE_POST) {
             this.waitForRecovering()
@@ -53,55 +57,61 @@ object RecorderRecoverer {
 
     private fun add(recorder: ReplayRecorder) {
         this.recordings.add(recorder.location)
-        write()
+        this.write()
     }
 
     private fun remove(recorder: ReplayRecorder) {
         this.recordings.remove(recorder.location)
-        write()
+        this.write()
     }
 
-    private fun tryRecover(server: MinecraftServer) {
-        val recorders = this.recordings
-        if (!ServerReplay.config.recoverUnsavedReplays || recorders.isEmpty()) {
+    private fun tryRecoverReplays() {
+        if (!ServerReplay.config.recoverUnsavedReplays || this.recordings.isEmpty()) {
             return
         }
 
-        val recordings = if (recorders.size > 1) "recordings" else "recording"
-        ServerReplay.logger.info("Detected unfinished replay $recordings that ended abruptly...")
-        val futures = ArrayList<CompletableFuture<Void>>()
-        for (recording in this.recordings) {
-            ServerReplay.logger.info("Attempting to recover recording: $recording, please do not stop the server")
+        val recoverable = this.recordings.toList()
+        val noun = if (recoverable.size > 1) "recordings" else "recording"
+        ServerReplay.logger.info("Detected unfinished replay $noun that ended abruptly...")
 
-            futures.add(CompletableFuture.runAsync({ recover(recording) }, Util.ioPool()).thenRunAsync({
-                this.recordings.remove(recording)
-                write()
-            }, server))
+        for (recording in recoverable) {
+            ServerReplay.logger.info("Attempting to recover recording: $recording, please do not stop the server")
+            this.recovering.add(recording to this.coroutineScope.launch { tryRecoverReplay(recording) })
         }
-        val future = CompletableFuture.allOf(*futures.toTypedArray())
-        this.future = future
-        future.thenRun { this.future = null }
     }
 
     private fun waitForRecovering() {
-        val future = this.future ?: return
+        if (this.recovering.isEmpty()) {
+            return
+        }
         ServerReplay.logger.warn("Waiting for recordings to be recovered, please do NOT kill the server")
-        future.join()
+        runBlocking {
+            for ((path, job) in recovering) {
+                job.join()
+                recordings.remove(path)
+            }
+            write()
+        }
+        this.recovering.clear()
         ServerReplay.logger.info("Finished recovering recordings")
     }
 
-    private fun recover(recording: Path) {
+    private fun tryRecoverReplay(recording: Path) {
         val temp = recording.parent.resolve(recording.name + ".tmp")
         if (temp.exists()) {
-            this.recoverReplayModReplay(recording)
+            this.tryRecoverReplayModReplay(recording)
+            return
+        }
+        if (recording.resolve(FlashbackIO.CHUNK_CACHES).exists()) {
+            this.tryRecoverFlashbackReplay(recording)
             return
         }
 
         ServerReplay.logger.warn("Failed to recover replay at path: $recording")
     }
 
-    private fun recoverReplayModReplay(recording: Path) {
-        val replay = ZipReplayFile(ReplayStudio(), recording.toFile())
+    private fun tryRecoverReplayModReplay(path: Path) {
+        val replay = ZipReplayFile(ReplayStudio(), path.toFile())
 
         try {
             // We need to update the duration listed in the
@@ -132,16 +142,30 @@ object RecorderRecoverer {
                 replay.writeMetaData(registry, meta)
             }
         } catch (e: IOException) {
-            ServerReplay.logger.error("Failed to update meta for unfinished replay $recording, your recording may be corrupted...", e)
+            ServerReplay.logger.error("Failed to update meta for unfinished replay $path, your recording may be corrupted...", e)
         }
 
         try {
-            replay.saveTo(recording.parent.resolve(recording.name + ".mcpr").toFile())
+            replay.saveTo(path.parent.resolve(path.name + ".mcpr").toFile())
             replay.close()
-            ReplayModIO.deleteCaches(recording)
-            ServerReplay.logger.info("Successfully recovered recording $recording")
+            ReplayModIO.deleteCaches(path)
+            ServerReplay.logger.info("Successfully recovered recording $path")
         } catch (_: IOException) {
-            ServerReplay.logger.error("Failed to write unfinished replay $recording")
+            ServerReplay.logger.error("Failed to write unfinished replay mod replay $path")
+        }
+    }
+
+    @OptIn(ExperimentalPathApi::class)
+    private fun tryRecoverFlashbackReplay(path: Path) {
+        try {
+            FileUtils.zip(path, path.parent.resolve(path.name + ".zip"))
+            try {
+                path.deleteRecursively()
+            } catch (e: IOException) {
+                ServerReplay.logger.warn("Successfully zipped flashback replay, but failed to delete raw recording", e)
+            }
+        } catch (_: IOException) {
+            ServerReplay.logger.error("Failed to write unfinished flashback replay $path")
         }
     }
 
@@ -157,16 +181,15 @@ object RecorderRecoverer {
     }
 
     private fun read(): MutableSet<Path> {
-        if (!this.path.exists()) {
-            return HashSet()
-        }
-        try {
-            this.path.inputStream().use {
-                return HashSet(Json.decodeFromStream(SetSerializer(PathSerializer), it))
+        if (this.path.exists()) {
+            try {
+                this.path.inputStream().use {
+                    return HashSet(Json.decodeFromStream(SetSerializer(PathSerializer), it))
+                }
+            } catch (e: Exception) {
+                ServerReplay.logger.error("Failed to read replay recordings", e)
             }
-        } catch (e: Exception) {
-            ServerReplay.logger.error("Failed to read replay recordings", e)
-            return HashSet()
         }
+        return HashSet()
     }
 }

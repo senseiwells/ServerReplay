@@ -30,7 +30,7 @@ However, there are also some downsides and known issues:
 - Player recordings may not be 100% consistent with the client [Replay Mod](https://www.replaymod.com/) or [Flashback](https://modrinth.com/mod/flashback).
 - ServerReplay isn't really designed for heavily modded servers. 
   More complex mods that implement their own packets may not be compatible.
-  - If you encounter any compatability issues, please submit an issue.
+  - If you encounter any compatibility issues, please submit an issue.
 
 ## Usage
 

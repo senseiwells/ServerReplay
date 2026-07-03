@@ -124,7 +124,29 @@ publishing {
 }
 
 fun createProjectDescription(): String {
-    val description = file("README.md").readText()
-    description.replaceFirst("./README_cn.md", "https://github.com/senseiwells/ServerReplay/blob/HEAD/README_cn.md")
-    return description
+    val description = StringBuilder(file("README.md").readText())
+
+    fun replaceTranslations() {
+        val regex = Regex("""\./README_(.+)\.md""")
+        for (result in regex.findAll(description)) {
+            val range = result.groups[0]!!.range
+            val lang = result.groups[1]!!.value
+            val url = "https://github.com/senseiwells/ServerReplay/blob/HEAD/README_${lang}.md"
+            description.replace(range.first, range.last + 1, url)
+        }
+    }
+
+    fun replaceNotes() {
+        val regex = Regex("""\[!([A-Z]+)\]""")
+        for (result in regex.findAll(description)) {
+            val range = result.groups[0]!!.range
+            val type = result.groups[1]!!.value
+            val formatted = type.lowercase().replaceFirstChar { c -> c.uppercase() }
+            description.replace(range.first, range.last + 1, "$formatted:")
+        }
+    }
+
+    replaceTranslations()
+    replaceNotes()
+    return description.toString()
 }

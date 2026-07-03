@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.4.3"
+val modVersion = "3.5.0"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -31,25 +31,14 @@ dependencies {
     implementation(libs.fabric.api)
     implementation(libs.fabric.kotlin)
 
-    include(implementation(libs.arcade.replay.get())!!)
-    include(implementation(libs.arcade.commands.get())!!)
-    include(implementation(libs.arcade.event.registry.get())!!)
-    include(implementation(libs.arcade.events.server.get())!!)
-    include(implementation(libs.arcade.interceptor.get())!!)
-    include(implementation(libs.arcade.rph.get())!!)
-    include(implementation(libs.arcade.utils.get())!!)
-
-    include(implementation(libs.permissions.get())!!)
+    include(libs.bundles.arcade)
+    implementation(libs.bundles.arcade)
 }
 
 loom {
     runs {
         getByName("server") {
-            runDir = "run/${libs.versions.minecraft.get()}"
-        }
-
-        getByName("client") {
-            runDir = "run/client"
+            runDirectory.set(file("run/${libs.versions.minecraft.get()}"))
         }
     }
 }
@@ -75,7 +64,8 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Fix an issue with flashback replays not writing properly on some systems
+            - Update to 26.2
+              - Temporarily removed replay mod support (until replay mod updates)
             """.trimIndent()
         )
         type = STABLE
@@ -89,14 +79,17 @@ tasks {
             projectId = "qCvSZ8ra"
             minecraftVersions.add(libs.versions.minecraft)
 
+            file("README.md")
+            projectDescription.set(createProjectDescription())
+
             requires {
-                id = "P7dR8mSH"
+                slug = "fabric-api"
             }
             requires {
-                id = "Ha28R6CL"
+                slug = "fabric-language-kotlin"
             }
             optional {
-                id = "Vebnzrzj"
+                slug = "luckperms"
             }
         }
     }
@@ -128,4 +121,10 @@ publishing {
             }
         }
     }
+}
+
+fun createProjectDescription(): String {
+    val description = file("README.md").readText()
+    description.replaceFirst("./README_cn.md", "https://github.com/senseiwells/ServerReplay/blob/HEAD/README_cn.md")
+    return description
 }

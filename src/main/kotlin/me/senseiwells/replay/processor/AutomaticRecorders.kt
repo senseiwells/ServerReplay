@@ -10,7 +10,7 @@ import net.casual.arcade.events.server.player.PlayerLoginEvent
 import net.casual.arcade.replay.recorder.chunk.ChunkArea
 import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders
-import net.casual.arcade.utils.toKey
+import net.casual.arcade.utils.registries.toKey
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.Connection
 import net.minecraft.server.MinecraftServer

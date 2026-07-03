@@ -1,22 +1,19 @@
 [versions]
-minecraft     = "26.1"
-fabric-loader = "0.18.5"
-parchment     = "1.21.10:2025.10.12"
-fabric-api    = "0.145.3+26.1.1"
-fabric-kotlin = "1.13.9+kotlin.2.3.10"
-permissions   = "0.7.0"
-arcade        = "0.9.0-beta.36+26.1.1"
+minecraft     = "26.2"
+fabric-loader = "0.19.3"
+fabric-api    = "0.152.1+26.2"
+fabric-kotlin = "1.13.12+kotlin.2.4.0"
+arcade        = "0.10.0-beta.11+26.2"
 
 # Plugins
-fabric-loom   = "1.15-SNAPSHOT"
-mod-publish   = "1.1.0"
+fabric-loom   = "1.17-SNAPSHOT"
+mod-publish   = "2.1.1"
 
 [libraries]
 minecraft             = { module = "com.mojang:minecraft"                             , version.ref = "minecraft" }
 fabric-loader         = { module = "net.fabricmc:fabric-loader"                       , version.ref = "fabric-loader" }
 fabric-api            = { module = "net.fabricmc.fabric-api:fabric-api"               , version.ref = "fabric-api" }
 fabric-kotlin         = { module = "net.fabricmc:fabric-language-kotlin"              , version.ref = "fabric-kotlin" }
-permissions           = { module = "me.lucko:fabric-permissions-api"                  , version.ref = "permissions" }
 arcade-replay         = { module = "net.casualchampionships:arcade-replay"            , version.ref = "arcade" }
 arcade-commands       = { module = "net.casualchampionships:arcade-commands"          , version.ref = "arcade" }
 arcade-event-registry = { module = "net.casualchampionships:arcade-event-registry"    , version.ref = "arcade" }
@@ -24,6 +21,9 @@ arcade-events-server  = { module = "net.casualchampionships:arcade-events-server
 arcade-rph            = { module = "net.casualchampionships:arcade-resource-pack-host", version.ref = "arcade" }
 arcade-interceptor    = { module = "net.casualchampionships:arcade-interceptor"       , version.ref = "arcade" }
 arcade-utils          = { module = "net.casualchampionships:arcade-utils"             , version.ref = "arcade" }
+
+[bundles]
+arcade = ["arcade-replay", "arcade-commands", "arcade-event-registry", "arcade-events-server", "arcade-rph", "arcade-interceptor", "arcade-utils"]
 
 [plugins]
 fabric-loom = { id = "net.fabricmc.fabric-loom"       , version.ref = "fabric-loom" }

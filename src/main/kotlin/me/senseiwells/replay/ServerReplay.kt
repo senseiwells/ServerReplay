@@ -13,9 +13,11 @@ import net.casual.arcade.events.server.ServerRegisterCommandEvent
 import net.casual.arcade.interceptor.ArcadeInterceptors
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.io.ReplayFormat
+import net.casual.arcade.utils.Identifier
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
+import net.minecraft.resources.Identifier
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -31,6 +33,10 @@ object ServerReplay: ModInitializer {
     @JvmStatic
     var config: ReplayConfig = ReplayConfig()
         private set
+
+    fun id(path: String): Identifier {
+        return Identifier(MOD_ID, path)
+    }
 
     override fun onInitialize() {
         this.logger.info("Launching ServerReplay!")
@@ -75,7 +81,8 @@ object ServerReplay: ModInitializer {
         if (!current.supported) {
             this.logger.warn("Default replay format is currently set to $current, which is not yet supported")
             this.logger.warn("Falling back onto a supported format!")
-            this.updateConfig { it.copy(defaultReplayFormat = ReplayFormat.Flashback) }
+            val supported = ReplayFormat.entries.first { format -> format.supported }
+            this.updateConfig { it.copy(defaultReplayFormat = supported) }
         }
     }
 

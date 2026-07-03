@@ -1,7 +1,6 @@
 package me.senseiwells.replay.processor
 
 import me.senseiwells.replay.ServerReplay
-import net.casual.arcade.commands.singleUseFunction
 import net.casual.arcade.events.GlobalEventHandler
 import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.replay.events.*
@@ -10,6 +9,8 @@ import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderUnloadedPauseEve
 import net.casual.arcade.replay.io.ReplayFormat
 import net.casual.arcade.replay.util.FileUtils
 import net.casual.arcade.replay.viewer.ReplayViewers
+import net.casual.arcade.utils.component.event.ClickEventCallback
+import net.casual.arcade.utils.component.function
 import net.casual.arcade.utils.component.hover
 import net.casual.arcade.utils.component.lime
 import net.casual.arcade.utils.player.broadcast
@@ -73,7 +74,10 @@ object RecorderNotifier {
         val output = event.output
         val clickable = Component.literal("$output").lime()
             .hover(Component.literal("Click to view replay"))
-            .singleUseFunction { this.tryViewReplay(it.player, output) }
+            .function { player ->
+                this.tryViewReplay(player, output)
+                ClickEventCallback.Result.Consume
+            }
 
         val message = Component.empty()
             .append("Successfully saved replay ${recorder.getName()} to ")

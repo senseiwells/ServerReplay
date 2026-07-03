@@ -1,4 +1,4 @@
-# <img src="./src/main/resources/assets/server-replay/icon.png" align="center" width="64px"/> Server Replay
+# <img src="https://github.com/senseiwells/ServerReplay/blob/HEAD/src/main/resources/assets/server-replay/icon.png?raw=true" align="center" width="64px"/> Server Replay
 
 **English** | [中文](./README_cn.md)
 

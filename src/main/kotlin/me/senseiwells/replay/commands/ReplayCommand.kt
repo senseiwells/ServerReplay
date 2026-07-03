@@ -10,7 +10,6 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import me.lucko.fabric.api.permissions.v0.Permissions
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.http.ReplayDownloaderInterceptor
 import me.senseiwells.replay.processor.RecorderWarner
@@ -46,7 +45,7 @@ import kotlin.io.path.*
 object ReplayCommand: CommandTree<CommandSourceStack> {
     override fun create(buildContext: CommandBuildContext): LiteralArgumentBuilder<CommandSourceStack> {
         return CommandTree.buildLiteral("replay") {
-            requires { Permissions.check(it, "server-replay.commands.replay", PermissionLevel.OWNERS) }
+            requiresPermission(ServerReplay.id("commands.replay"), PermissionLevel.GAMEMASTERS)
             literal("start") {
                 literal("players") {
                     argument("players", EntityArgument.players()) {

@@ -4,9 +4,9 @@ import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.predicates.ReplayPlayerContext
 import net.casual.arcade.events.GlobalEventHandler
-import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerStartEvent
 import net.casual.arcade.events.server.player.PlayerLoginEvent
+import net.casual.arcade.events.utils.register
 import net.casual.arcade.replay.recorder.chunk.ChunkArea
 import net.casual.arcade.replay.recorder.chunk.ReplayChunkRecorders
 import net.casual.arcade.replay.recorder.player.ReplayPlayerRecorders

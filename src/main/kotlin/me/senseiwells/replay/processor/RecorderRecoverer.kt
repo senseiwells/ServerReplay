@@ -14,16 +14,15 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.config.serialization.PathSerializer
 import net.casual.arcade.events.GlobalEventHandler
-import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerStartEvent
 import net.casual.arcade.events.server.ServerStopEvent
+import net.casual.arcade.events.utils.register
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.events.ReplayRecorderStopEvent
 import net.casual.arcade.replay.io.FlashbackIO
 import net.casual.arcade.replay.io.ReplayModIO
 import net.casual.arcade.replay.recorder.ReplayRecorder
 import net.casual.arcade.replay.util.FileUtils
-import net.casual.arcade.utils.coroutine.getCoroutineScope
 import java.io.EOFException
 import java.io.IOException
 import java.nio.file.Path
@@ -41,7 +40,6 @@ object RecorderRecoverer {
 
     internal fun registerEvents() {
         GlobalEventHandler.Server.register<ServerStartEvent> {
-            it.server.getCoroutineScope()
             this.tryRecoverReplays()
         }
         GlobalEventHandler.Server.register<ServerStopEvent>(phase = ServerStopEvent.PHASE_POST) {

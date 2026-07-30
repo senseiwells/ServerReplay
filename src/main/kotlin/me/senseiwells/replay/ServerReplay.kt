@@ -8,8 +8,8 @@ import me.senseiwells.replay.http.ReplayDownloaderInterceptor
 import me.senseiwells.replay.processor.*
 import net.casual.arcade.commands.register
 import net.casual.arcade.events.GlobalEventHandler
-import net.casual.arcade.events.ListenerRegistry.Companion.register
 import net.casual.arcade.events.server.ServerRegisterCommandEvent
+import net.casual.arcade.events.utils.register
 import net.casual.arcade.interceptor.ArcadeInterceptors
 import net.casual.arcade.replay.events.ReplayRecorderStartEvent
 import net.casual.arcade.replay.io.ReplayFormat

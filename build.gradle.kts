@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.5.0"
+val modVersion = "3.5.1"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -64,8 +64,9 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Update to 26.2
-              - Temporarily removed replay mod support (until replay mod updates)
+            - Re-enable replay-mod support
+            - Fix automatic flashback recordings not playing back
+            - Fix a few other minor bugs
             """.trimIndent()
         )
         type = STABLE

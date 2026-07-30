@@ -2,7 +2,7 @@ package me.senseiwells.replay.processor
 
 import me.senseiwells.replay.ServerReplay
 import net.casual.arcade.events.GlobalEventHandler
-import net.casual.arcade.events.ListenerRegistry.Companion.register
+import net.casual.arcade.events.utils.register
 import net.casual.arcade.replay.events.*
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderLoadedResumeEvent
 import net.casual.arcade.replay.events.chunk.ReplayChunkRecorderUnloadedPauseEvent

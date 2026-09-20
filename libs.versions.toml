@@ -1,13 +1,13 @@
 [versions]
-minecraft     = "26.2"
-fabric-loader = "0.19.3"
-fabric-api    = "0.152.1+26.2"
+minecraft     = "26.3"
+fabric-loader = "0.19.5"
+fabric-api    = "0.160.2+26.3"
 fabric-kotlin = "1.13.12+kotlin.2.4.0"
-arcade        = "0.13.0-beta.6+26.2"
+arcade        = "0.14.0-beta.5+26.3"
 
 # Plugins
 fabric-loom   = "1.17-SNAPSHOT"
-mod-publish   = "2.1.1"
+mod-publish   = "2.2.0"
 
 [libraries]
 minecraft             = { module = "com.mojang:minecraft"                             , version.ref = "minecraft" }
@@ -18,12 +18,13 @@ arcade-replay         = { module = "net.casualchampionships:arcade-replay"      
 arcade-commands       = { module = "net.casualchampionships:arcade-commands"          , version.ref = "arcade" }
 arcade-event-registry = { module = "net.casualchampionships:arcade-event-registry"    , version.ref = "arcade" }
 arcade-events-server  = { module = "net.casualchampionships:arcade-events-server"     , version.ref = "arcade" }
+arcade-resource-pack  = { module = "net.casualchampionships:arcade-resource-pack"     , version.ref = "arcade" }
 arcade-rph            = { module = "net.casualchampionships:arcade-resource-pack-host", version.ref = "arcade" }
 arcade-interceptor    = { module = "net.casualchampionships:arcade-interceptor"       , version.ref = "arcade" }
 arcade-utils          = { module = "net.casualchampionships:arcade-utils"             , version.ref = "arcade" }
 
 [bundles]
-arcade = ["arcade-replay", "arcade-commands", "arcade-event-registry", "arcade-events-server", "arcade-rph", "arcade-interceptor", "arcade-utils"]
+arcade = ["arcade-replay", "arcade-commands", "arcade-event-registry", "arcade-events-server", "arcade-resource-pack", "arcade-rph", "arcade-interceptor", "arcade-utils"]
 
 [plugins]
 fabric-loom = { id = "net.fabricmc.fabric-loom"       , version.ref = "fabric-loom" }

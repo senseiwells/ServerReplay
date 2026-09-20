@@ -9,7 +9,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.casual.arcade.commands.CommandTree
 import net.casual.arcade.commands.argument
 import net.casual.arcade.commands.literal
-import net.casual.arcade.replay.ducks.ResourcePackTracker
+import net.casual.arcade.pack.utils.ResourcePackUtils.getAllPackStates
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.SharedSuggestionProvider
@@ -66,13 +66,12 @@ object PackCommand: CommandTree<CommandSourceStack> {
         return Command.SINGLE_SUCCESS
     }
 
-    @Suppress("UnstableApiUsage")
     private fun suggestPacks(
         context: CommandContext<CommandSourceStack>,
         builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
         val player = context.source.player ?: return Suggestions.empty()
-        val packs = (player.connection as ResourcePackTracker).arcade_getPacks()
-        return SharedSuggestionProvider.suggest(packs.map { it.id.toString() }, builder)
+        val packs = player.getAllPackStates().map { state -> state.info.uuid.toString() }
+        return SharedSuggestionProvider.suggest(packs, builder)
     }
 }

@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.5.2"
+val modVersion = "3.6.0-beta.1"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -64,10 +64,11 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Update dependencies
+            - Update to 26.3
+            - Temporary remove ReplayMod support until it is updated to 26.3
             """.trimIndent()
         )
-        type = STABLE
+        type = BETA
         modLoaders.add("fabric")
 
         displayName = "ServerReplay $modVersion for ${libs.versions.minecraft.get()}"
@@ -78,7 +79,6 @@ tasks {
             projectId = "qCvSZ8ra"
             minecraftVersions.add(libs.versions.minecraft)
 
-            file("README.md")
             projectDescription.set(createProjectDescription())
 
             requires {

@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.serialization").version(jvmVersion)
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
+    alias(libs.plugins.joystick)
     `maven-publish`
     java
 }
@@ -19,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.6.0-beta.1"
+val modVersion = "3.6.0-beta.3"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -30,9 +31,11 @@ dependencies {
     implementation(libs.fabric.loader)
     implementation(libs.fabric.api)
     implementation(libs.fabric.kotlin)
+}
 
-    include(libs.bundles.arcade)
-    implementation(libs.bundles.arcade)
+arcade {
+    version = libs.versions.arcade
+    modules("replay", "resource-pack", "interceptor", "commands", "events-server")
 }
 
 loom {
@@ -64,8 +67,7 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Update to 26.3
-            - Temporary remove ReplayMod support until it is updated to 26.3
+            - Fixed a crashing bug
             """.trimIndent()
         )
         type = BETA

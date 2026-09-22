@@ -5,11 +5,8 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import kotlinx.coroutines.*
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.SetSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
-import kotlinx.serialization.json.encodeToStream
+import me.senseiwells.config.JsonConfigFile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.config.serialization.PathSerializer
@@ -28,10 +25,15 @@ import java.io.IOException
 import java.nio.file.Path
 import kotlin.io.path.*
 
-@OptIn(ExperimentalSerializationApi::class)
 object RecorderRecoverer {
-    private val path = ReplayConfig.resolve("recordings.json")
-    private val recordings = this.read()
+    private val file = JsonConfigFile.create(
+        ReplayConfig.resolve("recordings.json"),
+        SetSerializer(PathSerializer),
+        { emptySet() },
+        logger = ServerReplay.logger
+    )
+
+    private val recordings = HashSet(this.file.read())
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() +  CoroutineExceptionHandler { _, throwable ->
         ServerReplay.logger.error("Uncaught exception while trying to recover replay", throwable)
@@ -168,26 +170,6 @@ object RecorderRecoverer {
     }
 
     private fun write() {
-        try {
-            this.path.createParentDirectories()
-            this.path.outputStream().use {
-                Json.encodeToStream(SetSerializer(PathSerializer), this.recordings, it)
-            }
-        } catch (e: Exception) {
-            ServerReplay.logger.error("Failed to write unfinished recorders", e)
-        }
-    }
-
-    private fun read(): MutableSet<Path> {
-        if (this.path.exists()) {
-            try {
-                this.path.inputStream().use {
-                    return HashSet(Json.decodeFromStream(SetSerializer(PathSerializer), it))
-                }
-            } catch (e: Exception) {
-                ServerReplay.logger.error("Failed to read replay recordings", e)
-            }
-        }
-        return HashSet()
+        this.file.write(this.recordings)
     }
 }

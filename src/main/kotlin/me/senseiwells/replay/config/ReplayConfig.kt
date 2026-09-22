@@ -3,10 +3,8 @@ package me.senseiwells.replay.config
 import com.mojang.authlib.GameProfile
 import kotlinx.serialization.*
 import kotlinx.serialization.EncodeDefault.Mode
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNames
-import kotlinx.serialization.json.decodeFromStream
-import kotlinx.serialization.json.encodeToStream
+import me.senseiwells.config.JsonConfigFile
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.config.chunk.ChunkAreaConfig
 import me.senseiwells.replay.config.predicates.NonePredicate
@@ -22,10 +20,7 @@ import net.casual.arcade.utils.serialization.codec.ArcadeExtraCodecs
 import net.casual.arcade.utils.serialization.kotlin.CodecSerializersModule
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.resources.Identifier
-import org.apache.commons.lang3.SerializationException
-import java.io.IOException
 import java.nio.file.Path
-import kotlin.io.path.*
 import kotlin.time.Duration
 
 @Serializable
@@ -165,14 +160,12 @@ data class ReplayConfig(
         private val recordings = FabricLoader.getInstance().configDir.resolveSibling("recordings")
 
         private val root = FabricLoader.getInstance().configDir.resolve("server-replay")
-        private val config = this.root.resolve("config.json")
 
-        private val json = Json {
-            encodeDefaults = true
-            prettyPrint = true
-            prettyPrintIndent = "  "
-            ignoreUnknownKeys = true
-
+        private val file = JsonConfigFile.create(
+            this.root.resolve("config.json"),
+            ::ReplayConfig,
+            logger = ServerReplay.logger
+        ) {
             serializersModule = CodecSerializersModule {
                 contextual(FileSize.STRING_CODEC)
                 contextual(Identifier.CODEC)
@@ -189,50 +182,17 @@ data class ReplayConfig(
 
         @JvmStatic
         fun read(): ReplayConfig {
-            if (!this.config.exists()) {
-                ServerReplay.logger.info("Generating default config")
-                val config = ReplayConfig()
-                this.write(config)
-                return config
-            }
-            try {
-                return this.config.inputStream().use {
-                    json.decodeFromStream(it)
-                }
-            } catch (e: Exception) {
-                ServerReplay.logger.error("Failed to read replay config, generating default", e)
-                val config = ReplayConfig()
-                this.write(config)
-                return config
-            }
+            return this.file.read()
         }
 
         @JvmStatic
         fun write(config: ReplayConfig) {
-            try {
-                this.config.createParentDirectories()
-                this.config.outputStream().use {
-                    json.encodeToStream(config, it)
-                }
-            } catch (e: IOException) {
-                ServerReplay.logger.error("Failed to write replay config", e)
-            } catch (e: SerializationException) {
-                ServerReplay.logger.error("Failed to serialize replay config", e)
-            }
+            this.file.write(config)
         }
 
         @Deprecated("Temporary function to migrate old configs")
-        @OptIn(ExperimentalPathApi::class)
         internal fun migrateOldConfigs() {
-            val oldPath = this.root.resolveSibling("ServerReplay")
-            try {
-                if (oldPath.isDirectory()) {
-                    oldPath.copyToRecursively(this.root, overwrite = false, followLinks = true)
-                    oldPath.deleteRecursively()
-                }
-            } catch (_: IOException) {
-                ServerReplay.logger.error("Failed to migrate ServerReplay configs!")
-            }
+            JsonConfigFile.moveDirectory(this.root.resolveSibling("ServerReplay"), this.root, ServerReplay.logger)
         }
     }
 }

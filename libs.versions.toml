@@ -8,15 +8,15 @@ arcade        = "0.14.0-beta.7+26.3"
 # Plugins
 fabric-loom   = "1.17-SNAPSHOT"
 mod-publish   = "2.2.0"
-joystick      = "1.0.1"
+joystick      = "1.0.3"
 
 [libraries]
-minecraft             = { module = "com.mojang:minecraft"                             , version.ref = "minecraft" }
-fabric-loader         = { module = "net.fabricmc:fabric-loader"                       , version.ref = "fabric-loader" }
-fabric-api            = { module = "net.fabricmc.fabric-api:fabric-api"               , version.ref = "fabric-api" }
-fabric-kotlin         = { module = "net.fabricmc:fabric-language-kotlin"              , version.ref = "fabric-kotlin" }
+minecraft     = { module = "com.mojang:minecraft"               , version.ref = "minecraft" }
+fabric-loader = { module = "net.fabricmc:fabric-loader"         , version.ref = "fabric-loader" }
+fabric-api    = { module = "net.fabricmc.fabric-api:fabric-api" , version.ref = "fabric-api" }
+fabric-kotlin = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin" }
 
 [plugins]
-fabric-loom = { id = "net.fabricmc.fabric-loom"       , version.ref = "fabric-loom" }
-mod-publish = { id = "me.modmuss50.mod-publish-plugin", version.ref = "mod-publish" }
-joystick    = { id = "net.casualchampionships.joystick"   , version.ref = "joystick" }
+fabric-loom = { id = "net.fabricmc.fabric-loom"        , version.ref = "fabric-loom" }
+mod-publish = { id = "me.modmuss50.mod-publish-plugin" , version.ref = "mod-publish" }
+joystick    = { id = "net.casualchampionships.joystick", version.ref = "joystick" }

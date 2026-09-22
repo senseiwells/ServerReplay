@@ -14,7 +14,6 @@ plugins {
 
 repositories {
     mavenLocal()
-    maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://jitpack.io")
     mavenCentral()

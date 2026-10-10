@@ -20,7 +20,7 @@ repositories {
     mavenCentral()
 }
 
-val modVersion = "3.6.0-beta.3"
+val modVersion = "3.6.0-beta.5"
 val releaseVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -44,6 +44,7 @@ loom {
     runs {
         getByName("server") {
             runDirectory.set(file("run/${libs.versions.minecraft.get()}"))
+            generateRunConfig = true
         }
     }
 }
@@ -69,7 +70,8 @@ tasks {
         file = jar.get().archiveFile
         changelog.set(
             """
-            - Fixed a crashing bug
+            - Fixed an issue where resource packs will never load
+              for a player joining if the server is paused
             """.trimIndent()
         )
         type = BETA
